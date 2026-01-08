@@ -230,10 +230,36 @@ export default function GuestMeetingRoom() {
         isInitializingRef.current = false;
       });
 
+      // Handle non-fatal errors like screen share issues
+      call.on("nonfatal-error", (error) => {
+        console.warn("Daily non-fatal error:", error);
+        if (error?.type === "screen-share-error") {
+          console.log("Screen share error occurred");
+          setIsScreenSharing(false);
+        }
+      });
+
       call.on("left-meeting", () => {
         setParticipants({});
         callObjectRef.current = null;
         isInitializingRef.current = false;
+      });
+
+      // Screen share events
+      call.on("local-screen-share-started", () => {
+        console.log("Screen share started event received");
+        setIsScreenSharing(true);
+        toast.success("Compartilhamento de tela iniciado");
+      });
+
+      call.on("local-screen-share-stopped", () => {
+        console.log("Screen share stopped event received");
+        setIsScreenSharing(false);
+      });
+
+      call.on("local-screen-share-canceled", () => {
+        console.log("Screen share canceled by user");
+        setIsScreenSharing(false);
       });
 
       await call.join({
@@ -629,7 +655,10 @@ export default function GuestMeetingRoom() {
   }, [isVideoOn, callObject, meeting, guestInfo, globalVideoEnabled]);
 
   const toggleScreenShare = async () => {
-    if (!callObject) return;
+    if (!callObject) {
+      toast.error("Conexão não estabelecida");
+      return;
+    }
     
     if (!globalScreenShareEnabled) {
       toast.error("O anfitrião desativou o compartilhamento de tela");
@@ -639,14 +668,19 @@ export default function GuestMeetingRoom() {
     try {
       if (isScreenSharing) {
         await callObject.stopScreenShare();
-        setIsScreenSharing(false);
+        // State will be updated by event listener
       } else {
         await callObject.startScreenShare();
-        setIsScreenSharing(true);
+        // State will be updated by event listener
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error("Error toggling screen share:", err);
-      toast.error("Erro ao compartilhar tela");
+      // Handle user cancellation (not an error)
+      if (err?.message?.includes("NotAllowedError") || err?.type === "screen-share-error") {
+        console.log("Screen share cancelled by user or browser");
+        return;
+      }
+      toast.error("Erro ao compartilhar tela. Verifique as permissões do navegador.");
     }
   };
 

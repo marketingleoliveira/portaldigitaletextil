@@ -243,6 +243,15 @@ export default function MeetingRoom() {
         isInitializingRef.current = false;
       });
 
+      // Handle non-fatal errors like screen share issues
+      call.on("nonfatal-error", (error) => {
+        console.warn("Daily non-fatal error:", error);
+        if (error?.type === "screen-share-error") {
+          console.log("Screen share error occurred");
+          setIsScreenSharing(false);
+        }
+      });
+
       call.on("left-meeting", () => {
         setParticipants({});
         callObjectRef.current = null;
@@ -251,12 +260,18 @@ export default function MeetingRoom() {
 
       // Screen share events
       call.on("local-screen-share-started", () => {
-        console.log("Screen share started");
+        console.log("Screen share started event received");
         setIsScreenSharing(true);
+        toast.success("Compartilhamento de tela iniciado");
       });
 
       call.on("local-screen-share-stopped", () => {
-        console.log("Screen share stopped");
+        console.log("Screen share stopped event received");
+        setIsScreenSharing(false);
+      });
+
+      call.on("local-screen-share-canceled", () => {
+        console.log("Screen share canceled by user");
         setIsScreenSharing(false);
       });
 
