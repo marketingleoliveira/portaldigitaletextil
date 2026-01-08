@@ -356,13 +356,21 @@ export default function MeetingRoom() {
   useEffect(() => {
     if (!meeting?.id) return;
 
+    // Get local participant session ID
+    const getLocalSessionId = () => {
+      if (!callObject) return null;
+      const localParticipant = callObject.participants().local;
+      return localParticipant?.session_id;
+    };
+
     const channel = supabase
       .channel(`meeting-controls-${meeting.id}`)
       .on(
         'broadcast',
         { event: 'host_control' },
         (payload) => {
-          const { action, enabled } = payload.payload;
+          const { action, enabled, targetSessionId } = payload.payload;
+          const localSessionId = getLocalSessionId();
           
           if (action === 'toggle_all_audio' && !isHost) {
             if (!enabled && callObject) {
@@ -385,7 +393,19 @@ export default function MeetingRoom() {
             }
             setGlobalScreenShareEnabled(enabled);
             if (!enabled && !isHost) {
-              toast.info("O anfitrião desativou o compartilhamento de tela");
+              toast.info("Somente o anfitrião pode compartilhar tela");
+            }
+          } else if (action === 'mute_participant' && targetSessionId === localSessionId) {
+            if (callObject) {
+              callObject.setLocalAudio(false);
+              setIsMuted(true);
+              toast.info("O anfitrião desativou seu microfone");
+            }
+          } else if (action === 'disable_camera' && targetSessionId === localSessionId) {
+            if (callObject) {
+              callObject.setLocalVideo(false);
+              setIsVideoOn(false);
+              toast.info("O anfitrião desativou sua câmera");
             }
           }
         }
@@ -398,6 +418,8 @@ export default function MeetingRoom() {
   }, [meeting?.id, isHost, callObject, isScreenSharing]);
 
   // Subscribe to floating reactions via realtime
+  const reactionsChannelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
+  
   useEffect(() => {
     if (!meeting?.id) return;
 
@@ -423,9 +445,14 @@ export default function MeetingRoom() {
           }, 3000);
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        if (status === 'SUBSCRIBED') {
+          reactionsChannelRef.current = channel;
+        }
+      });
 
     return () => {
+      reactionsChannelRef.current = null;
       supabase.removeChannel(channel);
     };
   }, [meeting?.id]);
@@ -731,7 +758,33 @@ export default function MeetingRoom() {
       payload: { action: 'toggle_screen_share', enabled: newEnabled }
     });
     
-    toast.success(newEnabled ? "Compartilhamento de tela liberado" : "Compartilhamento de tela desativado");
+    toast.success(newEnabled ? "Compartilhamento de tela liberado para todos" : "Somente o anfitrião pode compartilhar tela");
+  };
+
+  // Mute a specific participant
+  const muteParticipant = async (sessionId: string, participantName: string) => {
+    if (!meeting || !isHost) return;
+    
+    await supabase.channel(`meeting-controls-${meeting.id}`).send({
+      type: 'broadcast',
+      event: 'host_control',
+      payload: { action: 'mute_participant', targetSessionId: sessionId }
+    });
+    
+    toast.success(`Microfone de ${participantName} desativado`);
+  };
+
+  // Disable camera of a specific participant
+  const disableParticipantCamera = async (sessionId: string, participantName: string) => {
+    if (!meeting || !isHost) return;
+    
+    await supabase.channel(`meeting-controls-${meeting.id}`).send({
+      type: 'broadcast',
+      event: 'host_control',
+      payload: { action: 'disable_camera', targetSessionId: sessionId }
+    });
+    
+    toast.success(`Câmera de ${participantName} desativada`);
   };
 
   const sendMessage = async () => {
@@ -766,7 +819,10 @@ export default function MeetingRoom() {
   const sendReaction = async (emoji: string) => {
     if (!meeting || !user) return;
 
-    await supabase.channel(`meeting-reactions-${meeting.id}`).send({
+    // Use the subscribed channel or create a temporary one
+    const channel = reactionsChannelRef.current || supabase.channel(`meeting-reactions-${meeting.id}`);
+    
+    await channel.send({
       type: 'broadcast',
       event: 'reaction',
       payload: {
@@ -775,6 +831,19 @@ export default function MeetingRoom() {
         senderId: user.id
       }
     });
+    
+    // Also show locally immediately for the sender
+    const newReaction: FloatingReaction = {
+      id: `${user.id}-${Date.now()}-${reactionIdCounter.current++}`,
+      emoji,
+      x: Math.random() * 60 + 20,
+      userName: user.profile?.full_name || "Participante"
+    };
+    setFloatingReactions(prev => [...prev, newReaction]);
+    
+    setTimeout(() => {
+      setFloatingReactions(prev => prev.filter(r => r.id !== newReaction.id));
+    }, 3000);
   };
 
   const leaveMeeting = async () => {
@@ -1173,6 +1242,29 @@ export default function MeetingRoom() {
                   <div className="space-y-4">
                     {messages.map((msg) => {
                       const isEmote = EMOTES.includes(msg.message);
+                      // Convert URLs to clickable links
+                      const renderMessageWithLinks = (text: string) => {
+                        const urlRegex = /(https?:\/\/[^\s]+)/g;
+                        const parts = text.split(urlRegex);
+                        return parts.map((part, index) => {
+                          if (part.match(urlRegex)) {
+                            return (
+                              <a
+                                key={index}
+                                href={part}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-blue-400 hover:text-blue-300 underline break-all"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                {part}
+                              </a>
+                            );
+                          }
+                          return part;
+                        });
+                      };
+                      
                       return (
                         <div key={msg.id} className={cn(
                           "flex gap-2",
@@ -1199,7 +1291,9 @@ export default function MeetingRoom() {
                                   : "bg-muted"
                               )
                             )}>
-                              <p className={isEmote ? "" : "text-sm"}>{msg.message}</p>
+                              <p className={cn(isEmote ? "" : "text-sm", "break-words")}>
+                                {isEmote ? msg.message : renderMessageWithLinks(msg.message)}
+                              </p>
                             </div>
                             <p className="text-xs text-muted-foreground mt-1">
                               {format(new Date(msg.created_at), "HH:mm")}
@@ -1313,6 +1407,7 @@ export default function MeetingRoom() {
                 {Object.entries(participants).map(([sessionId, participant]) => {
                   const isSpeaking = speakingParticipants.has(sessionId);
                   const hasHandRaised = participant.local ? handRaised : raisedHands.has(sessionId);
+                  const isParticipantHost = participant.owner;
                   
                   return (
                     <div
@@ -1335,7 +1430,7 @@ export default function MeetingRoom() {
                             {isSpeaking && <Volume2 className="w-4 h-4 text-green-500 animate-pulse" />}
                           </p>
                           <div className="flex items-center gap-1">
-                            {participant.owner && (
+                            {isParticipantHost && (
                               <span className="text-xs text-primary">Anfitrião</span>
                             )}
                             {hasHandRaised && (
@@ -1350,10 +1445,44 @@ export default function MeetingRoom() {
                         {hasHandRaised && (
                           <Hand className="w-4 h-4 text-yellow-500 animate-bounce" />
                         )}
-                        {!participant.audio && (
+                        {/* Individual controls for host */}
+                        {isHost && !participant.local && !isParticipantHost && (
+                          <>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-7 w-7"
+                                  onClick={() => muteParticipant(sessionId, participant.user_name || "Participante")}
+                                  disabled={!participant.audio}
+                                >
+                                  <MicOff className="w-3.5 h-3.5 text-muted-foreground hover:text-destructive" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>Mutar participante</TooltipContent>
+                            </Tooltip>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-7 w-7"
+                                  onClick={() => disableParticipantCamera(sessionId, participant.user_name || "Participante")}
+                                  disabled={!participant.video}
+                                >
+                                  <VideoOff className="w-3.5 h-3.5 text-muted-foreground hover:text-destructive" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>Desativar câmera</TooltipContent>
+                            </Tooltip>
+                          </>
+                        )}
+                        {/* Status indicators */}
+                        {!isHost && !participant.audio && (
                           <MicOff className="w-4 h-4 text-red-500" />
                         )}
-                        {!participant.video && (
+                        {!isHost && !participant.video && (
                           <VideoOff className="w-4 h-4 text-red-500" />
                         )}
                       </div>
