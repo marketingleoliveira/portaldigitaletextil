@@ -68,48 +68,64 @@ serve(async (req) => {
     }
 
     if (action === "get") {
+      // First try to get the existing room
       const response = await fetch(
         `https://api.daily.co/v1/rooms/${dailyRoomName}`,
         { headers: { Authorization: `Bearer ${DAILY_API_KEY}` } }
       );
 
-      if (!response.ok) {
-        // Room doesn't exist, create it with sanitized name
-        const sanitizedName = dailyRoomName?.replace(/[^a-zA-Z0-9-]/g, '') || `room-${Date.now()}`;
-        console.log("Creating room with name:", sanitizedName);
-        
-        const createResponse = await fetch("https://api.daily.co/v1/rooms", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${DAILY_API_KEY}`,
-          },
-          body: JSON.stringify({
-            name: sanitizedName,
-            privacy: "public",
-            properties: {
-              enable_chat: true,
-              enable_screenshare: true,
-              start_video_off: false,
-              start_audio_off: false,
-              exp: Math.floor(Date.now() / 1000) + 3600 * 24,
-            },
-          }),
-        });
-
-        if (!createResponse.ok) {
-          const errorData = await createResponse.json().catch(() => ({}));
-          console.error("Daily.co create error:", JSON.stringify(errorData));
-          throw new Error(`Failed to create room: ${JSON.stringify(errorData)}`);
-        }
-
-        const room = await createResponse.json();
+      if (response.ok) {
+        const room = await response.json();
         return new Response(JSON.stringify({ url: room.url, name: room.name }), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
 
-      const room = await response.json();
+      // Room doesn't exist, create it
+      console.log("Room not found, creating:", dailyRoomName);
+      
+      const createResponse = await fetch("https://api.daily.co/v1/rooms", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${DAILY_API_KEY}`,
+        },
+        body: JSON.stringify({
+          name: dailyRoomName,
+          privacy: "public",
+          properties: {
+            enable_chat: true,
+            enable_screenshare: true,
+            start_video_off: false,
+            start_audio_off: false,
+            exp: Math.floor(Date.now() / 1000) + 3600 * 24,
+          },
+        }),
+      });
+
+      if (!createResponse.ok) {
+        const errorData = await createResponse.json().catch(() => ({}));
+        console.error("Daily.co create error:", JSON.stringify(errorData));
+        
+        // If room already exists (race condition), try to get it again
+        if (errorData.info?.includes("already exists") || errorData.error === "invalid-request-error") {
+          const retryResponse = await fetch(
+            `https://api.daily.co/v1/rooms/${dailyRoomName}`,
+            { headers: { Authorization: `Bearer ${DAILY_API_KEY}` } }
+          );
+          
+          if (retryResponse.ok) {
+            const room = await retryResponse.json();
+            return new Response(JSON.stringify({ url: room.url, name: room.name }), {
+              headers: { ...corsHeaders, "Content-Type": "application/json" },
+            });
+          }
+        }
+        
+        throw new Error(`Failed to create room: ${JSON.stringify(errorData)}`);
+      }
+
+      const room = await createResponse.json();
       return new Response(JSON.stringify({ url: room.url, name: room.name }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
