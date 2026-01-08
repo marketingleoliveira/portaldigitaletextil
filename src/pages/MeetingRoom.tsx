@@ -385,14 +385,13 @@ export default function MeetingRoom() {
 
   // Subscribe to host controls via realtime
   useEffect(() => {
-    if (!meeting?.id) return;
+    if (!meeting?.id || !callObject) return;
 
-    // Get local participant session ID
-    const getLocalSessionId = () => {
-      if (!callObject) return null;
-      const localParticipant = callObject.participants().local;
-      return localParticipant?.session_id;
-    };
+    // Get local participant session ID directly from callObject
+    const localParticipant = callObject.participants().local;
+    const localSessionId = localParticipant?.session_id;
+    
+    console.log('Setting up host controls listener. Local session ID:', localSessionId, 'isHost:', isHost);
 
     const channel = supabase
       .channel(`meeting-controls-${meeting.id}`)
@@ -401,10 +400,17 @@ export default function MeetingRoom() {
         { event: 'host_control' },
         (payload) => {
           const { action, enabled, targetSessionId } = payload.payload;
-          const localSessionId = getLocalSessionId();
           
-          console.log('Received host control:', { action, enabled, targetSessionId, localSessionId, isHost });
+          console.log('Received host control:', { 
+            action, 
+            enabled, 
+            targetSessionId, 
+            localSessionId, 
+            isHost,
+            match: targetSessionId === localSessionId 
+          });
           
+          // Global commands
           if (action === 'toggle_all_audio' && !isHost) {
             if (!enabled && callObject) {
               callObject.setLocalAudio(false);
@@ -428,23 +434,21 @@ export default function MeetingRoom() {
             if (!enabled && !isHost) {
               toast.info("Somente o anfitrião pode compartilhar tela");
             }
-          } else if (action === 'mute_participant' && targetSessionId && !isHost) {
-            // Check if this command is targeted at the current participant
-            if (targetSessionId === localSessionId && callObject) {
+          } 
+          // Individual commands - only process if we're not the host
+          else if (!isHost && targetSessionId && targetSessionId === localSessionId) {
+            console.log('Processing individual command for this participant:', action);
+            
+            if (action === 'mute_participant' && callObject) {
               callObject.setLocalAudio(false);
               setIsMuted(true);
               toast.info("O anfitrião desativou seu microfone");
-            }
-          } else if (action === 'disable_camera' && targetSessionId && !isHost) {
-            if (targetSessionId === localSessionId && callObject) {
+            } else if (action === 'disable_camera' && callObject) {
               callObject.setLocalVideo(false);
               setIsVideoOn(false);
               toast.info("O anfitrião desativou sua câmera");
-            }
-          } else if (action === 'remove_participant' && targetSessionId && !isHost) {
-            if (targetSessionId === localSessionId) {
+            } else if (action === 'remove_participant') {
               toast.error("Você foi removido da reunião pelo anfitrião");
-              // Give time for toast to show before leaving
               setTimeout(async () => {
                 await cleanup();
                 navigate("/reunioes");
@@ -454,6 +458,7 @@ export default function MeetingRoom() {
         }
       )
       .subscribe((status) => {
+        console.log('Host controls channel status:', status);
         if (status === 'SUBSCRIBED') {
           controlsChannelRef.current = channel;
         }
@@ -824,46 +829,71 @@ export default function MeetingRoom() {
 
   // Mute a specific participant
   const muteParticipant = async (sessionId: string, participantName: string) => {
-    if (!meeting || !isHost) return;
+    if (!meeting || !isHost || !controlsChannelRef.current) {
+      console.error('Cannot mute: missing meeting, not host, or channel not ready');
+      toast.error("Canal de controle não está pronto. Tente novamente.");
+      return;
+    }
     
-    console.log('Muting participant:', { sessionId, participantName });
+    console.log('Sending mute command:', { sessionId, participantName });
     
-    const channel = controlsChannelRef.current || supabase.channel(`meeting-controls-${meeting.id}`);
-    await channel.send({
-      type: 'broadcast',
-      event: 'host_control',
-      payload: { action: 'mute_participant', targetSessionId: sessionId }
-    });
-    
-    toast.success(`Microfone de ${participantName} desativado`);
+    try {
+      await controlsChannelRef.current.send({
+        type: 'broadcast',
+        event: 'host_control',
+        payload: { action: 'mute_participant', targetSessionId: sessionId }
+      });
+      toast.success(`Microfone de ${participantName} desativado`);
+    } catch (error) {
+      console.error('Error sending mute command:', error);
+      toast.error("Erro ao enviar comando");
+    }
   };
 
   // Disable camera of a specific participant
   const disableParticipantCamera = async (sessionId: string, participantName: string) => {
-    if (!meeting || !isHost) return;
+    if (!meeting || !isHost || !controlsChannelRef.current) {
+      console.error('Cannot disable camera: missing meeting, not host, or channel not ready');
+      toast.error("Canal de controle não está pronto. Tente novamente.");
+      return;
+    }
     
-    const channel = controlsChannelRef.current || supabase.channel(`meeting-controls-${meeting.id}`);
-    await channel.send({
-      type: 'broadcast',
-      event: 'host_control',
-      payload: { action: 'disable_camera', targetSessionId: sessionId }
-    });
+    console.log('Sending disable camera command:', { sessionId, participantName });
     
-    toast.success(`Câmera de ${participantName} desativada`);
+    try {
+      await controlsChannelRef.current.send({
+        type: 'broadcast',
+        event: 'host_control',
+        payload: { action: 'disable_camera', targetSessionId: sessionId }
+      });
+      toast.success(`Câmera de ${participantName} desativada`);
+    } catch (error) {
+      console.error('Error sending disable camera command:', error);
+      toast.error("Erro ao enviar comando");
+    }
   };
 
   // Remove a participant from the meeting
   const removeParticipant = async (sessionId: string, participantName: string) => {
-    if (!meeting || !isHost) return;
+    if (!meeting || !isHost || !controlsChannelRef.current) {
+      console.error('Cannot remove: missing meeting, not host, or channel not ready');
+      toast.error("Canal de controle não está pronto. Tente novamente.");
+      return;
+    }
     
-    const channel = controlsChannelRef.current || supabase.channel(`meeting-controls-${meeting.id}`);
-    await channel.send({
-      type: 'broadcast',
-      event: 'host_control',
-      payload: { action: 'remove_participant', targetSessionId: sessionId }
-    });
+    console.log('Sending remove command:', { sessionId, participantName });
     
-    toast.success(`${participantName} foi removido da reunião`);
+    try {
+      await controlsChannelRef.current.send({
+        type: 'broadcast',
+        event: 'host_control',
+        payload: { action: 'remove_participant', targetSessionId: sessionId }
+      });
+      toast.success(`${participantName} foi removido da reunião`);
+    } catch (error) {
+      console.error('Error sending remove command:', error);
+      toast.error("Erro ao enviar comando");
+    }
   };
 
   const sendMessage = async () => {
