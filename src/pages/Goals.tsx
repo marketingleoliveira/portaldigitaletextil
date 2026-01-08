@@ -666,10 +666,10 @@ const Goals: React.FC = () => {
           </Card>
         </div>
 
-        {/* Main content: Goals (left) and Ranking (right) */}
-        <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-          {/* Goals Section - Left (2 columns) */}
-          <div className="xl:col-span-2 space-y-6">
+        {/* Main content: Goals (left) and Ranking (right for managers+) */}
+        <div className={`grid grid-cols-1 gap-6 ${(user?.role === 'gerente' || user?.role === 'admin' || user?.role === 'dev') ? 'xl:grid-cols-3' : ''}`}>
+          {/* Goals Section */}
+          <div className={`space-y-6 ${(user?.role === 'gerente' || user?.role === 'admin' || user?.role === 'dev') ? 'xl:col-span-2' : ''}`}>
             {/* Tabs for filtering */}
             <Tabs value={selectedTab} onValueChange={setSelectedTab}>
               <TabsList>
@@ -681,8 +681,7 @@ const Goals: React.FC = () => {
               </TabsList>
             </Tabs>
 
-            {/* Team Goals Section - Only visible to DEV */}
-            {isDev && (
+            {/* Team Goals Section - Visible to all users */}
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
@@ -707,6 +706,7 @@ const Goals: React.FC = () => {
                       const currentProgress = getProgressForGoal(goal.id);
                       const percentage = calculatePercentage(currentProgress, goal.target_value);
                       const isAchieved = currentProgress >= goal.target_value;
+                      // Only admins and devs can see team progress details
                       const teamProgress = isAdmin ? getTeamProgressForGoal(goal.id) : null;
 
                       return (
@@ -806,7 +806,7 @@ const Goals: React.FC = () => {
                               </div>
                             </div>
 
-                            {/* Team progress (admin only) */}
+                            {/* Team progress (admin/dev only) */}
                             {isAdmin && teamProgress && teamProgress.users.length > 0 && (
                               <div className="mt-4 pt-4 border-t">
                                 <div className="flex items-center gap-2 mb-3">
@@ -876,7 +876,6 @@ const Goals: React.FC = () => {
                 )}
               </CardContent>
             </Card>
-            )}
 
             {/* Individual Goals Section */}
             <Card>
@@ -1014,7 +1013,8 @@ const Goals: React.FC = () => {
             </Card>
           </div>
 
-          {/* Seller Ranking - Right (1 column) */}
+          {/* Seller Ranking - Right (1 column) - Only visible to gerente, admin, dev */}
+          {(user?.role === 'gerente' || user?.role === 'admin' || user?.role === 'dev') && (
           <div className="xl:col-span-1">
             <Card className="sticky top-4">
               <CardHeader>
@@ -1142,6 +1142,7 @@ const Goals: React.FC = () => {
               </CardContent>
             </Card>
           </div>
+          )}
         </div>
       </div>
 
