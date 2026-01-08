@@ -7,14 +7,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import DailyIframe, { DailyCall, DailyParticipant, DailyEventObjectParticipant, DailyEventObjectParticipantLeft, DailyParticipantsObject } from "@daily-co/daily-js";
 import {
   Mic, MicOff, Video, VideoOff, Phone, MessageSquare, Users, 
   ScreenShare, ScreenShareOff, Hand, MoreVertical, Settings,
-  Copy, Shield, UserX, Volume2, VolumeX, Maximize, Minimize,
-  Send, ChevronLeft
+  Copy, UserX, VolumeX, Maximize, Minimize, Send, ChevronLeft, Loader2
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
@@ -34,21 +34,6 @@ interface Meeting {
   waiting_room_enabled: boolean;
 }
 
-interface Participant {
-  id: string;
-  user_id: string;
-  is_host: boolean;
-  is_co_host: boolean;
-  is_muted: boolean;
-  is_video_on: boolean;
-  is_screen_sharing: boolean;
-  is_hand_raised: boolean;
-  profile?: {
-    full_name: string;
-    avatar_url: string | null;
-  };
-}
-
 interface ChatMessage {
   id: string;
   user_id: string;
@@ -60,33 +45,150 @@ interface ChatMessage {
   };
 }
 
+// Use DailyParticipant directly from the SDK
+
 export default function MeetingRoom() {
   const { code } = useParams<{ code: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
   
   const [meeting, setMeeting] = useState<Meeting | null>(null);
-  const [participants, setParticipants] = useState<Participant[]>([]);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [loading, setLoading] = useState(true);
+  const [joiningDaily, setJoiningDaily] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  
+  // Daily.co state
+  const [dailyRoom, setDailyRoom] = useState<{ url: string; name: string } | null>(null);
+  const [callObject, setCallObject] = useState<DailyCall | null>(null);
+  const [participants, setParticipants] = useState<Record<string, DailyParticipant>>({});
   
   // Local state
   const [isMuted, setIsMuted] = useState(false);
   const [isVideoOn, setIsVideoOn] = useState(true);
   const [isScreenSharing, setIsScreenSharing] = useState(false);
-  const [isHandRaised, setIsHandRaised] = useState(false);
   const [showChat, setShowChat] = useState(false);
   const [showParticipants, setShowParticipants] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [newMessage, setNewMessage] = useState("");
   
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const screenRef = useRef<HTMLVideoElement>(null);
-  const mediaStreamRef = useRef<MediaStream | null>(null);
-  const screenStreamRef = useRef<MediaStream | null>(null);
+  const localVideoRef = useRef<HTMLVideoElement>(null);
+  const participantRefs = useRef<Record<string, HTMLVideoElement | null>>({});
 
   const isHost = meeting?.host_user_id === user?.id;
+
+  // Create Daily room via edge function
+  const createOrGetDailyRoom = async (meetingCode: string) => {
+    const { data, error } = await supabase.functions.invoke("daily-room", {
+      body: { action: "get", meetingCode }
+    });
+    
+    if (error) throw error;
+    return data as { url: string; name: string };
+  };
+
+  // Initialize Daily.co call
+  const initializeDaily = useCallback(async (roomUrl: string) => {
+    if (!user) return;
+    
+    setJoiningDaily(true);
+    
+    try {
+      const call = DailyIframe.createCallObject({
+        audioSource: true,
+        videoSource: true,
+      });
+
+      // Event handlers
+      call.on("joined-meeting", () => {
+        setJoiningDaily(false);
+        toast.success("Conectado à reunião!");
+      });
+
+      call.on("participant-joined", (event: DailyEventObjectParticipant | undefined) => {
+        if (event?.participant) {
+          setParticipants(prev => ({
+            ...prev,
+            [event.participant.session_id]: event.participant
+          }));
+        }
+      });
+
+      call.on("participant-updated", (event: DailyEventObjectParticipant | undefined) => {
+        if (event?.participant) {
+          setParticipants(prev => ({
+            ...prev,
+            [event.participant.session_id]: event.participant
+          }));
+          
+          // Update video element for local participant
+          if (event.participant.local && localVideoRef.current) {
+            const videoTrack = event.participant.tracks?.video?.track;
+            if (videoTrack) {
+              localVideoRef.current.srcObject = new MediaStream([videoTrack]);
+            }
+          }
+        }
+      });
+
+      call.on("participant-left", (event: DailyEventObjectParticipantLeft | undefined) => {
+        if (event?.participant) {
+          setParticipants(prev => {
+            const updated = { ...prev };
+            delete updated[event.participant.session_id];
+            return updated;
+          });
+        }
+      });
+
+      call.on("error", (error) => {
+        console.error("Daily error:", error);
+        toast.error("Erro na conexão de vídeo");
+      });
+
+      call.on("left-meeting", () => {
+        setParticipants({});
+      });
+
+      // Join the meeting
+      await call.join({
+        url: roomUrl,
+        userName: user.profile?.full_name || user.email || "Participante",
+      });
+
+      setCallObject(call);
+      
+      // Get initial participants
+      const initialParticipants = call.participants();
+      setParticipants(initialParticipants);
+
+      // Set up local video
+      const localParticipant = initialParticipants.local;
+      if (localParticipant && localVideoRef.current) {
+        const videoTrack = localParticipant.tracks?.video?.track;
+        if (videoTrack) {
+          localVideoRef.current.srcObject = new MediaStream([videoTrack]);
+        }
+      }
+
+    } catch (err) {
+      console.error("Error initializing Daily:", err);
+      toast.error("Erro ao conectar ao vídeo");
+      setJoiningDaily(false);
+    }
+  }, [user]);
+
+  // Update remote video elements when participants change
+  useEffect(() => {
+    Object.entries(participants).forEach(([sessionId, participant]) => {
+      if (!participant.local) {
+        const videoEl = participantRefs.current[sessionId];
+        if (videoEl && participant.tracks?.video?.track) {
+          videoEl.srcObject = new MediaStream([participant.tracks.video.track]);
+        }
+      }
+    });
+  }, [participants]);
 
   useEffect(() => {
     if (code && user) {
@@ -94,9 +196,24 @@ export default function MeetingRoom() {
     }
     
     return () => {
-      leaveMeeting();
+      cleanup();
     };
   }, [code, user]);
+
+  const cleanup = async () => {
+    if (callObject) {
+      await callObject.leave();
+      callObject.destroy();
+    }
+    
+    if (meeting && user) {
+      await supabase
+        .from("meeting_participants")
+        .update({ left_at: new Date().toISOString() })
+        .eq("meeting_id", meeting.id)
+        .eq("user_id", user.id);
+    }
+  };
 
   const initializeMeeting = async () => {
     if (!code || !user) return;
@@ -118,8 +235,12 @@ export default function MeetingRoom() {
 
       setMeeting(meetingData);
 
-      // Join meeting
-      const { error: joinError } = await supabase
+      // Create/Get Daily room
+      const room = await createOrGetDailyRoom(code);
+      setDailyRoom(room);
+
+      // Join meeting in database
+      await supabase
         .from("meeting_participants")
         .upsert({
           meeting_id: meetingData.id,
@@ -131,58 +252,21 @@ export default function MeetingRoom() {
           onConflict: "meeting_id,user_id"
         });
 
-      if (joinError) throw joinError;
-
-      // Start media
-      await startMedia();
-
-      // Fetch participants
-      await fetchParticipants(meetingData.id);
-
       // Fetch chat messages
       await fetchMessages(meetingData.id);
 
-      // Subscribe to realtime updates
-      subscribeToUpdates(meetingData.id);
+      // Subscribe to chat messages
+      subscribeToMessages(meetingData.id);
+
+      setLoading(false);
+
+      // Initialize Daily.co
+      await initializeDaily(room.url);
 
     } catch (err) {
       console.error("Error initializing meeting:", err);
       setError("Erro ao entrar na reunião");
-    } finally {
       setLoading(false);
-    }
-  };
-
-  const startMedia = async () => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: true,
-        audio: true
-      });
-      
-      mediaStreamRef.current = stream;
-      
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-      }
-    } catch (err) {
-      console.error("Error accessing media devices:", err);
-      toast.error("Não foi possível acessar câmera/microfone");
-    }
-  };
-
-  const fetchParticipants = async (meetingId: string) => {
-    const { data, error } = await supabase
-      .from("meeting_participants")
-      .select(`
-        *,
-        profile:profiles!meeting_participants_user_id_fkey(full_name, avatar_url)
-      `)
-      .eq("meeting_id", meetingId)
-      .is("left_at", null);
-
-    if (!error && data) {
-      setParticipants(data);
     }
   };
 
@@ -201,22 +285,9 @@ export default function MeetingRoom() {
     }
   };
 
-  const subscribeToUpdates = (meetingId: string) => {
-    // Subscribe to participants changes
+  const subscribeToMessages = (meetingId: string) => {
     supabase
-      .channel(`meeting-${meetingId}`)
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "meeting_participants",
-          filter: `meeting_id=eq.${meetingId}`
-        },
-        () => {
-          fetchParticipants(meetingId);
-        }
-      )
+      .channel(`meeting-messages-${meetingId}`)
       .on(
         "postgres_changes",
         {
@@ -233,96 +304,51 @@ export default function MeetingRoom() {
   };
 
   const toggleMute = useCallback(async () => {
-    if (!meeting || !user) return;
+    if (!callObject) return;
     
     const newMuted = !isMuted;
+    await callObject.setLocalAudio(!newMuted);
     setIsMuted(newMuted);
-    
-    if (mediaStreamRef.current) {
-      mediaStreamRef.current.getAudioTracks().forEach(track => {
-        track.enabled = !newMuted;
-      });
-    }
 
-    await supabase
-      .from("meeting_participants")
-      .update({ is_muted: newMuted })
-      .eq("meeting_id", meeting.id)
-      .eq("user_id", user.id);
-  }, [isMuted, meeting, user]);
+    if (meeting && user) {
+      await supabase
+        .from("meeting_participants")
+        .update({ is_muted: newMuted })
+        .eq("meeting_id", meeting.id)
+        .eq("user_id", user.id);
+    }
+  }, [isMuted, callObject, meeting, user]);
 
   const toggleVideo = useCallback(async () => {
-    if (!meeting || !user) return;
+    if (!callObject) return;
     
     const newVideoOn = !isVideoOn;
+    await callObject.setLocalVideo(newVideoOn);
     setIsVideoOn(newVideoOn);
-    
-    if (mediaStreamRef.current) {
-      mediaStreamRef.current.getVideoTracks().forEach(track => {
-        track.enabled = newVideoOn;
-      });
-    }
 
-    await supabase
-      .from("meeting_participants")
-      .update({ is_video_on: newVideoOn })
-      .eq("meeting_id", meeting.id)
-      .eq("user_id", user.id);
-  }, [isVideoOn, meeting, user]);
+    if (meeting && user) {
+      await supabase
+        .from("meeting_participants")
+        .update({ is_video_on: newVideoOn })
+        .eq("meeting_id", meeting.id)
+        .eq("user_id", user.id);
+    }
+  }, [isVideoOn, callObject, meeting, user]);
 
   const toggleScreenShare = async () => {
-    if (!meeting || !user || !meeting.allow_screen_share) return;
+    if (!callObject || !meeting?.allow_screen_share) return;
 
-    if (isScreenSharing) {
-      if (screenStreamRef.current) {
-        screenStreamRef.current.getTracks().forEach(track => track.stop());
-        screenStreamRef.current = null;
-      }
-      setIsScreenSharing(false);
-    } else {
-      try {
-        const stream = await navigator.mediaDevices.getDisplayMedia({
-          video: true,
-          audio: true
-        });
-        
-        screenStreamRef.current = stream;
-        
-        if (screenRef.current) {
-          screenRef.current.srcObject = stream;
-        }
-        
-        stream.getVideoTracks()[0].onended = () => {
-          setIsScreenSharing(false);
-        };
-        
+    try {
+      if (isScreenSharing) {
+        await callObject.stopScreenShare();
+        setIsScreenSharing(false);
+      } else {
+        await callObject.startScreenShare();
         setIsScreenSharing(true);
-      } catch (err) {
-        console.error("Error sharing screen:", err);
       }
-    }
-
-    await supabase
-      .from("meeting_participants")
-      .update({ is_screen_sharing: !isScreenSharing })
-      .eq("meeting_id", meeting.id)
-      .eq("user_id", user.id);
-  };
-
-  const toggleHandRaise = async () => {
-    if (!meeting || !user) return;
-    
-    const newHandRaised = !isHandRaised;
-    setIsHandRaised(newHandRaised);
-
-    await supabase
-      .from("meeting_participants")
-      .update({ is_hand_raised: newHandRaised })
-      .eq("meeting_id", meeting.id)
-      .eq("user_id", user.id);
-
-    if (newHandRaised) {
-      toast.info("Mão levantada!");
+    } catch (err) {
+      console.error("Error toggling screen share:", err);
+      toast.error("Erro ao compartilhar tela");
     }
   };
 
@@ -343,20 +369,8 @@ export default function MeetingRoom() {
   };
 
   const leaveMeeting = async () => {
-    if (mediaStreamRef.current) {
-      mediaStreamRef.current.getTracks().forEach(track => track.stop());
-    }
-    if (screenStreamRef.current) {
-      screenStreamRef.current.getTracks().forEach(track => track.stop());
-    }
-
-    if (meeting && user) {
-      await supabase
-        .from("meeting_participants")
-        .update({ left_at: new Date().toISOString() })
-        .eq("meeting_id", meeting.id)
-        .eq("user_id", user.id);
-    }
+    await cleanup();
+    navigate("/reunioes");
   };
 
   const endMeeting = async () => {
@@ -370,8 +384,13 @@ export default function MeetingRoom() {
       })
       .eq("id", meeting.id);
 
+    // Delete Daily room
+    await supabase.functions.invoke("daily-room", {
+      body: { action: "delete", meetingCode: code }
+    });
+
     toast.success("Reunião encerrada");
-    navigate("/reunioes");
+    await leaveMeeting();
   };
 
   const copyMeetingLink = () => {
@@ -390,34 +409,15 @@ export default function MeetingRoom() {
     }
   };
 
-  const muteParticipant = async (participantId: string) => {
-    if (!isHost) return;
-    
-    await supabase
-      .from("meeting_participants")
-      .update({ is_muted: true })
-      .eq("id", participantId);
-    
-    toast.success("Participante mutado");
-  };
-
-  const removeParticipant = async (participantId: string, participantUserId: string) => {
-    if (!isHost || participantUserId === user?.id) return;
-    
-    await supabase
-      .from("meeting_participants")
-      .update({ left_at: new Date().toISOString() })
-      .eq("id", participantId);
-    
-    toast.success("Participante removido");
-  };
+  const participantCount = Object.keys(participants).length;
+  const remoteParticipants = Object.entries(participants).filter(([_, p]) => !p.local);
 
   if (loading) {
     return (
       <div className="h-screen bg-gray-900 flex items-center justify-center">
         <div className="text-center text-white">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4"></div>
-          <p>Entrando na reunião...</p>
+          <Loader2 className="w-12 h-12 animate-spin mx-auto mb-4" />
+          <p>Carregando reunião...</p>
         </div>
       </div>
     );
@@ -463,6 +463,12 @@ export default function MeetingRoom() {
         </div>
         
         <div className="flex items-center gap-2 text-gray-400 text-sm">
+          {joiningDaily && (
+            <span className="flex items-center gap-2 text-yellow-400">
+              <Loader2 className="w-4 h-4 animate-spin" />
+              Conectando vídeo...
+            </span>
+          )}
           <span>{format(new Date(), "HH:mm", { locale: ptBR })}</span>
           {isHost && (
             <span className="px-2 py-0.5 bg-primary text-primary-foreground rounded text-xs">
@@ -478,22 +484,23 @@ export default function MeetingRoom() {
         <div className="flex-1 p-4 flex items-center justify-center">
           <div className={cn(
             "grid gap-4 w-full max-w-6xl",
-            participants.length <= 1 && "grid-cols-1",
-            participants.length === 2 && "grid-cols-2",
-            participants.length <= 4 && participants.length > 2 && "grid-cols-2",
-            participants.length > 4 && "grid-cols-3"
+            participantCount <= 1 && "grid-cols-1",
+            participantCount === 2 && "grid-cols-2",
+            participantCount <= 4 && participantCount > 2 && "grid-cols-2",
+            participantCount > 4 && "grid-cols-3"
           )}>
             {/* Local video (self) */}
             <div className="relative bg-gray-800 rounded-xl overflow-hidden aspect-video">
               <video
-                ref={videoRef}
+                ref={localVideoRef}
                 autoPlay
                 muted
                 playsInline
                 className={cn(
-                  "w-full h-full object-cover",
+                  "w-full h-full object-cover mirror",
                   !isVideoOn && "hidden"
                 )}
+                style={{ transform: "scaleX(-1)" }}
               />
               {!isVideoOn && (
                 <div className="absolute inset-0 flex items-center justify-center">
@@ -510,54 +517,38 @@ export default function MeetingRoom() {
                   {user?.profile?.full_name} (Você)
                 </span>
                 {isMuted && <MicOff className="w-4 h-4 text-red-500" />}
-                {isHandRaised && <Hand className="w-4 h-4 text-yellow-500" />}
               </div>
             </div>
 
-            {/* Screen share */}
-            {isScreenSharing && (
-              <div className="relative bg-gray-800 rounded-xl overflow-hidden aspect-video col-span-full">
-                <video
-                  ref={screenRef}
-                  autoPlay
-                  playsInline
-                  className="w-full h-full object-contain"
-                />
-                <div className="absolute bottom-3 left-3">
-                  <span className="px-2 py-1 bg-black/60 rounded text-white text-sm">
-                    Compartilhando tela
-                  </span>
-                </div>
-              </div>
-            )}
-
-            {/* Other participants (placeholders for now) */}
-            {participants.filter(p => p.user_id !== user?.id).map((participant) => (
+            {/* Remote participants */}
+            {remoteParticipants.map(([sessionId, participant]) => (
               <div
-                key={participant.id}
+                key={sessionId}
                 className="relative bg-gray-800 rounded-xl overflow-hidden aspect-video"
               >
-                {!participant.is_video_on ? (
+                <video
+                  ref={el => { participantRefs.current[sessionId] = el; }}
+                  autoPlay
+                  playsInline
+                  className={cn(
+                    "w-full h-full object-cover",
+                    !participant.video && "hidden"
+                  )}
+                />
+                {!participant.video && (
                   <div className="absolute inset-0 flex items-center justify-center">
                     <Avatar className="w-20 h-20">
-                      <AvatarImage src={participant.profile?.avatar_url || undefined} />
                       <AvatarFallback className="text-2xl bg-primary">
-                        {participant.profile?.full_name?.charAt(0) || "P"}
+                        {participant.user_name?.charAt(0) || "P"}
                       </AvatarFallback>
                     </Avatar>
-                  </div>
-                ) : (
-                  <div className="absolute inset-0 flex items-center justify-center text-gray-500">
-                    <Video className="w-12 h-12 opacity-30" />
                   </div>
                 )}
                 <div className="absolute bottom-3 left-3 flex items-center gap-2">
                   <span className="px-2 py-1 bg-black/60 rounded text-white text-sm">
-                    {participant.profile?.full_name}
-                    {participant.is_host && " (Anfitrião)"}
+                    {participant.user_name || "Participante"}
                   </span>
-                  {participant.is_muted && <MicOff className="w-4 h-4 text-red-500" />}
-                  {participant.is_hand_raised && <Hand className="w-4 h-4 text-yellow-500" />}
+                  {!participant.audio && <MicOff className="w-4 h-4 text-red-500" />}
                 </div>
               </div>
             ))}
@@ -636,66 +627,37 @@ export default function MeetingRoom() {
         <Sheet open={showParticipants} onOpenChange={setShowParticipants}>
           <SheetContent side="right" className="w-80 sm:w-96">
             <SheetHeader>
-              <SheetTitle>Participantes ({participants.length})</SheetTitle>
+              <SheetTitle>Participantes ({participantCount})</SheetTitle>
             </SheetHeader>
             <ScrollArea className="h-[calc(100%-60px)] mt-4">
               <div className="space-y-2">
-                {participants.map((participant) => (
+                {Object.entries(participants).map(([sessionId, participant]) => (
                   <div
-                    key={participant.id}
+                    key={sessionId}
                     className="flex items-center justify-between p-3 rounded-lg hover:bg-muted"
                   >
                     <div className="flex items-center gap-3">
                       <Avatar>
-                        <AvatarImage src={participant.profile?.avatar_url || undefined} />
                         <AvatarFallback>
-                          {participant.profile?.full_name?.charAt(0) || "P"}
+                          {participant.user_name?.charAt(0) || "P"}
                         </AvatarFallback>
                       </Avatar>
                       <div>
                         <p className="font-medium">
-                          {participant.profile?.full_name}
-                          {participant.user_id === user?.id && " (Você)"}
+                          {participant.user_name || "Participante"}
+                          {participant.local && " (Você)"}
                         </p>
-                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                          {participant.is_host && (
-                            <span className="text-primary">Anfitrião</span>
-                          )}
-                          {participant.is_co_host && (
-                            <span className="text-blue-500">Co-anfitrião</span>
-                          )}
-                        </div>
+                        {participant.owner && (
+                          <span className="text-xs text-primary">Anfitrião</span>
+                        )}
                       </div>
                     </div>
                     <div className="flex items-center gap-1">
-                      {participant.is_muted && (
+                      {!participant.audio && (
                         <MicOff className="w-4 h-4 text-red-500" />
                       )}
-                      {participant.is_hand_raised && (
-                        <Hand className="w-4 h-4 text-yellow-500" />
-                      )}
-                      {isHost && participant.user_id !== user?.id && (
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-8 w-8">
-                              <MoreVertical className="w-4 h-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent>
-                            <DropdownMenuItem onClick={() => muteParticipant(participant.id)}>
-                              <VolumeX className="w-4 h-4 mr-2" />
-                              Mutar participante
-                            </DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem 
-                              onClick={() => removeParticipant(participant.id, participant.user_id)}
-                              className="text-destructive"
-                            >
-                              <UserX className="w-4 h-4 mr-2" />
-                              Remover da reunião
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
+                      {!participant.video && (
+                        <VideoOff className="w-4 h-4 text-red-500" />
                       )}
                     </div>
                   </div>
@@ -717,6 +679,7 @@ export default function MeetingRoom() {
                 size="lg"
                 className="rounded-full w-12 h-12"
                 onClick={toggleMute}
+                disabled={!callObject}
               >
                 {isMuted ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
               </Button>
@@ -732,6 +695,7 @@ export default function MeetingRoom() {
                 size="lg"
                 className="rounded-full w-12 h-12"
                 onClick={toggleVideo}
+                disabled={!callObject}
               >
                 {isVideoOn ? <Video className="w-5 h-5" /> : <VideoOff className="w-5 h-5" />}
               </Button>
@@ -748,6 +712,7 @@ export default function MeetingRoom() {
                   size="lg"
                   className="rounded-full w-12 h-12"
                   onClick={toggleScreenShare}
+                  disabled={!callObject}
                 >
                   {isScreenSharing ? <ScreenShareOff className="w-5 h-5" /> : <ScreenShare className="w-5 h-5" />}
                 </Button>
@@ -755,21 +720,6 @@ export default function MeetingRoom() {
               <TooltipContent>{isScreenSharing ? "Parar compartilhamento" : "Compartilhar tela"}</TooltipContent>
             </Tooltip>
           )}
-
-          {/* Hand raise */}
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant={isHandRaised ? "default" : "secondary"}
-                size="lg"
-                className="rounded-full w-12 h-12"
-                onClick={toggleHandRaise}
-              >
-                <Hand className={cn("w-5 h-5", isHandRaised && "text-yellow-500")} />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>{isHandRaised ? "Baixar mão" : "Levantar mão"}</TooltipContent>
-          </Tooltip>
 
           <div className="w-px h-8 bg-gray-600 mx-2" />
 
@@ -799,7 +749,7 @@ export default function MeetingRoom() {
               >
                 <Users className="w-5 h-5" />
                 <span className="absolute -top-1 -right-1 w-5 h-5 bg-primary text-primary-foreground text-xs rounded-full flex items-center justify-center">
-                  {participants.length}
+                  {participantCount}
                 </span>
               </Button>
             </TooltipTrigger>
@@ -854,17 +804,14 @@ export default function MeetingRoom() {
 
           <div className="w-px h-8 bg-gray-600 mx-2" />
 
-          {/* Leave/End call */}
+          {/* Leave call */}
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
                 variant="destructive"
                 size="lg"
                 className="rounded-full px-6"
-                onClick={() => {
-                  leaveMeeting();
-                  navigate("/reunioes");
-                }}
+                onClick={leaveMeeting}
               >
                 <Phone className="w-5 h-5 rotate-[135deg]" />
               </Button>
