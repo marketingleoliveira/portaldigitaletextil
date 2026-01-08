@@ -444,6 +444,50 @@ export type Database = {
           },
         ]
       }
+      meeting_recordings: {
+        Row: {
+          created_at: string
+          download_url: string | null
+          duration_seconds: number | null
+          expires_at: string
+          id: string
+          meeting_date: string
+          meeting_id: string | null
+          meeting_title: string
+          recording_id: string
+        }
+        Insert: {
+          created_at?: string
+          download_url?: string | null
+          duration_seconds?: number | null
+          expires_at?: string
+          id?: string
+          meeting_date: string
+          meeting_id?: string | null
+          meeting_title: string
+          recording_id: string
+        }
+        Update: {
+          created_at?: string
+          download_url?: string | null
+          duration_seconds?: number | null
+          expires_at?: string
+          id?: string
+          meeting_date?: string
+          meeting_id?: string | null
+          meeting_title?: string
+          recording_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meeting_recordings_meeting_id_fkey"
+            columns: ["meeting_id"]
+            isOneToOne: false
+            referencedRelation: "meetings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       meetings: {
         Row: {
           allow_chat: boolean | null
@@ -1133,6 +1177,7 @@ export type Database = {
         Args: { _product_id: string; _user_id: string }
         Returns: boolean
       }
+      cleanup_expired_recordings: { Args: never; Returns: undefined }
       generate_meeting_code: { Args: never; Returns: string }
       get_user_role: {
         Args: { _user_id: string }
