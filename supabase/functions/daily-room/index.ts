@@ -107,8 +107,10 @@ serve(async (req) => {
         const errorData = await createResponse.json().catch(() => ({}));
         console.error("Daily.co create error:", JSON.stringify(errorData));
         
-        // If room already exists (race condition), try to get it again
-        if (errorData.info?.includes("already exists") || errorData.error === "invalid-request-error") {
+        // If room already exists (race condition or stale cache), try to get it again
+        if (errorData.info?.includes("already exists") || 
+            (errorData.error === "invalid-request-error" && errorData.info?.includes("already"))) {
+          console.log("Room already exists, fetching it...");
           const retryResponse = await fetch(
             `https://api.daily.co/v1/rooms/${dailyRoomName}`,
             { headers: { Authorization: `Bearer ${DAILY_API_KEY}` } }
