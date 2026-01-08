@@ -17,7 +17,7 @@ import {
   ScreenShare, ScreenShareOff, MoreVertical, Settings,
   Copy, Maximize, Minimize, Send, ChevronLeft, Loader2,
   Circle, Square, Lock, Hand, Smile, Volume2, Shield,
-  VideoIcon, MicIcon, Ban, Sparkles
+  VideoIcon, MicIcon, Ban, Sparkles, UserX
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
@@ -407,6 +407,13 @@ export default function MeetingRoom() {
               setIsVideoOn(false);
               toast.info("O anfitrião desativou sua câmera");
             }
+          } else if (action === 'remove_participant' && targetSessionId === localSessionId) {
+            toast.error("Você foi removido da reunião pelo anfitrião");
+            // Give time for toast to show before leaving
+            setTimeout(async () => {
+              await cleanup();
+              navigate("/reunioes");
+            }, 1500);
           }
         }
       )
@@ -785,6 +792,19 @@ export default function MeetingRoom() {
     });
     
     toast.success(`Câmera de ${participantName} desativada`);
+  };
+
+  // Remove a participant from the meeting
+  const removeParticipant = async (sessionId: string, participantName: string) => {
+    if (!meeting || !isHost) return;
+    
+    await supabase.channel(`meeting-controls-${meeting.id}`).send({
+      type: 'broadcast',
+      event: 'host_control',
+      payload: { action: 'remove_participant', targetSessionId: sessionId }
+    });
+    
+    toast.success(`${participantName} foi removido da reunião`);
   };
 
   const sendMessage = async () => {
@@ -1475,6 +1495,19 @@ export default function MeetingRoom() {
                                 </Button>
                               </TooltipTrigger>
                               <TooltipContent>Desativar câmera</TooltipContent>
+                            </Tooltip>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-7 w-7"
+                                  onClick={() => removeParticipant(sessionId, participant.user_name || "Participante")}
+                                >
+                                  <UserX className="w-3.5 h-3.5 text-muted-foreground hover:text-destructive" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>Remover da reunião</TooltipContent>
                             </Tooltip>
                           </>
                         )}
