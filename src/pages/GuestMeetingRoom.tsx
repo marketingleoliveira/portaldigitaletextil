@@ -659,23 +659,15 @@ export default function GuestMeetingRoom() {
       toast.error("Conexão não estabelecida");
       return;
     }
-    
-    if (!globalScreenShareEnabled) {
-      toast.error("O anfitrião desativou o compartilhamento de tela");
-      return;
-    }
 
     try {
       if (isScreenSharing) {
         await callObject.stopScreenShare();
-        // State will be updated by event listener
       } else {
         await callObject.startScreenShare();
-        // State will be updated by event listener
       }
     } catch (err: any) {
       console.error("Error toggling screen share:", err);
-      // Handle user cancellation (not an error)
       if (err?.message?.includes("NotAllowedError") || err?.type === "screen-share-error") {
         console.log("Screen share cancelled by user or browser");
         return;
@@ -1062,14 +1054,13 @@ export default function GuestMeetingRoom() {
                     isScreenSharing ? "bg-green-600 hover:bg-green-700" : "bg-[#3c4043] hover:bg-[#5f6368]"
                   )}
                   onClick={toggleScreenShare}
-                  disabled={joiningDaily || !callObject || !globalScreenShareEnabled}
+                  disabled={joiningDaily || !callObject}
                 >
                   {isScreenSharing ? <ScreenShareOff className="h-5 w-5" /> : <ScreenShare className="h-5 w-5" />}
                 </Button>
               </TooltipTrigger>
               <TooltipContent>
-                {!globalScreenShareEnabled ? "Compartilhamento desativado pelo anfitrião" : 
-                  isScreenSharing ? "Parar compartilhamento" : "Compartilhar tela"}
+                {isScreenSharing ? "Parar compartilhamento" : "Compartilhar tela"}
               </TooltipContent>
             </Tooltip>
 
