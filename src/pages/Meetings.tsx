@@ -202,6 +202,29 @@ export default function Meetings() {
     
     setEndingAll(true);
     try {
+      // Get all active meetings to delete their Daily rooms
+      const { data: activeMeetings, error: fetchError } = await supabase
+        .from("meetings")
+        .select("meeting_code")
+        .is("ended_at", null)
+        .eq("is_active", true);
+
+      if (fetchError) throw fetchError;
+
+      // Delete all Daily rooms to disconnect users
+      const deletePromises = (activeMeetings || []).map(async (meeting) => {
+        try {
+          await supabase.functions.invoke("daily-room", {
+            body: { action: "delete", meetingCode: meeting.meeting_code },
+          });
+        } catch (err) {
+          console.error(`Error deleting room ${meeting.meeting_code}:`, err);
+        }
+      });
+
+      await Promise.all(deletePromises);
+
+      // Update all meetings in database
       const { error } = await supabase
         .from("meetings")
         .update({ ended_at: new Date().toISOString(), is_active: false })
@@ -209,7 +232,7 @@ export default function Meetings() {
 
       if (error) throw error;
       
-      toast.success("Todas as reuniões foram encerradas!");
+      toast.success("Todas as reuniões foram encerradas e usuários desconectados!");
       setMeetings([]);
     } catch (error) {
       console.error("Error ending all meetings:", error);
