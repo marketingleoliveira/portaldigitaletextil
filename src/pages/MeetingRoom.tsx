@@ -91,6 +91,7 @@ export default function MeetingRoom() {
   const [isScreenSharing, setIsScreenSharing] = useState(false);
   const [showChat, setShowChat] = useState(false);
   const [showParticipants, setShowParticipants] = useState(false);
+  const [showModeration, setShowModeration] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [newMessage, setNewMessage] = useState("");
   
@@ -1422,46 +1423,7 @@ export default function MeetingRoom() {
               <SheetTitle>Participantes ({participantCount})</SheetTitle>
             </SheetHeader>
             
-            {/* Host controls */}
-            {isHost && (
-              <div className="mt-4 p-3 bg-muted rounded-lg space-y-2">
-                <p className="text-sm font-medium flex items-center gap-2">
-                  <Shield className="w-4 h-4" />
-                  Controles do Anfitrião
-                </p>
-                <div className="flex flex-wrap gap-2">
-                  <Button
-                    variant={globalAudioEnabled ? "secondary" : "destructive"}
-                    size="sm"
-                    onClick={toggleAllAudio}
-                    className="text-xs"
-                  >
-                    {globalAudioEnabled ? <Mic className="w-3 h-3 mr-1" /> : <MicOff className="w-3 h-3 mr-1" />}
-                    {globalAudioEnabled ? "Mutar todos" : "Liberar mics"}
-                  </Button>
-                  <Button
-                    variant={globalVideoEnabled ? "secondary" : "destructive"}
-                    size="sm"
-                    onClick={toggleAllVideo}
-                    className="text-xs"
-                  >
-                    {globalVideoEnabled ? <Video className="w-3 h-3 mr-1" /> : <VideoOff className="w-3 h-3 mr-1" />}
-                    {globalVideoEnabled ? "Desativar câmeras" : "Liberar câmeras"}
-                  </Button>
-                  <Button
-                    variant={globalScreenShareEnabled ? "secondary" : "destructive"}
-                    size="sm"
-                    onClick={toggleAllScreenShare}
-                    className="text-xs"
-                  >
-                    {globalScreenShareEnabled ? <ScreenShare className="w-3 h-3 mr-1" /> : <Ban className="w-3 h-3 mr-1" />}
-                    {globalScreenShareEnabled ? "Bloquear tela" : "Liberar tela"}
-                  </Button>
-                </div>
-              </div>
-            )}
-            
-            <ScrollArea className="h-[calc(100%-160px)] mt-4">
+            <ScrollArea className="h-[calc(100%-80px)] mt-4">
               <div className="space-y-2">
                 {Object.entries(participants).map(([sessionId, participant]) => {
                   const isSpeaking = speakingParticipants.has(sessionId);
@@ -1504,57 +1466,11 @@ export default function MeetingRoom() {
                         {hasHandRaised && (
                           <Hand className="w-4 h-4 text-yellow-500 animate-bounce" />
                         )}
-                        {/* Individual controls for host */}
-                        {isHost && !participant.local && !isParticipantHost && (
-                          <>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-7 w-7"
-                                  onClick={() => muteParticipant(sessionId, participant.user_name || "Participante")}
-                                  disabled={!participant.audio}
-                                >
-                                  <MicOff className="w-3.5 h-3.5 text-muted-foreground hover:text-destructive" />
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent>Mutar participante</TooltipContent>
-                            </Tooltip>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-7 w-7"
-                                  onClick={() => disableParticipantCamera(sessionId, participant.user_name || "Participante")}
-                                  disabled={!participant.video}
-                                >
-                                  <VideoOff className="w-3.5 h-3.5 text-muted-foreground hover:text-destructive" />
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent>Desativar câmera</TooltipContent>
-                            </Tooltip>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-7 w-7"
-                                  onClick={() => removeParticipant(sessionId, participant.user_name || "Participante")}
-                                >
-                                  <UserX className="w-3.5 h-3.5 text-muted-foreground hover:text-destructive" />
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent>Remover da reunião</TooltipContent>
-                            </Tooltip>
-                          </>
-                        )}
                         {/* Status indicators */}
-                        {!isHost && !participant.audio && (
+                        {!participant.audio && (
                           <MicOff className="w-4 h-4 text-red-500" />
                         )}
-                        {!isHost && !participant.video && (
+                        {!participant.video && (
                           <VideoOff className="w-4 h-4 text-red-500" />
                         )}
                       </div>
@@ -1565,6 +1481,168 @@ export default function MeetingRoom() {
             </ScrollArea>
           </SheetContent>
         </Sheet>
+
+        {/* Moderation Panel - Host only */}
+        {isHost && (
+          <Sheet open={showModeration} onOpenChange={setShowModeration}>
+            <SheetContent side="right" className="w-80 sm:w-[420px]">
+              <SheetHeader>
+                <SheetTitle className="flex items-center gap-2">
+                  <Shield className="w-5 h-5 text-primary" />
+                  Moderação
+                </SheetTitle>
+              </SheetHeader>
+              
+              {/* Global Controls */}
+              <div className="mt-4 p-4 bg-muted rounded-lg space-y-3">
+                <p className="text-sm font-medium">Controles Globais</p>
+                <div className="grid grid-cols-3 gap-2">
+                  <Button
+                    variant={globalAudioEnabled ? "outline" : "destructive"}
+                    size="sm"
+                    onClick={toggleAllAudio}
+                    className="flex flex-col h-auto py-3 gap-1"
+                  >
+                    {globalAudioEnabled ? <Mic className="w-5 h-5" /> : <MicOff className="w-5 h-5" />}
+                    <span className="text-[10px]">{globalAudioEnabled ? "Mutar Todos" : "Liberar Todos"}</span>
+                  </Button>
+                  <Button
+                    variant={globalVideoEnabled ? "outline" : "destructive"}
+                    size="sm"
+                    onClick={toggleAllVideo}
+                    className="flex flex-col h-auto py-3 gap-1"
+                  >
+                    {globalVideoEnabled ? <Video className="w-5 h-5" /> : <VideoOff className="w-5 h-5" />}
+                    <span className="text-[10px]">{globalVideoEnabled ? "Desligar Câmeras" : "Liberar Câmeras"}</span>
+                  </Button>
+                  <Button
+                    variant={globalScreenShareEnabled ? "outline" : "destructive"}
+                    size="sm"
+                    onClick={toggleAllScreenShare}
+                    className="flex flex-col h-auto py-3 gap-1"
+                  >
+                    {globalScreenShareEnabled ? <ScreenShare className="w-5 h-5" /> : <Ban className="w-5 h-5" />}
+                    <span className="text-[10px]">{globalScreenShareEnabled ? "Bloquear Tela" : "Liberar Tela"}</span>
+                  </Button>
+                </div>
+              </div>
+              
+              {/* Individual Participant Controls */}
+              <div className="mt-4">
+                <p className="text-sm font-medium mb-3">Controle Individual</p>
+                <ScrollArea className="h-[calc(100vh-320px)]">
+                  <div className="space-y-2">
+                    {Object.entries(participants).map(([sessionId, participant]) => {
+                      const isParticipantHost = participant.owner;
+                      const firstName = (participant.user_name || "Participante").split(" ")[0];
+                      const hasAudio = participant.audio;
+                      const hasVideo = participant.video;
+                      const isScreenSharing = participant.screen;
+                      
+                      // Skip local participant (host)
+                      if (participant.local) return null;
+                      
+                      return (
+                        <div
+                          key={sessionId}
+                          className="flex items-center justify-between p-3 bg-background rounded-lg border"
+                        >
+                          <div className="flex items-center gap-2 min-w-0">
+                            <Avatar className="h-8 w-8">
+                              <AvatarFallback className="text-xs">
+                                {firstName.charAt(0)}
+                              </AvatarFallback>
+                            </Avatar>
+                            <span className="font-medium text-sm truncate">
+                              {firstName}
+                              {isParticipantHost && <span className="text-primary ml-1">(Host)</span>}
+                            </span>
+                          </div>
+                          
+                          {!isParticipantHost && (
+                            <div className="flex items-center gap-1">
+                              {/* Mic control */}
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    variant={hasAudio ? "ghost" : "ghost"}
+                                    size="icon"
+                                    className={cn(
+                                      "h-8 w-8",
+                                      hasAudio ? "text-green-500 hover:text-red-500" : "text-red-500"
+                                    )}
+                                    onClick={() => muteParticipant(sessionId, firstName)}
+                                    disabled={!hasAudio}
+                                  >
+                                    {hasAudio ? <Mic className="w-4 h-4" /> : <MicOff className="w-4 h-4" />}
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  {hasAudio ? "Mutar" : "Mutado"}
+                                </TooltipContent>
+                              </Tooltip>
+                              
+                              {/* Camera control */}
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className={cn(
+                                      "h-8 w-8",
+                                      hasVideo ? "text-green-500 hover:text-red-500" : "text-red-500"
+                                    )}
+                                    onClick={() => disableParticipantCamera(sessionId, firstName)}
+                                    disabled={!hasVideo}
+                                  >
+                                    {hasVideo ? <Video className="w-4 h-4" /> : <VideoOff className="w-4 h-4" />}
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  {hasVideo ? "Desligar câmera" : "Câmera desligada"}
+                                </TooltipContent>
+                              </Tooltip>
+                              
+                              {/* Screen share indicator */}
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <div className={cn(
+                                    "h-8 w-8 flex items-center justify-center rounded-md",
+                                    isScreenSharing ? "text-blue-500" : "text-muted-foreground"
+                                  )}>
+                                    {isScreenSharing ? <ScreenShare className="w-4 h-4" /> : <ScreenShareOff className="w-4 h-4" />}
+                                  </div>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  {isScreenSharing ? "Compartilhando tela" : "Não está compartilhando"}
+                                </TooltipContent>
+                              </Tooltip>
+                              
+                              {/* Remove participant */}
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                                    onClick={() => removeParticipant(sessionId, firstName)}
+                                  >
+                                    <UserX className="w-4 h-4" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>Remover da reunião</TooltipContent>
+                              </Tooltip>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </ScrollArea>
+              </div>
+            </SheetContent>
+          </Sheet>
+        )}
       </div>
 
       {/* Controls bar - Mobile optimized */}
@@ -1686,6 +1764,24 @@ export default function MeetingRoom() {
                 </Button>
               </TooltipTrigger>
               <TooltipContent className="hidden sm:block">{isRecording ? "Parar gravação" : "Iniciar gravação"}</TooltipContent>
+            </Tooltip>
+          )}
+
+          {/* Moderation button (Host only) */}
+          {isHost && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="secondary"
+                  size="lg"
+                  className="rounded-full h-10 sm:h-12 px-3 sm:px-4 gap-1 sm:gap-2 bg-primary/20 hover:bg-primary/30 text-primary border border-primary/30"
+                  onClick={() => setShowModeration(true)}
+                >
+                  <Shield className="w-4 h-4 sm:w-5 sm:h-5" />
+                  <span className="hidden sm:inline text-sm font-medium">MODERAÇÃO</span>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent className="hidden sm:block">Controles de moderação</TooltipContent>
             </Tooltip>
           )}
 
