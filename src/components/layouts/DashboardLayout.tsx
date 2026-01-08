@@ -199,7 +199,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
                       <Icon className={cn(
                         "w-5 h-5", 
                         item.highlight && !isActive && "text-amber-400",
-                        isUpdatesItem && hasNewUpdates && !isActive && "text-primary animate-pulse"
+                        isUpdatesItem && hasNewUpdates && !isActive && "text-destructive animate-pulse"
                       )} />
                       <span className="font-medium">{item.label}</span>
 
@@ -212,7 +212,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
 
                       {/* Indicator for new updates */}
                       {isUpdatesItem && hasNewUpdates && !isActive && (
-                        <span className="absolute right-3 w-2 h-2 bg-primary rounded-full animate-pulse" />
+                        <span className="absolute right-3 w-2 h-2 bg-destructive rounded-full animate-pulse" />
                       )}
                     </Link>
                   );
