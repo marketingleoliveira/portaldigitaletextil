@@ -1921,21 +1921,19 @@ export default function MeetingRoom() {
                 Copiar link
               </DropdownMenuItem>
               {/* Mobile-only options */}
-              {(globalScreenShareEnabled || isHost) && (
-                <DropdownMenuItem onClick={toggleScreenShare} className="sm:hidden">
-                  {isScreenSharing ? (
-                    <>
-                      <ScreenShareOff className="w-4 h-4 mr-2" />
-                      Parar compartilhamento
-                    </>
-                  ) : (
-                    <>
-                      <ScreenShare className="w-4 h-4 mr-2" />
-                      Compartilhar tela
-                    </>
-                  )}
-                </DropdownMenuItem>
-              )}
+              <DropdownMenuItem onClick={toggleScreenShare} className="sm:hidden">
+                {isScreenSharing ? (
+                  <>
+                    <ScreenShareOff className="w-4 h-4 mr-2" />
+                    Parar compartilhamento
+                  </>
+                ) : (
+                  <>
+                    <ScreenShare className="w-4 h-4 mr-2" />
+                    Compartilhar tela
+                  </>
+                )}
+              </DropdownMenuItem>
               {isHost && (
                 <DropdownMenuItem onClick={isRecording ? stopRecording : startRecording} className="sm:hidden">
                   {isRecording ? (
