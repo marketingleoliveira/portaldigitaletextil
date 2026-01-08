@@ -336,6 +336,173 @@ export type Database = {
         }
         Relationships: []
       }
+      meeting_messages: {
+        Row: {
+          created_at: string
+          id: string
+          meeting_id: string
+          message: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          meeting_id: string
+          message: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          meeting_id?: string
+          message?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meeting_messages_meeting_id_fkey"
+            columns: ["meeting_id"]
+            isOneToOne: false
+            referencedRelation: "meetings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meeting_messages_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      meeting_participants: {
+        Row: {
+          id: string
+          is_co_host: boolean | null
+          is_hand_raised: boolean | null
+          is_host: boolean | null
+          is_muted: boolean | null
+          is_screen_sharing: boolean | null
+          is_video_on: boolean | null
+          joined_at: string | null
+          left_at: string | null
+          meeting_id: string
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          is_co_host?: boolean | null
+          is_hand_raised?: boolean | null
+          is_host?: boolean | null
+          is_muted?: boolean | null
+          is_screen_sharing?: boolean | null
+          is_video_on?: boolean | null
+          joined_at?: string | null
+          left_at?: string | null
+          meeting_id: string
+          user_id: string
+        }
+        Update: {
+          id?: string
+          is_co_host?: boolean | null
+          is_hand_raised?: boolean | null
+          is_host?: boolean | null
+          is_muted?: boolean | null
+          is_screen_sharing?: boolean | null
+          is_video_on?: boolean | null
+          joined_at?: string | null
+          left_at?: string | null
+          meeting_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meeting_participants_meeting_id_fkey"
+            columns: ["meeting_id"]
+            isOneToOne: false
+            referencedRelation: "meetings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meeting_participants_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      meetings: {
+        Row: {
+          allow_chat: boolean | null
+          allow_participants_audio: boolean | null
+          allow_participants_video: boolean | null
+          allow_screen_share: boolean | null
+          created_at: string
+          description: string | null
+          ended_at: string | null
+          host_user_id: string
+          id: string
+          is_active: boolean | null
+          max_participants: number | null
+          meeting_code: string
+          scheduled_end: string | null
+          scheduled_start: string | null
+          started_at: string | null
+          title: string
+          updated_at: string
+          waiting_room_enabled: boolean | null
+        }
+        Insert: {
+          allow_chat?: boolean | null
+          allow_participants_audio?: boolean | null
+          allow_participants_video?: boolean | null
+          allow_screen_share?: boolean | null
+          created_at?: string
+          description?: string | null
+          ended_at?: string | null
+          host_user_id: string
+          id?: string
+          is_active?: boolean | null
+          max_participants?: number | null
+          meeting_code: string
+          scheduled_end?: string | null
+          scheduled_start?: string | null
+          started_at?: string | null
+          title: string
+          updated_at?: string
+          waiting_room_enabled?: boolean | null
+        }
+        Update: {
+          allow_chat?: boolean | null
+          allow_participants_audio?: boolean | null
+          allow_participants_video?: boolean | null
+          allow_screen_share?: boolean | null
+          created_at?: string
+          description?: string | null
+          ended_at?: string | null
+          host_user_id?: string
+          id?: string
+          is_active?: boolean | null
+          max_participants?: number | null
+          meeting_code?: string
+          scheduled_end?: string | null
+          scheduled_start?: string | null
+          started_at?: string | null
+          title?: string
+          updated_at?: string
+          waiting_room_enabled?: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meetings_host_user_id_fkey"
+            columns: ["host_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       notification_reads: {
         Row: {
           id: string
@@ -951,6 +1118,7 @@ export type Database = {
         Args: { _product_id: string; _user_id: string }
         Returns: boolean
       }
+      generate_meeting_code: { Args: never; Returns: string }
       get_user_role: {
         Args: { _user_id: string }
         Returns: Database["public"]["Enums"]["app_role"]

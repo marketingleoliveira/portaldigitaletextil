@@ -34,6 +34,8 @@ import Goals from "./pages/Goals";
 import Updates from "./pages/Updates";
 import Localizar from "./pages/Localizar";
 import Prices from "./pages/Prices";
+import Meetings from "./pages/Meetings";
+import MeetingRoom from "./pages/MeetingRoom";
 
 const queryClient = new QueryClient();
 
@@ -84,6 +86,8 @@ const App = () => (
                 <Route path="/metas" element={<ProtectedRoute><Goals /></ProtectedRoute>} />
                 <Route path="/precos" element={<ProtectedRoute><Prices /></ProtectedRoute>} />
                 <Route path="/atualizacoes" element={<ProtectedRoute><Updates /></ProtectedRoute>} />
+                <Route path="/reunioes" element={<ProtectedRoute><Meetings /></ProtectedRoute>} />
+                <Route path="/reuniao/:code" element={<ProtectedRoute><MeetingRoom /></ProtectedRoute>} />
                 
                 <Route path="*" element={<NotFound />} />
               </Routes>
