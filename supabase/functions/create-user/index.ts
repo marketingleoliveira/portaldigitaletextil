@@ -12,7 +12,7 @@ serve(async (req) => {
   }
 
   try {
-    const { email, password, full_name, role } = await req.json();
+    const { email, password, full_name, role, region, is_active, location_sharing_enabled } = await req.json();
 
     const supabaseAdmin = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
@@ -38,10 +38,15 @@ serve(async (req) => {
 
     const userId = authData.user.id;
 
-    // Update profile to be active
+    // Update profile with all fields
     const { error: profileError } = await supabaseAdmin
       .from('profiles')
-      .update({ is_active: true, full_name })
+      .update({ 
+        is_active: is_active ?? true, 
+        full_name,
+        region: region || null,
+        location_sharing_enabled: location_sharing_enabled ?? null
+      })
       .eq('id', userId);
 
     if (profileError) {
