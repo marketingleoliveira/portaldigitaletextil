@@ -681,66 +681,65 @@ const Goals: React.FC = () => {
               </TabsList>
             </Tabs>
 
-            {/* Team Goals Section - Visible to all users */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Users className="w-5 h-5 text-primary" />
-                  Metas da Equipe
-                </CardTitle>
-                <CardDescription>
-                  Metas compartilhadas para toda a equipe
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                {teamGoals.length === 0 ? (
-                  <div className="py-8 text-center">
-                    <Target className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
-                    <p className="text-sm text-muted-foreground">
-                      Nenhuma meta de equipe encontrada
-                    </p>
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                    {teamGoals.map(goal => {
-                      const currentProgress = getProgressForGoal(goal.id);
-                      const percentage = calculatePercentage(currentProgress, goal.target_value);
-                      const isAchieved = currentProgress >= goal.target_value;
-                      // Only admins and devs can see team progress details
-                      const teamProgress = isAdmin ? getTeamProgressForGoal(goal.id) : null;
+            {/* Team Goals Section - Only visible to DEV */}
+            {isDev && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Users className="w-5 h-5 text-primary" />
+                    Metas da Equipe
+                  </CardTitle>
+                  <CardDescription>
+                    Metas compartilhadas para toda a equipe
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {teamGoals.length === 0 ? (
+                    <div className="py-8 text-center">
+                      <Target className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
+                      <p className="text-sm text-muted-foreground">
+                        Nenhuma meta de equipe encontrada
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                      {teamGoals.map(goal => {
+                        const currentProgress = getProgressForGoal(goal.id);
+                        const percentage = calculatePercentage(currentProgress, goal.target_value);
+                        const isAchieved = currentProgress >= goal.target_value;
+                        const teamProgress = getTeamProgressForGoal(goal.id);
 
-                      return (
-                        <Card
-                          key={goal.id}
-                          className={`relative overflow-hidden transition-all ${
-                            isAchieved ? 'border-green-500/50 bg-green-500/5' : 'bg-muted/20'
-                          }`}
-                        >
-                          {isAchieved && (
-                            <div className="absolute top-3 right-3">
-                              <Trophy className="w-6 h-6 text-green-500" />
-                            </div>
-                          )}
-                          <CardHeader className="pb-2">
-                            <div className="flex items-start justify-between gap-4">
-                              <div className="flex-1">
-                                <div className="flex items-center gap-2 mb-1">
-                                  <Badge
-                                    variant="outline"
-                                    className={periodColors[goal.period_type]}
-                                  >
-                                    <Calendar className="w-3 h-3 mr-1" />
-                                    {periodLabels[goal.period_type]}
-                                  </Badge>
-                                </div>
-                                <CardTitle className="text-base">{goal.title}</CardTitle>
-                                {goal.description && (
-                                  <CardDescription className="mt-1 text-xs">
-                                    {goal.description}
-                                  </CardDescription>
-                                )}
+                        return (
+                          <Card
+                            key={goal.id}
+                            className={`relative overflow-hidden transition-all ${
+                              isAchieved ? 'border-green-500/50 bg-green-500/5' : 'bg-muted/20'
+                            }`}
+                          >
+                            {isAchieved && (
+                              <div className="absolute top-3 right-3">
+                                <Trophy className="w-6 h-6 text-green-500" />
                               </div>
-                              {isDev && (
+                            )}
+                            <CardHeader className="pb-2">
+                              <div className="flex items-start justify-between gap-4">
+                                <div className="flex-1">
+                                  <div className="flex items-center gap-2 mb-1">
+                                    <Badge
+                                      variant="outline"
+                                      className={periodColors[goal.period_type]}
+                                    >
+                                      <Calendar className="w-3 h-3 mr-1" />
+                                      {periodLabels[goal.period_type]}
+                                    </Badge>
+                                  </div>
+                                  <CardTitle className="text-base">{goal.title}</CardTitle>
+                                  {goal.description && (
+                                    <CardDescription className="mt-1 text-xs">
+                                      {goal.description}
+                                    </CardDescription>
+                                  )}
+                                </div>
                                 <div className="flex gap-1">
                                   <Button
                                     variant="ghost"
@@ -759,89 +758,65 @@ const Goals: React.FC = () => {
                                     <Trash2 className="w-4 h-4 text-destructive" />
                                   </Button>
                                 </div>
-                              )}
-                            </div>
-                          </CardHeader>
-                          <CardContent>
-                            <div className="space-y-3">
-                              <div className="flex items-center justify-between text-sm">
-                                <span className="text-muted-foreground">Seu progresso</span>
-                                <span className="font-semibold">
-                                  {formatValue(currentProgress, goal.unit)} / {formatValue(goal.target_value, goal.unit)}
-                                </span>
                               </div>
-                              <Progress value={percentage} className="h-2" />
-                              <div className="flex items-center justify-between">
-                                <span
-                                  className={`text-xs font-medium ${
-                                    isAchieved ? 'text-green-500' : 'text-muted-foreground'
-                                  }`}
-                                >
-                                  {percentage}% completo
-                                </span>
-                                <div className="flex items-center gap-2">
-                                  {isAchieved && user?.profile?.full_name && (
-                                    <Button
-                                      variant="outline"
-                                      size="sm"
-                                      onClick={() => handleOpenCertificate(goal, user.profile!.full_name)}
-                                      className="gap-1 h-7 text-xs bg-gradient-to-r from-yellow-500/10 to-amber-500/10 border-yellow-500/30 hover:border-yellow-500/50 text-yellow-700 dark:text-yellow-400"
-                                    >
-                                      <Award className="w-3 h-3" />
-                                      Certificado
-                                    </Button>
-                                  )}
-                                  {isDev && (
-                                    <Button
-                                      variant="outline"
-                                      size="sm"
-                                      onClick={() => handleOpenProgressDialog(goal)}
-                                      className="gap-1 h-7 text-xs"
-                                    >
-                                      <TrendingUp className="w-3 h-3" />
-                                      Atualizar
-                                    </Button>
-                                  )}
+                            </CardHeader>
+                            <CardContent>
+                              <div className="space-y-3">
+                                <div className="flex items-center justify-between text-sm">
+                                  <span className="text-muted-foreground">Progresso total</span>
+                                  <span className="font-semibold">
+                                    {formatValue(teamProgress.total, goal.unit)} / {formatValue(goal.target_value, goal.unit)}
+                                  </span>
+                                </div>
+                                <Progress value={calculatePercentage(teamProgress.total, goal.target_value)} className="h-2" />
+                                <div className="flex items-center justify-between">
+                                  <span
+                                    className={`text-xs font-medium ${
+                                      teamProgress.total >= goal.target_value ? 'text-green-500' : 'text-muted-foreground'
+                                    }`}
+                                  >
+                                    {calculatePercentage(teamProgress.total, goal.target_value)}% completo
+                                  </span>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => handleOpenProgressDialog(goal)}
+                                    className="gap-1 h-7 text-xs"
+                                  >
+                                    <TrendingUp className="w-3 h-3" />
+                                    Atualizar
+                                  </Button>
                                 </div>
                               </div>
-                            </div>
 
-                            {/* Team progress (admin/dev only) */}
-                            {isAdmin && teamProgress && teamProgress.users.length > 0 && (
-                              <div className="mt-4 pt-4 border-t">
-                                <div className="flex items-center gap-2 mb-3">
-                                  <Users className="w-4 h-4 text-muted-foreground" />
-                                  <span className="text-xs font-medium">Progresso da Equipe</span>
-                                </div>
-                                <div className="space-y-2 max-h-28 overflow-y-auto">
-                                  {teamProgress.users.slice(0, 5).map((up, idx) => {
-                                    const userPercentage = calculatePercentage(
-                                      up.value,
-                                      goal.target_value
-                                    );
-                                    const userAchieved = up.value >= goal.target_value;
-                                    return (
-                                      <div
-                                        key={up.userId}
-                                        className="flex items-center justify-between text-xs"
-                                      >
-                                        <div className="flex items-center gap-2">
-                                          {idx === 0 && teamProgress.users.length > 1 && (
-                                            <ChevronUp className="w-3 h-3 text-green-500" />
-                                          )}
-                                          <span className="truncate max-w-[100px]">
-                                            {up.profile?.full_name || 'Usuário'}
-                                          </span>
-                                        </div>
-                                        <div className="flex items-center gap-2">
-                                          <span
-                                            className={`font-medium ${
-                                              userAchieved ? 'text-green-500' : ''
-                                            }`}
-                                          >
-                                            {formatValue(up.value, goal.unit)} ({userPercentage}%)
-                                          </span>
-                                          {isDev && (
+                              {/* Team progress details */}
+                              {teamProgress.users.length > 0 && (
+                                <div className="mt-4 pt-4 border-t">
+                                  <div className="flex items-center gap-2 mb-3">
+                                    <Users className="w-4 h-4 text-muted-foreground" />
+                                    <span className="text-xs font-medium">Progresso da Equipe</span>
+                                  </div>
+                                  <div className="space-y-2 max-h-28 overflow-y-auto">
+                                    {teamProgress.users.slice(0, 5).map((up, idx) => {
+                                      const userPercentage = calculatePercentage(up.value, goal.target_value);
+                                      const userAchieved = up.value >= goal.target_value;
+                                      return (
+                                        <div
+                                          key={up.userId}
+                                          className="flex items-center justify-between text-xs"
+                                        >
+                                          <div className="flex items-center gap-2">
+                                            {idx === 0 && teamProgress.users.length > 1 && (
+                                              <ChevronUp className="w-3 h-3 text-green-500" />
+                                            )}
+                                            <span className="truncate max-w-[100px]">
+                                              {up.profile?.full_name || 'Usuário'}
+                                            </span>
+                                          </div>
+                                          <div className="flex items-center gap-2">
+                                            <span className={`font-medium ${userAchieved ? 'text-green-500' : ''}`}>
+                                              {formatValue(up.value, goal.unit)} ({userPercentage}%)
+                                            </span>
                                             <div className="flex gap-1">
                                               <Button
                                                 variant="ghost"
@@ -860,22 +835,22 @@ const Goals: React.FC = () => {
                                                 <Trash2 className="w-3 h-3 text-destructive" />
                                               </Button>
                                             </div>
-                                          )}
+                                          </div>
                                         </div>
-                                      </div>
-                                    );
-                                  })}
+                                      );
+                                    })}
+                                  </div>
                                 </div>
-                              </div>
-                            )}
-                          </CardContent>
-                        </Card>
-                      );
-                    })}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+                              )}
+                            </CardContent>
+                          </Card>
+                        );
+                      })}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            )}
 
             {/* Individual Goals Section */}
             <Card>
