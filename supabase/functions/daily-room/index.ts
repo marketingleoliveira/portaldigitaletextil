@@ -18,7 +18,10 @@ serve(async (req) => {
     }
 
     const { action, roomName, meetingCode } = await req.json();
-    const dailyRoomName = roomName || meetingCode?.replace(/-/g, "");
+    // Sanitize room name: Daily.co only allows alphanumeric and hyphens, max 41 chars
+    const rawName = roomName || meetingCode?.replace(/-/g, "") || `room${Date.now()}`;
+    const dailyRoomName = rawName.replace(/[^a-zA-Z0-9-]/g, '').substring(0, 41);
+    console.log("Action:", action, "Room name:", dailyRoomName);
 
     if (action === "create") {
       const response = await fetch("https://api.daily.co/v1/rooms", {
@@ -72,6 +75,10 @@ serve(async (req) => {
       );
 
       if (!response.ok) {
+        // Room doesn't exist, create it with sanitized name
+        const sanitizedName = dailyRoomName?.replace(/[^a-zA-Z0-9-]/g, '') || `room-${Date.now()}`;
+        console.log("Creating room with name:", sanitizedName);
+        
         const createResponse = await fetch("https://api.daily.co/v1/rooms", {
           method: "POST",
           headers: {
@@ -79,7 +86,7 @@ serve(async (req) => {
             Authorization: `Bearer ${DAILY_API_KEY}`,
           },
           body: JSON.stringify({
-            name: dailyRoomName,
+            name: sanitizedName,
             privacy: "public",
             properties: {
               enable_chat: true,
@@ -93,7 +100,9 @@ serve(async (req) => {
         });
 
         if (!createResponse.ok) {
-          throw new Error("Failed to create room");
+          const errorData = await createResponse.json().catch(() => ({}));
+          console.error("Daily.co create error:", JSON.stringify(errorData));
+          throw new Error(`Failed to create room: ${JSON.stringify(errorData)}`);
         }
 
         const room = await createResponse.json();
