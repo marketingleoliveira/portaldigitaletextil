@@ -10,7 +10,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
-import { Plus, Sparkles, Calendar, User, Trash2, Loader2, Rocket } from 'lucide-react';
+import { Plus, Sparkles, Calendar, User, Trash2, Loader2, Rocket, Pencil } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { toast } from 'sonner';
@@ -31,6 +31,7 @@ const Updates: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [editingUpdate, setEditingUpdate] = useState<DevelopmentUpdate | null>(null);
   const [formData, setFormData] = useState({
     title: '',
     content: '',
@@ -89,25 +90,60 @@ const Updates: React.FC = () => {
 
     setSubmitting(true);
     try {
-      const { error } = await supabase
-        .from('development_updates')
-        .insert({
-          title: formData.title.trim(),
-          content: formData.content.trim(),
-          version: formData.version.trim() || null,
-          created_by: user?.id,
-        });
+      if (editingUpdate) {
+        // Update existing
+        const { error } = await supabase
+          .from('development_updates')
+          .update({
+            title: formData.title.trim(),
+            content: formData.content.trim(),
+            version: formData.version.trim() || null,
+          })
+          .eq('id', editingUpdate.id);
 
-      if (error) throw error;
+        if (error) throw error;
+        toast.success('Atualização editada com sucesso!');
+      } else {
+        // Create new
+        const { error } = await supabase
+          .from('development_updates')
+          .insert({
+            title: formData.title.trim(),
+            content: formData.content.trim(),
+            version: formData.version.trim() || null,
+            created_by: user?.id,
+          });
 
-      toast.success('Atualização publicada com sucesso!');
+        if (error) throw error;
+        toast.success('Atualização publicada com sucesso!');
+      }
+
       setFormData({ title: '', content: '', version: '' });
+      setEditingUpdate(null);
       setIsDialogOpen(false);
     } catch (error) {
-      console.error('Error creating update:', error);
-      toast.error('Erro ao publicar atualização');
+      console.error('Error saving update:', error);
+      toast.error(editingUpdate ? 'Erro ao editar atualização' : 'Erro ao publicar atualização');
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handleEdit = (update: DevelopmentUpdate) => {
+    setEditingUpdate(update);
+    setFormData({
+      title: update.title,
+      content: update.content,
+      version: update.version || '',
+    });
+    setIsDialogOpen(true);
+  };
+
+  const handleDialogClose = (open: boolean) => {
+    setIsDialogOpen(open);
+    if (!open) {
+      setEditingUpdate(null);
+      setFormData({ title: '', content: '', version: '' });
     }
   };
 
@@ -144,7 +180,7 @@ const Updates: React.FC = () => {
           </div>
 
           {isDev && (
-            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+            <Dialog open={isDialogOpen} onOpenChange={handleDialogClose}>
               <DialogTrigger asChild>
                 <Button className="gap-2">
                   <Plus className="w-4 h-4" />
@@ -153,7 +189,7 @@ const Updates: React.FC = () => {
               </DialogTrigger>
               <DialogContent className="sm:max-w-lg">
                 <DialogHeader>
-                  <DialogTitle>Publicar Nova Atualização</DialogTitle>
+                  <DialogTitle>{editingUpdate ? 'Editar Atualização' : 'Publicar Nova Atualização'}</DialogTitle>
                 </DialogHeader>
                 <form onSubmit={handleSubmit} className="space-y-4">
                   <div className="space-y-2">
@@ -187,17 +223,17 @@ const Updates: React.FC = () => {
                     />
                   </div>
                   <div className="flex justify-end gap-2">
-                    <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
+                    <Button type="button" variant="outline" onClick={() => handleDialogClose(false)}>
                       Cancelar
                     </Button>
                     <Button type="submit" disabled={submitting}>
                       {submitting ? (
                         <>
                           <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                          Publicando...
+                          {editingUpdate ? 'Salvando...' : 'Publicando...'}
                         </>
                       ) : (
-                        'Publicar'
+                        editingUpdate ? 'Salvar' : 'Publicar'
                       )}
                     </Button>
                   </div>
@@ -252,14 +288,24 @@ const Updates: React.FC = () => {
                       </CardDescription>
                     </div>
                     {isDev && (
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                        onClick={() => handleDelete(update.id)}
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
+                      <div className="flex gap-1">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="text-muted-foreground hover:text-primary hover:bg-primary/10"
+                          onClick={() => handleEdit(update)}
+                        >
+                          <Pencil className="w-4 h-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                          onClick={() => handleDelete(update.id)}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
                     )}
                   </div>
                 </CardHeader>
