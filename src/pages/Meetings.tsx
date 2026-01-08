@@ -84,6 +84,7 @@ export default function Meetings() {
           host_profile:profiles!meetings_host_user_id_fkey(full_name, avatar_url)
         `)
         .or(`host_user_id.eq.${user.id},is_active.eq.true`)
+        .is("ended_at", null)
         .order("created_at", { ascending: false })
         .limit(10);
 
