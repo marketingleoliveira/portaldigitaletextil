@@ -1,12 +1,12 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
+import ExcelJS from 'exceljs';
 import * as XLSX from 'xlsx';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
-import { Save, Download, Loader2, Plus, Trash2, Bold, Italic, AlignLeft, AlignCenter, AlignRight, Undo, Redo, FileText, Type, Palette, Square, Minus, Grid3X3 } from 'lucide-react';
+import { Save, Download, Loader2, Plus, Trash2, Bold, Italic, AlignLeft, AlignCenter, AlignRight, Undo, Redo, FileText, Type, Palette, Minus, Grid3X3, ZoomIn, ZoomOut, Maximize2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Separator } from '@/components/ui/separator';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator, DropdownMenuLabel } from '@/components/ui/dropdown-menu';
@@ -25,17 +25,31 @@ interface CellBorders {
 interface CellStyle {
   bold?: boolean;
   italic?: boolean;
-  align?: 'left' | 'center' | 'right';
+  underline?: boolean;
+  strike?: boolean;
+  align?: 'left' | 'center' | 'right' | 'fill' | 'justify';
+  verticalAlign?: 'top' | 'middle' | 'bottom';
   backgroundColor?: string;
   textColor?: string;
   borders?: CellBorders;
   fontSize?: number;
+  fontFamily?: string;
+  borderTop?: string;
+  borderBottom?: string;
+  borderLeft?: string;
+  borderRight?: string;
+  wrapText?: boolean;
 }
 
 interface CellData {
   value: string;
+  formattedValue?: string;
   formula?: string;
   style?: CellStyle;
+  isMerged?: boolean;
+  mergeAnchor?: boolean;
+  colspan?: number;
+  rowspan?: number;
 }
 
 interface SpreadsheetEditorProps {
@@ -110,7 +124,7 @@ const evaluateFormula = (formula: string, data: CellData[][]): string => {
       }
     }
     
-    // Simple arithmetic with cell references (e.g., =A1+B1, =A1*2)
+    // Simple arithmetic with cell references
     let expression = cleanFormula;
     const cellRefs = expression.match(/[A-Z]+\d+/g);
     if (cellRefs) {
@@ -124,7 +138,6 @@ const evaluateFormula = (formula: string, data: CellData[][]): string => {
         expression = expression.replace(ref, numValue.toString());
       });
       
-      // Safe eval for basic math
       const sanitized = expression.replace(/[^0-9+\-*/().]/g, '');
       if (sanitized) {
         const result = Function('"use strict"; return (' + sanitized + ')')();
@@ -162,6 +175,215 @@ const getCellRange = (data: CellData[][], startCol: string, startRow: number, en
   return values;
 };
 
+const argbToHex = (argb: string | undefined | { argb?: string; theme?: number; tint?: number }): string | undefined => {
+  if (!argb) return undefined;
+  
+  if (typeof argb === 'object') {
+    if (argb.argb) {
+      const hex = argb.argb;
+      if (hex.length === 8) {
+        return `#${hex.substring(2)}`;
+      }
+      return `#${hex}`;
+    }
+    if (argb.theme !== undefined) {
+      const themeColors = [
+        '#FFFFFF', '#000000', '#E7E6E6', '#44546A',
+        '#4472C4', '#ED7D31', '#A5A5A5', '#FFC000',
+        '#5B9BD5', '#70AD47'
+      ];
+      return themeColors[argb.theme] || undefined;
+    }
+    return undefined;
+  }
+  
+  if (typeof argb === 'string') {
+    if (argb.length === 8) {
+      return `#${argb.substring(2)}`;
+    }
+    if (argb.length === 6) {
+      return `#${argb}`;
+    }
+  }
+  return undefined;
+};
+
+const getBorderStyle = (border: Partial<ExcelJS.Border> | undefined): string | undefined => {
+  if (!border || !border.style) return undefined;
+  
+  const color = border.color ? argbToHex(border.color.argb) || '#000000' : '#000000';
+  
+  const styleMap: Record<string, string> = {
+    thin: `1px solid ${color}`,
+    medium: `2px solid ${color}`,
+    thick: `3px solid ${color}`,
+    double: `3px double ${color}`,
+    dotted: `1px dotted ${color}`,
+    dashed: `1px dashed ${color}`,
+    hair: `0.5px solid ${color}`,
+    dashDot: `1px dashed ${color}`,
+    dashDotDot: `1px dashed ${color}`,
+    slantDashDot: `1px dashed ${color}`,
+    mediumDashed: `2px dashed ${color}`,
+    mediumDashDot: `2px dashed ${color}`,
+    mediumDashDotDot: `2px dashed ${color}`,
+  };
+  
+  return styleMap[border.style] || `1px solid ${color}`;
+};
+
+const extractCellStyle = (cell: ExcelJS.Cell): CellStyle => {
+  const style: CellStyle = {};
+  
+  if (cell.font) {
+    if (cell.font.bold) style.bold = true;
+    if (cell.font.italic) style.italic = true;
+    if (cell.font.underline) style.underline = true;
+    if (cell.font.strike) style.strike = true;
+    if (cell.font.size) style.fontSize = cell.font.size;
+    if (cell.font.name) style.fontFamily = cell.font.name;
+    if (cell.font.color) {
+      const color = argbToHex(cell.font.color.argb);
+      if (color) style.textColor = color;
+    }
+  }
+  
+  if (cell.alignment) {
+    if (cell.alignment.horizontal) {
+      style.align = cell.alignment.horizontal as any;
+    }
+    if (cell.alignment.vertical) {
+      style.verticalAlign = cell.alignment.vertical as 'top' | 'middle' | 'bottom';
+    }
+    if (cell.alignment.wrapText) {
+      style.wrapText = true;
+    }
+  }
+  
+  if (cell.fill) {
+    if (cell.fill.type === 'pattern') {
+      const patternFill = cell.fill as ExcelJS.FillPattern;
+      if (patternFill.fgColor) {
+        const bgColor = argbToHex(patternFill.fgColor.argb);
+        if (bgColor) {
+          style.backgroundColor = bgColor;
+        }
+      }
+    } else if (cell.fill.type === 'gradient') {
+      const gradientFill = cell.fill as any;
+      if (gradientFill.stops && gradientFill.stops.length > 0) {
+        const bgColor = argbToHex(gradientFill.stops[0].color?.argb);
+        if (bgColor) {
+          style.backgroundColor = bgColor;
+        }
+      }
+    }
+  }
+  
+  if (cell.border) {
+    style.borderTop = getBorderStyle(cell.border.top);
+    style.borderBottom = getBorderStyle(cell.border.bottom);
+    style.borderLeft = getBorderStyle(cell.border.left);
+    style.borderRight = getBorderStyle(cell.border.right);
+  }
+  
+  return style;
+};
+
+const formatCellValue = (cell: ExcelJS.Cell): string => {
+  const value = cell.value;
+  
+  if (value === null || value === undefined) return '';
+  
+  if (typeof value === 'object' && 'result' in value) {
+    const result = (value as ExcelJS.CellFormulaValue).result;
+    if (result !== undefined) {
+      return formatValue(result, cell.numFmt);
+    }
+  }
+  
+  if (typeof value === 'object' && 'richText' in value) {
+    return (value as ExcelJS.CellRichTextValue).richText.map(rt => rt.text).join('');
+  }
+  
+  if (typeof value === 'object' && 'hyperlink' in value) {
+    return (value as ExcelJS.CellHyperlinkValue).text || '';
+  }
+  
+  if (value instanceof Date) {
+    return value.toLocaleDateString('pt-BR');
+  }
+  
+  if (typeof value === 'object' && 'error' in value) {
+    return String((value as any).error);
+  }
+  
+  return formatValue(value, cell.numFmt);
+};
+
+const formatValue = (value: any, numFmt: string | undefined): string => {
+  if (value === null || value === undefined) return '';
+  
+  if (typeof value === 'number') {
+    if (numFmt) {
+      const fmt = numFmt.toLowerCase();
+      
+      if (fmt.includes('r$') || fmt.includes('"r$"') || fmt.includes('[$r$')) {
+        return value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+      }
+      if (fmt.includes('$') || fmt.includes('usd') || fmt.includes('[$$')) {
+        return value.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
+      }
+      if (fmt.includes('€') || fmt.includes('eur')) {
+        return value.toLocaleString('de-DE', { style: 'currency', currency: 'EUR' });
+      }
+      
+      if (fmt.includes('%')) {
+        return (value * 100).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + '%';
+      }
+      
+      if (fmt.includes('d') && fmt.includes('m') && fmt.includes('y')) {
+        const date = new Date((value - 25569) * 86400 * 1000);
+        return date.toLocaleDateString('pt-BR');
+      }
+      
+      if (fmt.includes('h') && fmt.includes('m') && !fmt.includes('d')) {
+        const totalMinutes = value * 24 * 60;
+        const hours = Math.floor(totalMinutes / 60);
+        const minutes = Math.round(totalMinutes % 60);
+        return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+      }
+      
+      if (fmt.includes('(') || fmt.includes('_')) {
+        if (value < 0) {
+          return `(${Math.abs(value).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })})`;
+        }
+      }
+      
+      const decimalMatch = fmt.match(/\.([0#]+)/);
+      if (decimalMatch) {
+        const decimals = decimalMatch[1].length;
+        return value.toLocaleString('pt-BR', { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
+      }
+      
+      if (fmt.includes(',') || fmt.includes('#')) {
+        return value.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      }
+    }
+    
+    if (Number.isInteger(value)) {
+      return value.toLocaleString('pt-BR');
+    }
+    return value.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+  
+  if (typeof value === 'boolean') {
+    return value ? 'VERDADEIRO' : 'FALSO';
+  }
+  
+  return String(value);
+};
+
 const SpreadsheetEditor: React.FC<SpreadsheetEditorProps> = ({
   open,
   onOpenChange,
@@ -171,6 +393,8 @@ const SpreadsheetEditor: React.FC<SpreadsheetEditorProps> = ({
   onSave
 }) => {
   const [data, setData] = useState<CellData[][]>([]);
+  const [columnWidths, setColumnWidths] = useState<number[]>([]);
+  const [rowHeights, setRowHeights] = useState<number[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
@@ -181,11 +405,13 @@ const SpreadsheetEditor: React.FC<SpreadsheetEditorProps> = ({
   const [history, setHistory] = useState<CellData[][][]>([]);
   const [historyIndex, setHistoryIndex] = useState(-1);
   const [isSelecting, setIsSelecting] = useState(false);
+  const [zoom, setZoom] = useState(100);
   const tableRef = useRef<HTMLTableElement>(null);
 
   useEffect(() => {
     if (open && fileUrl) {
       loadSpreadsheet();
+      setZoom(100);
     }
   }, [open, fileUrl]);
 
@@ -200,7 +426,7 @@ const SpreadsheetEditor: React.FC<SpreadsheetEditorProps> = ({
     setHistory(prev => {
       const newHistory = prev.slice(0, historyIndex + 1);
       newHistory.push(JSON.parse(JSON.stringify(newData)));
-      return newHistory.slice(-50); // Keep last 50 states
+      return newHistory.slice(-50);
     });
     setHistoryIndex(prev => Math.min(prev + 1, 49));
   }, [historyIndex]);
@@ -213,76 +439,100 @@ const SpreadsheetEditor: React.FC<SpreadsheetEditorProps> = ({
       if (!response.ok) throw new Error('Erro ao carregar arquivo');
       
       const arrayBuffer = await response.arrayBuffer();
-      const workbook = XLSX.read(arrayBuffer, { type: 'array', cellStyles: true, cellFormula: true });
-      const sheetName = workbook.SheetNames[0];
-      const worksheet = workbook.Sheets[sheetName];
+      const workbook = new ExcelJS.Workbook();
+      await workbook.xlsx.load(arrayBuffer);
       
-      const jsonData = XLSX.utils.sheet_to_json<string[]>(worksheet, { header: 1, defval: '' });
+      const worksheet = workbook.worksheets[0];
+      if (!worksheet) throw new Error('Planilha vazia');
       
-      const minRows = Math.max(jsonData.length, 30);
-      const maxCols = Math.max(...jsonData.map(row => row.length), 15);
+      const rowCount = Math.max(worksheet.rowCount || 0, 30);
+      const colCount = Math.max(worksheet.columnCount || 0, 15);
       
-      const normalizedData: CellData[][] = [];
-      for (let i = 0; i < minRows; i++) {
-        const row = jsonData[i] || [];
-        const normalizedRow: CellData[] = [];
-        for (let j = 0; j < maxCols; j++) {
-          const value = String(row[j] ?? '');
-          const cellRef = XLSX.utils.encode_cell({ r: i, c: j });
-          const cell = worksheet[cellRef];
-          
-          // Extract formatting from original cell
-          let cellStyle: CellStyle | undefined = undefined;
-          if (cell?.s) {
-            const s = cell.s;
-            cellStyle = {};
+      // Get column widths
+      const colWidths: number[] = [];
+      for (let colNum = 1; colNum <= colCount; colNum++) {
+        const col = worksheet.getColumn(colNum);
+        const width = col.width || 8.43;
+        colWidths.push(Math.round(width * 7.5));
+      }
+      setColumnWidths(colWidths);
+      
+      // Get row heights
+      const heights: number[] = [];
+      for (let rowNum = 1; rowNum <= rowCount; rowNum++) {
+        const row = worksheet.getRow(rowNum);
+        const height = row.height || 15;
+        heights.push(Math.round(height * 1.33));
+      }
+      setRowHeights(heights);
+      
+      // Get merged cells
+      const mergedMap = new Map<string, { colspan: number; rowspan: number; isAnchor: boolean }>();
+      
+      if (worksheet.model && (worksheet.model as any).merges) {
+        const merges = (worksheet.model as any).merges as string[];
+        merges.forEach((range: string) => {
+          const match = range.match(/([A-Z]+)(\d+):([A-Z]+)(\d+)/);
+          if (match) {
+            const startCol = columnLetterToIndex(match[1]);
+            const startRow = parseInt(match[2]) - 1;
+            const endCol = columnLetterToIndex(match[3]);
+            const endRow = parseInt(match[4]) - 1;
             
-            // Font styling
-            if (s.font?.bold) cellStyle.bold = true;
-            if (s.font?.italic) cellStyle.italic = true;
+            const colspan = endCol - startCol + 1;
+            const rowspan = endRow - startRow + 1;
             
-            // Alignment
-            if (s.alignment?.horizontal) {
-              cellStyle.align = s.alignment.horizontal as 'left' | 'center' | 'right';
-            }
+            mergedMap.set(`${startRow}-${startCol}`, { colspan, rowspan, isAnchor: true });
             
-            // Background color
-            if (s.fill?.fgColor?.rgb) {
-              cellStyle.backgroundColor = `#${s.fill.fgColor.rgb}`;
-            }
-            
-            // Text color
-            if (s.font?.color?.rgb) {
-              cellStyle.textColor = `#${s.font.color.rgb}`;
-            }
-            
-            // Borders
-            if (s.border) {
-              cellStyle.borders = {};
-              const borderColor = '#000000';
-              if (s.border.top) cellStyle.borders.top = { style: 'thin', color: borderColor };
-              if (s.border.right) cellStyle.borders.right = { style: 'thin', color: borderColor };
-              if (s.border.bottom) cellStyle.borders.bottom = { style: 'thin', color: borderColor };
-              if (s.border.left) cellStyle.borders.left = { style: 'thin', color: borderColor };
+            for (let r = startRow; r <= endRow; r++) {
+              for (let c = startCol; c <= endCol; c++) {
+                if (r !== startRow || c !== startCol) {
+                  mergedMap.set(`${r}-${c}`, { colspan: 0, rowspan: 0, isAnchor: false });
+                }
+              }
             }
           }
-          
-          // Default header row styling if no style detected
-          if (!cellStyle && i === 0) {
-            cellStyle = { bold: true, backgroundColor: '#f3f4f6' };
-          }
-          
-          normalizedRow.push({
-            value,
-            formula: cell?.f ? `=${cell.f}` : (value.startsWith('=') ? value : undefined),
-            style: cellStyle
-          });
-        }
-        normalizedData.push(normalizedRow);
+        });
       }
       
-      setData(normalizedData);
-      setHistory([JSON.parse(JSON.stringify(normalizedData))]);
+      // Build cell data
+      const cellData: CellData[][] = [];
+      for (let rowNum = 1; rowNum <= rowCount; rowNum++) {
+        const rowData: CellData[] = [];
+        const row = worksheet.getRow(rowNum);
+        
+        for (let colNum = 1; colNum <= colCount; colNum++) {
+          const cell = row.getCell(colNum);
+          const rowIdx = rowNum - 1;
+          const colIdx = colNum - 1;
+          const mergeInfo = mergedMap.get(`${rowIdx}-${colIdx}`);
+          
+          const rawValue = cell.value;
+          const value = rawValue !== null && rawValue !== undefined ? String(rawValue) : '';
+          const formattedValue = formatCellValue(cell);
+          const style = extractCellStyle(cell);
+          
+          const formula = typeof rawValue === 'object' && rawValue !== null && 'formula' in rawValue
+            ? `=${(rawValue as any).formula}`
+            : (value.startsWith('=') ? value : undefined);
+          
+          rowData.push({
+            value: formattedValue || value,
+            formattedValue,
+            formula,
+            style,
+            isMerged: mergeInfo && !mergeInfo.isAnchor,
+            mergeAnchor: mergeInfo?.isAnchor,
+            colspan: mergeInfo?.isAnchor ? mergeInfo.colspan : undefined,
+            rowspan: mergeInfo?.isAnchor ? mergeInfo.rowspan : undefined
+          });
+        }
+        
+        cellData.push(rowData);
+      }
+      
+      setData(cellData);
+      setHistory([JSON.parse(JSON.stringify(cellData))]);
       setHistoryIndex(0);
       setHasChanges(false);
     } catch (err) {
@@ -298,9 +548,12 @@ const SpreadsheetEditor: React.FC<SpreadsheetEditorProps> = ({
       const newData = prev.map(row => row.map(cell => ({ ...cell })));
       const isFormula = value.startsWith('=');
       
+      const evaluatedValue = isFormula ? evaluateFormula(value, newData) : value;
+      
       newData[rowIndex][colIndex] = {
         ...newData[rowIndex][colIndex],
-        value: isFormula ? evaluateFormula(value, newData) : value,
+        value: evaluatedValue,
+        formattedValue: evaluatedValue,
         formula: isFormula ? value : undefined
       };
       
@@ -360,22 +613,92 @@ const SpreadsheetEditor: React.FC<SpreadsheetEditorProps> = ({
     setHasChanges(true);
   };
 
-  const addRow = () => {
+  const applyBorder = (type: 'all' | 'outer' | 'inner' | 'top' | 'bottom' | 'left' | 'right' | 'none', style: BorderStyle = 'thin', color: string = '#000000') => {
+    if (!selectedCell && !selectedRange) return;
+    
     setData(prev => {
-      const newRow = new Array(prev[0]?.length || 15).fill(null).map(() => ({ value: '' }));
-      const newData = [...prev, newRow];
+      const newData = prev.map(row => row.map(cell => ({ ...cell })));
+      
+      const startRow = selectedRange?.startRow ?? selectedCell!.row;
+      const endRow = selectedRange?.endRow ?? selectedCell!.row;
+      const startCol = selectedRange?.startCol ?? selectedCell!.col;
+      const endCol = selectedRange?.endCol ?? selectedCell!.col;
+      
+      const borderValue = style === 'none' ? undefined : getBorderStyleValue(style, color);
+      
+      for (let r = startRow; r <= endRow; r++) {
+        for (let c = startCol; c <= endCol; c++) {
+          const cellStyle = { ...newData[r][c].style };
+          
+          if (type === 'none') {
+            cellStyle.borderTop = undefined;
+            cellStyle.borderBottom = undefined;
+            cellStyle.borderLeft = undefined;
+            cellStyle.borderRight = undefined;
+          } else if (type === 'all') {
+            cellStyle.borderTop = borderValue;
+            cellStyle.borderBottom = borderValue;
+            cellStyle.borderLeft = borderValue;
+            cellStyle.borderRight = borderValue;
+          } else if (type === 'outer') {
+            if (r === startRow) cellStyle.borderTop = borderValue;
+            if (r === endRow) cellStyle.borderBottom = borderValue;
+            if (c === startCol) cellStyle.borderLeft = borderValue;
+            if (c === endCol) cellStyle.borderRight = borderValue;
+          } else if (type === 'inner') {
+            if (r > startRow) cellStyle.borderTop = borderValue;
+            if (r < endRow) cellStyle.borderBottom = borderValue;
+            if (c > startCol) cellStyle.borderLeft = borderValue;
+            if (c < endCol) cellStyle.borderRight = borderValue;
+          } else if (type === 'top') {
+            cellStyle.borderTop = borderValue;
+          } else if (type === 'bottom') {
+            cellStyle.borderBottom = borderValue;
+          } else if (type === 'left') {
+            cellStyle.borderLeft = borderValue;
+          } else if (type === 'right') {
+            cellStyle.borderRight = borderValue;
+          }
+          
+          newData[r][c] = { ...newData[r][c], style: cellStyle };
+        }
+      }
+      
       saveToHistory(newData);
       return newData;
     });
     setHasChanges(true);
   };
 
-  const addColumn = () => {
+  const getBorderStyleValue = (style: BorderStyle, color: string): string => {
+    const styleMap: Record<BorderStyle, string> = {
+      none: '',
+      thin: `1px solid ${color}`,
+      medium: `2px solid ${color}`,
+      thick: `3px solid ${color}`,
+      double: `3px double ${color}`
+    };
+    return styleMap[style];
+  };
+
+  const addRow = () => {
     setData(prev => {
-      const newData = prev.map(row => [...row, { value: '' }]);
+      const newRow = new Array(prev[0]?.length || 15).fill(null).map(() => ({ value: '', formattedValue: '' }));
+      const newData = [...prev, newRow];
       saveToHistory(newData);
       return newData;
     });
+    setRowHeights(prev => [...prev, 20]);
+    setHasChanges(true);
+  };
+
+  const addColumn = () => {
+    setData(prev => {
+      const newData = prev.map(row => [...row, { value: '', formattedValue: '' }]);
+      saveToHistory(newData);
+      return newData;
+    });
+    setColumnWidths(prev => [...prev, 64]);
     setHasChanges(true);
   };
 
@@ -386,6 +709,7 @@ const SpreadsheetEditor: React.FC<SpreadsheetEditorProps> = ({
       saveToHistory(newData);
       return newData;
     });
+    setRowHeights(prev => prev.filter((_, i) => i !== index));
     setHasChanges(true);
   };
 
@@ -396,6 +720,7 @@ const SpreadsheetEditor: React.FC<SpreadsheetEditorProps> = ({
       saveToHistory(newData);
       return newData;
     });
+    setColumnWidths(prev => prev.filter((_, i) => i !== index));
     setHasChanges(true);
   };
 
@@ -458,84 +783,59 @@ const SpreadsheetEditor: React.FC<SpreadsheetEditorProps> = ({
     try {
       const pdf = new jsPDF();
       
-      // Load and add company logo
-      const logoImg = new Image();
-      logoImg.crossOrigin = 'anonymous';
-      
-      await new Promise<void>((resolve) => {
-        logoImg.onload = () => {
-          // Calculate proportional size (max width 40, maintain aspect ratio)
-          const maxWidth = 40;
-          const ratio = logoImg.height / logoImg.width;
-          const width = maxWidth;
-          const height = maxWidth * ratio;
-          
-          pdf.addImage(logoImg, 'PNG', 15, 10, width, height);
-          resolve();
-        };
-        logoImg.onerror = () => resolve(); // Continue without logo if it fails
-        logoImg.src = '/src/assets/logo-digitale.png';
-      });
-      
-      // Title
       pdf.setFontSize(18);
       pdf.setFont('helvetica', 'bold');
-      pdf.text(`Resumo: ${fileName}`, 60, 25);
+      pdf.text(`Resumo: ${fileName}`, 15, 20);
       
-      // Date
       pdf.setFontSize(10);
       pdf.setFont('helvetica', 'normal');
-      pdf.text(`Gerado em: ${new Date().toLocaleDateString('pt-BR')} às ${new Date().toLocaleTimeString('pt-BR')}`, 60, 32);
+      pdf.text(`Gerado em: ${new Date().toLocaleDateString('pt-BR')} às ${new Date().toLocaleTimeString('pt-BR')}`, 15, 28);
       
-      // Separator line
       pdf.setDrawColor(200);
-      pdf.line(15, 45, 195, 45);
-      
-      // Summary statistics
-      pdf.setFontSize(12);
-      pdf.setFont('helvetica', 'bold');
-      pdf.text('Estatísticas do Documento', 15, 55);
+      pdf.line(15, 35, 195, 35);
       
       const nonEmptyRows = data.filter(row => row.some(cell => cell.value.trim() !== '')).length;
-      const nonEmptyCols = data[0]?.filter((_, colIdx) => data.some(row => row[colIdx]?.value.trim() !== '')).length || 0;
       const totalCells = data.flat().filter(cell => cell.value.trim() !== '').length;
-      const numericCells = data.flat().filter(cell => !isNaN(parseFloat(cell.value)) && cell.value.trim() !== '').length;
+      
+      pdf.setFontSize(12);
+      pdf.setFont('helvetica', 'bold');
+      pdf.text('Estatísticas do Documento', 15, 45);
       
       pdf.setFont('helvetica', 'normal');
       pdf.setFontSize(10);
-      pdf.text(`• Total de linhas com dados: ${nonEmptyRows}`, 20, 65);
-      pdf.text(`• Total de colunas com dados: ${nonEmptyCols}`, 20, 72);
-      pdf.text(`• Total de células preenchidas: ${totalCells}`, 20, 79);
-      pdf.text(`• Células numéricas: ${numericCells}`, 20, 86);
+      pdf.text(`• Total de linhas com dados: ${nonEmptyRows}`, 20, 55);
+      pdf.text(`• Total de células preenchidas: ${totalCells}`, 20, 62);
       
-      // Table preview (first 20 rows max)
       pdf.setFontSize(12);
       pdf.setFont('helvetica', 'bold');
-      pdf.text('Prévia dos Dados', 15, 100);
+      pdf.text('Prévia dos Dados', 15, 78);
       
       const tableData = data
-        .slice(0, 20)
-        .filter(row => row.some(cell => cell.value.trim() !== ''))
-        .map(row => row.slice(0, 8).map(cell => cell.value.substring(0, 20)));
+        .slice(0, 30)
+        .filter(row => row.some(cell => cell.value.trim() !== '' && !cell.isMerged))
+        .map(row => row.filter(cell => !cell.isMerged).slice(0, 10).map(cell => {
+          const display = cell.formattedValue || cell.value;
+          return display.length > 30 ? display.substring(0, 27) + '...' : display;
+        }));
       
       if (tableData.length > 0) {
         autoTable(pdf, {
-          startY: 105,
+          startY: 83,
           head: tableData.length > 0 ? [tableData[0]] : [],
           body: tableData.slice(1),
-          theme: 'striped',
+          theme: 'grid',
           headStyles: { 
             fillColor: [59, 130, 246],
-            fontSize: 8,
-            fontStyle: 'bold'
+            fontSize: 7,
+            fontStyle: 'bold',
+            cellPadding: 2
           },
-          bodyStyles: { fontSize: 7 },
+          bodyStyles: { fontSize: 7, cellPadding: 2 },
           margin: { left: 15, right: 15 },
           tableWidth: 'auto'
         });
       }
       
-      // Footer
       const pageHeight = pdf.internal.pageSize.height;
       pdf.setFontSize(8);
       pdf.setTextColor(128);
@@ -559,18 +859,18 @@ const SpreadsheetEditor: React.FC<SpreadsheetEditorProps> = ({
     return letter;
   };
 
-  const handleMouseDown = (rowIndex: number, colIndex: number) => {
+  const handleMouseDown = (row: number, col: number) => {
     setIsSelecting(true);
-    setSelectedCell({ row: rowIndex, col: colIndex });
-    setSelectedRange({ startRow: rowIndex, startCol: colIndex, endRow: rowIndex, endCol: colIndex });
+    setSelectedCell({ row, col });
+    setSelectedRange({ startRow: row, startCol: col, endRow: row, endCol: col });
   };
 
-  const handleMouseEnter = (rowIndex: number, colIndex: number) => {
+  const handleMouseEnter = (row: number, col: number) => {
     if (isSelecting && selectedRange) {
       setSelectedRange(prev => prev ? {
         ...prev,
-        endRow: rowIndex,
-        endCol: colIndex
+        endRow: row,
+        endCol: col
       } : null);
     }
   };
@@ -579,133 +879,59 @@ const SpreadsheetEditor: React.FC<SpreadsheetEditorProps> = ({
     setIsSelecting(false);
   };
 
-  const isCellSelected = (rowIndex: number, colIndex: number) => {
-    if (!selectedRange) return selectedCell?.row === rowIndex && selectedCell?.col === colIndex;
+  const isCellSelected = (row: number, col: number): boolean => {
+    if (selectedCell?.row === row && selectedCell?.col === col) return true;
+    if (!selectedRange) return false;
     
     const minRow = Math.min(selectedRange.startRow, selectedRange.endRow);
     const maxRow = Math.max(selectedRange.startRow, selectedRange.endRow);
     const minCol = Math.min(selectedRange.startCol, selectedRange.endCol);
     const maxCol = Math.max(selectedRange.startCol, selectedRange.endCol);
     
-    return rowIndex >= minRow && rowIndex <= maxRow && colIndex >= minCol && colIndex <= maxCol;
+    return row >= minRow && row <= maxRow && col >= minCol && col <= maxCol;
   };
 
-  const getBorderStyle = (border?: { style: BorderStyle; color: string }): string => {
-    if (!border || border.style === 'none') return '';
-    const widthMap: Record<BorderStyle, string> = {
-      none: '0px',
-      thin: '1px',
-      medium: '2px',
-      thick: '3px',
-      double: '3px'
+  const getCellStyles = (cell: CellData, colWidth: number, rowHeight: number): React.CSSProperties => {
+    const style = cell.style || {};
+    const cssStyle: React.CSSProperties = {
+      minWidth: colWidth,
+      maxWidth: colWidth,
+      height: rowHeight,
+      minHeight: rowHeight
     };
-    const styleMap: Record<BorderStyle, string> = {
-      none: 'none',
-      thin: 'solid',
-      medium: 'solid',
-      thick: 'solid',
-      double: 'double'
-    };
-    return `${widthMap[border.style]} ${styleMap[border.style]} ${border.color}`;
-  };
-
-  const getCellStyle = (cell: CellData): React.CSSProperties => {
-    const style: React.CSSProperties = {};
-    if (cell.style?.bold) style.fontWeight = 'bold';
-    if (cell.style?.italic) style.fontStyle = 'italic';
-    if (cell.style?.align) style.textAlign = cell.style.align;
-    if (cell.style?.backgroundColor) style.backgroundColor = cell.style.backgroundColor;
-    if (cell.style?.textColor) style.color = cell.style.textColor;
-    if (cell.style?.fontSize) style.fontSize = `${cell.style.fontSize}px`;
     
-    // Apply borders
-    if (cell.style?.borders) {
-      if (cell.style.borders.top) style.borderTop = getBorderStyle(cell.style.borders.top);
-      if (cell.style.borders.right) style.borderRight = getBorderStyle(cell.style.borders.right);
-      if (cell.style.borders.bottom) style.borderBottom = getBorderStyle(cell.style.borders.bottom);
-      if (cell.style.borders.left) style.borderLeft = getBorderStyle(cell.style.borders.left);
+    if (style.bold) cssStyle.fontWeight = 'bold';
+    if (style.italic) cssStyle.fontStyle = 'italic';
+    if (style.underline) cssStyle.textDecoration = 'underline';
+    if (style.strike) cssStyle.textDecoration = (cssStyle.textDecoration || '') + ' line-through';
+    if (style.align) cssStyle.textAlign = style.align === 'fill' ? 'left' : style.align;
+    if (style.verticalAlign) cssStyle.verticalAlign = style.verticalAlign;
+    if (style.backgroundColor) cssStyle.backgroundColor = style.backgroundColor;
+    if (style.textColor) cssStyle.color = style.textColor;
+    if (style.fontSize) cssStyle.fontSize = `${style.fontSize}pt`;
+    if (style.fontFamily) cssStyle.fontFamily = `"${style.fontFamily}", Arial, sans-serif`;
+    if (style.borderTop) cssStyle.borderTop = style.borderTop;
+    if (style.borderBottom) cssStyle.borderBottom = style.borderBottom;
+    if (style.borderLeft) cssStyle.borderLeft = style.borderLeft;
+    if (style.borderRight) cssStyle.borderRight = style.borderRight;
+    if (style.wrapText) {
+      cssStyle.whiteSpace = 'pre-wrap';
+      cssStyle.wordBreak = 'break-word';
+    } else {
+      cssStyle.whiteSpace = 'nowrap';
+      cssStyle.overflow = 'hidden';
+      cssStyle.textOverflow = 'ellipsis';
     }
     
-    return style;
+    return cssStyle;
   };
 
-  const applyBorder = (borderType: 'all' | 'outer' | 'inner' | 'top' | 'right' | 'bottom' | 'left' | 'none', borderStyle: BorderStyle = 'thin', borderColor: string = '#000000') => {
-    if (!selectedCell && !selectedRange) return;
-    
-    setData(prev => {
-      const newData = prev.map(row => row.map(cell => ({ ...cell })));
-      
-      const startRow = selectedRange?.startRow ?? selectedCell!.row;
-      const endRow = selectedRange?.endRow ?? selectedCell!.row;
-      const startCol = selectedRange?.startCol ?? selectedCell!.col;
-      const endCol = selectedRange?.endCol ?? selectedCell!.col;
-      
-      const minRow = Math.min(startRow, endRow);
-      const maxRow = Math.max(startRow, endRow);
-      const minCol = Math.min(startCol, endCol);
-      const maxCol = Math.max(startCol, endCol);
-      
-      for (let r = minRow; r <= maxRow; r++) {
-        for (let c = minCol; c <= maxCol; c++) {
-          const borders: CellBorders = { ...newData[r][c].style?.borders };
-          const border = { style: borderStyle, color: borderColor };
-          const noBorder = { style: 'none' as BorderStyle, color: borderColor };
-          
-          switch (borderType) {
-            case 'all':
-              borders.top = border;
-              borders.right = border;
-              borders.bottom = border;
-              borders.left = border;
-              break;
-            case 'outer':
-              if (r === minRow) borders.top = border;
-              if (r === maxRow) borders.bottom = border;
-              if (c === minCol) borders.left = border;
-              if (c === maxCol) borders.right = border;
-              break;
-            case 'inner':
-              if (r > minRow) borders.top = border;
-              if (r < maxRow) borders.bottom = border;
-              if (c > minCol) borders.left = border;
-              if (c < maxCol) borders.right = border;
-              break;
-            case 'top':
-              borders.top = border;
-              break;
-            case 'right':
-              borders.right = border;
-              break;
-            case 'bottom':
-              borders.bottom = border;
-              break;
-            case 'left':
-              borders.left = border;
-              break;
-            case 'none':
-              borders.top = noBorder;
-              borders.right = noBorder;
-              borders.bottom = noBorder;
-              borders.left = noBorder;
-              break;
-          }
-          
-          newData[r][c] = {
-            ...newData[r][c],
-            style: { ...newData[r][c].style, borders }
-          };
-        }
-      }
-      
-      saveToHistory(newData);
-      return newData;
-    });
-    setHasChanges(true);
-  };
+  const handleZoomIn = () => setZoom(prev => Math.min(prev + 25, 200));
+  const handleZoomOut = () => setZoom(prev => Math.max(prev - 25, 50));
+  const handleZoomReset = () => setZoom(100);
 
   const [currentBorderColor, setCurrentBorderColor] = useState('#000000');
   const [currentBorderStyle, setCurrentBorderStyle] = useState<BorderStyle>('thin');
-
   const currentCellStyle = selectedCell ? data[selectedCell.row]?.[selectedCell.col]?.style : undefined;
 
   return (
@@ -718,18 +944,35 @@ const SpreadsheetEditor: React.FC<SpreadsheetEditorProps> = ({
         onOpenChange(value);
       }
     }}>
-      <DialogContent className="max-w-[98vw] w-full max-h-[98vh] h-full flex flex-col p-3">
-        <DialogHeader className="pb-2">
-          <DialogTitle className="text-lg">Editor de Planilha: {fileName}</DialogTitle>
-          <DialogDescription className="text-xs">
-            Edite as células diretamente. Use fórmulas como =SUM(A1:A10), =AVERAGE(B1:B5), =MAX(C1:C10), =MIN(D1:D5) ou operações básicas como =A1+B1
-          </DialogDescription>
+      <DialogContent className="max-w-[98vw] w-full max-h-[98vh] h-full flex flex-col p-0">
+        <DialogHeader className="px-6 py-4 border-b shrink-0">
+          <div className="flex flex-row items-center justify-between w-full gap-4">
+            <div className="min-w-0">
+              <DialogTitle className="truncate">Editor: {fileName}</DialogTitle>
+              <DialogDescription className="text-xs">
+                Edite as células diretamente. Use fórmulas como =SUM(A1:A10), =AVERAGE(B1:B5)
+              </DialogDescription>
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+              <div className="flex items-center gap-1 bg-muted rounded-lg p-1">
+                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={handleZoomOut} disabled={zoom <= 50}>
+                  <ZoomOut className="h-4 w-4" />
+                </Button>
+                <span className="text-xs font-medium w-12 text-center">{zoom}%</span>
+                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={handleZoomIn} disabled={zoom >= 200}>
+                  <ZoomIn className="h-4 w-4" />
+                </Button>
+                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={handleZoomReset}>
+                  <Maximize2 className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          </div>
         </DialogHeader>
         
         {/* Toolbar */}
         <TooltipProvider>
-          <div className="flex flex-wrap items-center gap-1 p-2 bg-muted/50 rounded-lg border">
-            {/* File operations */}
+          <div className="flex flex-wrap items-center gap-1 px-4 py-2 bg-muted/50 border-b">
             <div className="flex items-center gap-1">
               <Tooltip>
                 <TooltipTrigger asChild>
@@ -737,7 +980,7 @@ const SpreadsheetEditor: React.FC<SpreadsheetEditorProps> = ({
                     <Undo className="w-4 h-4" />
                   </Button>
                 </TooltipTrigger>
-                <TooltipContent>Desfazer (Ctrl+Z)</TooltipContent>
+                <TooltipContent>Desfazer</TooltipContent>
               </Tooltip>
               
               <Tooltip>
@@ -746,13 +989,12 @@ const SpreadsheetEditor: React.FC<SpreadsheetEditorProps> = ({
                     <Redo className="w-4 h-4" />
                   </Button>
                 </TooltipTrigger>
-                <TooltipContent>Refazer (Ctrl+Y)</TooltipContent>
+                <TooltipContent>Refazer</TooltipContent>
               </Tooltip>
             </div>
             
             <Separator orientation="vertical" className="h-6" />
             
-            {/* Text formatting */}
             <div className="flex items-center gap-1">
               <Tooltip>
                 <TooltipTrigger asChild>
@@ -785,7 +1027,6 @@ const SpreadsheetEditor: React.FC<SpreadsheetEditorProps> = ({
             
             <Separator orientation="vertical" className="h-6" />
             
-            {/* Alignment */}
             <div className="flex items-center gap-1">
               <Tooltip>
                 <TooltipTrigger asChild>
@@ -832,7 +1073,6 @@ const SpreadsheetEditor: React.FC<SpreadsheetEditorProps> = ({
             
             <Separator orientation="vertical" className="h-6" />
             
-            {/* Colors */}
             <div className="flex items-center gap-1">
               <DropdownMenu>
                 <Tooltip>
@@ -845,7 +1085,7 @@ const SpreadsheetEditor: React.FC<SpreadsheetEditorProps> = ({
                   </TooltipTrigger>
                   <TooltipContent>Cor de fundo</TooltipContent>
                 </Tooltip>
-                <DropdownMenuContent>
+                <DropdownMenuContent className="bg-popover">
                   <DropdownMenuItem onClick={() => applyStyle({ backgroundColor: undefined })}>
                     <div className="w-4 h-4 border mr-2" /> Sem cor
                   </DropdownMenuItem>
@@ -878,7 +1118,7 @@ const SpreadsheetEditor: React.FC<SpreadsheetEditorProps> = ({
                   </TooltipTrigger>
                   <TooltipContent>Cor do texto</TooltipContent>
                 </Tooltip>
-                <DropdownMenuContent>
+                <DropdownMenuContent className="bg-popover">
                   <DropdownMenuItem onClick={() => applyStyle({ textColor: undefined })}>
                     <span className="text-foreground mr-2">A</span> Padrão
                   </DropdownMenuItem>
@@ -900,7 +1140,6 @@ const SpreadsheetEditor: React.FC<SpreadsheetEditorProps> = ({
             
             <Separator orientation="vertical" className="h-6" />
             
-            {/* Borders */}
             <div className="flex items-center gap-1">
               <DropdownMenu>
                 <Tooltip>
@@ -919,28 +1158,20 @@ const SpreadsheetEditor: React.FC<SpreadsheetEditorProps> = ({
                     <div className="w-5 h-5 border-2 border-current mr-2" /> Todas as Bordas
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => applyBorder('outer', currentBorderStyle, currentBorderColor)}>
-                    <div className="w-5 h-5 border-2 border-current mr-2 flex items-center justify-center">
-                      <div className="w-3 h-3" />
-                    </div> Borda Externa
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => applyBorder('inner', currentBorderStyle, currentBorderColor)}>
-                    <div className="w-5 h-5 border border-transparent mr-2 flex items-center justify-center">
-                      <div className="w-full h-0.5 bg-current absolute" />
-                      <div className="h-full w-0.5 bg-current absolute" />
-                    </div> Bordas Internas
+                    <div className="w-5 h-5 border-2 border-current mr-2" /> Borda Externa
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={() => applyBorder('top', currentBorderStyle, currentBorderColor)}>
-                    <div className="w-5 h-5 border-t-2 border-current mr-2" /> Borda Superior
+                    <div className="w-5 h-5 border-t-2 border-current mr-2" /> Superior
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => applyBorder('bottom', currentBorderStyle, currentBorderColor)}>
-                    <div className="w-5 h-5 border-b-2 border-current mr-2" /> Borda Inferior
+                    <div className="w-5 h-5 border-b-2 border-current mr-2" /> Inferior
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => applyBorder('left', currentBorderStyle, currentBorderColor)}>
-                    <div className="w-5 h-5 border-l-2 border-current mr-2" /> Borda Esquerda
+                    <div className="w-5 h-5 border-l-2 border-current mr-2" /> Esquerda
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => applyBorder('right', currentBorderStyle, currentBorderColor)}>
-                    <div className="w-5 h-5 border-r-2 border-current mr-2" /> Borda Direita
+                    <div className="w-5 h-5 border-r-2 border-current mr-2" /> Direita
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={() => applyBorder('none')}>
@@ -974,12 +1205,8 @@ const SpreadsheetEditor: React.FC<SpreadsheetEditorProps> = ({
                     <div className="w-8 h-0 border-t-[3px] border-current mr-2" /> Grossa
                     {currentBorderStyle === 'thick' && <span className="ml-auto">✓</span>}
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setCurrentBorderStyle('double')}>
-                    <div className="w-8 border-t-[3px] border-double border-current mr-2" /> Dupla
-                    {currentBorderStyle === 'double' && <span className="ml-auto">✓</span>}
-                  </DropdownMenuItem>
                   <DropdownMenuSeparator />
-                  <DropdownMenuLabel>Cor da Borda</DropdownMenuLabel>
+                  <DropdownMenuLabel>Cor</DropdownMenuLabel>
                   <DropdownMenuItem onClick={() => setCurrentBorderColor('#000000')}>
                     <div className="w-4 h-4 bg-black mr-2 rounded" /> Preto
                     {currentBorderColor === '#000000' && <span className="ml-auto">✓</span>}
@@ -996,17 +1223,12 @@ const SpreadsheetEditor: React.FC<SpreadsheetEditorProps> = ({
                     <div className="w-4 h-4 bg-blue-600 mr-2 rounded" /> Azul
                     {currentBorderColor === '#2563eb' && <span className="ml-auto">✓</span>}
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setCurrentBorderColor('#16a34a')}>
-                    <div className="w-4 h-4 bg-green-600 mr-2 rounded" /> Verde
-                    {currentBorderColor === '#16a34a' && <span className="ml-auto">✓</span>}
-                  </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>
             
             <Separator orientation="vertical" className="h-6" />
             
-            {/* Row/Column operations */}
             <div className="flex items-center gap-1">
               <Tooltip>
                 <TooltipTrigger asChild>
@@ -1031,7 +1253,6 @@ const SpreadsheetEditor: React.FC<SpreadsheetEditorProps> = ({
             
             <div className="flex-1" />
             
-            {/* Cell reference */}
             {selectedCell && (
               <span className="text-xs text-muted-foreground px-2 bg-background rounded border">
                 {getColumnLetter(selectedCell.col)}{selectedCell.row + 1}
@@ -1041,7 +1262,7 @@ const SpreadsheetEditor: React.FC<SpreadsheetEditorProps> = ({
         </TooltipProvider>
         
         {/* Formula Bar */}
-        <div className="flex items-center gap-2 px-2">
+        <div className="flex items-center gap-2 px-4 py-2 border-b">
           <span className="text-xs font-medium text-muted-foreground w-8">fx</span>
           <Input
             value={formulaBarValue}
@@ -1058,68 +1279,170 @@ const SpreadsheetEditor: React.FC<SpreadsheetEditorProps> = ({
         </div>
         
         {/* Spreadsheet */}
-        <div className="flex-1 min-h-0 overflow-hidden border rounded-lg" onMouseUp={handleMouseUp}>
+        <div className="flex-1 min-h-0 overflow-hidden" onMouseUp={handleMouseUp}>
           {loading ? (
             <div className="flex items-center justify-center h-full">
               <Loader2 className="w-8 h-8 animate-spin text-primary" />
               <span className="ml-2">Carregando planilha...</span>
             </div>
           ) : (
-            <ScrollArea className="h-full">
-              <div className="overflow-auto">
-                <table ref={tableRef} className="border-collapse text-sm select-none" style={{ minWidth: 'max-content' }}>
-                  <thead className="sticky top-0 z-10">
-                    <tr>
-                      <th className="border border-border p-0 bg-muted min-w-[40px] w-[40px] text-center text-xs font-medium sticky left-0 z-20">#</th>
-                      {data[0]?.map((_, colIndex) => (
-                        <th key={colIndex} className="border border-border p-0 bg-muted min-w-[100px]">
-                          <div className="flex items-center justify-between px-2 py-1">
-                            <span className="font-medium text-xs">{getColumnLetter(colIndex)}</span>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-4 w-4 opacity-30 hover:opacity-100"
-                              onClick={() => deleteColumn(colIndex)}
-                              title="Remover coluna"
-                            >
-                              <Trash2 className="w-3 h-3" />
-                            </Button>
-                          </div>
-                        </th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {data.map((row, rowIndex) => (
-                      <tr key={rowIndex}>
-                        <td className="border border-border p-0 bg-muted text-center text-xs font-medium sticky left-0 z-10">
-                          <div className="flex items-center justify-between px-1 py-0.5">
-                            <span className="flex-1 text-center">{rowIndex + 1}</span>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-4 w-4 opacity-30 hover:opacity-100"
-                              onClick={() => deleteRow(rowIndex)}
-                              title="Remover linha"
-                            >
-                              <Trash2 className="w-3 h-3" />
-                            </Button>
-                          </div>
-                        </td>
-                        {row.map((cell, colIndex) => (
+            <div 
+              className="h-full overflow-auto bg-[#f3f3f3]"
+              style={{ 
+                transform: `scale(${zoom / 100})`,
+                transformOrigin: 'top left',
+                width: zoom !== 100 ? `${10000 / zoom}%` : '100%',
+                height: zoom !== 100 ? `${10000 / zoom}%` : '100%'
+              }}
+            >
+              <table 
+                ref={tableRef} 
+                className="border-collapse bg-white shadow-sm" 
+                style={{ 
+                  minWidth: 'max-content',
+                  borderSpacing: 0,
+                  tableLayout: 'fixed'
+                }}
+              >
+                <colgroup>
+                  <col style={{ width: 40 }} />
+                  {columnWidths.map((width, idx) => (
+                    <col key={idx} style={{ width: Math.max(width, 30) }} />
+                  ))}
+                </colgroup>
+                <thead className="sticky top-0 z-10">
+                  <tr>
+                    <th 
+                      className="sticky left-0 z-20"
+                      style={{
+                        width: 40,
+                        minWidth: 40,
+                        height: 22,
+                        backgroundColor: '#f0f0f0',
+                        borderRight: '1px solid #c0c0c0',
+                        borderBottom: '1px solid #c0c0c0',
+                        fontSize: 11,
+                        fontWeight: 500,
+                        color: '#333'
+                      }}
+                    />
+                    {data[0]?.map((_, colIndex) => (
+                      <th 
+                        key={colIndex} 
+                        style={{
+                          width: columnWidths[colIndex] || 64,
+                          minWidth: columnWidths[colIndex] || 64,
+                          height: 22,
+                          backgroundColor: '#f0f0f0',
+                          borderRight: '1px solid #c0c0c0',
+                          borderBottom: '1px solid #c0c0c0',
+                          fontSize: 11,
+                          fontWeight: 500,
+                          textAlign: 'center',
+                          color: '#333',
+                          position: 'relative'
+                        }}
+                      >
+                        <div className="flex items-center justify-between px-1">
+                          <span className="flex-1 text-center">{getColumnLetter(colIndex)}</span>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-4 w-4 opacity-0 hover:opacity-100 absolute right-0.5"
+                            onClick={() => deleteColumn(colIndex)}
+                            title="Remover coluna"
+                          >
+                            <Trash2 className="w-3 h-3" />
+                          </Button>
+                        </div>
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {data.map((row, rowIndex) => (
+                    <tr key={rowIndex}>
+                      <td 
+                        className="sticky left-0 z-10"
+                        style={{
+                          width: 40,
+                          minWidth: 40,
+                          height: rowHeights[rowIndex] || 20,
+                          backgroundColor: '#f0f0f0',
+                          borderRight: '1px solid #c0c0c0',
+                          borderBottom: '1px solid #d0d0d0',
+                          fontSize: 11,
+                          fontWeight: 500,
+                          textAlign: 'center',
+                          color: '#333',
+                          position: 'relative'
+                        }}
+                      >
+                        <div className="flex items-center justify-between px-0.5">
+                          <span className="flex-1 text-center">{rowIndex + 1}</span>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-4 w-4 opacity-0 hover:opacity-100 absolute right-0"
+                            onClick={() => deleteRow(rowIndex)}
+                            title="Remover linha"
+                          >
+                            <Trash2 className="w-3 h-3" />
+                          </Button>
+                        </div>
+                      </td>
+                      {row.map((cell, colIndex) => {
+                        // Skip merged cells
+                        if (cell.isMerged) return null;
+                        
+                        const colWidth = columnWidths[colIndex] || 64;
+                        const rowHeight = rowHeights[rowIndex] || 20;
+                        const cellStyles = getCellStyles(cell, colWidth, rowHeight);
+                        const hasCustomBorder = cell.style?.borderTop || cell.style?.borderBottom || 
+                                                cell.style?.borderLeft || cell.style?.borderRight;
+                        
+                        // Calculate total width/height for merged cells
+                        let totalWidth = colWidth;
+                        let totalHeight = rowHeight;
+                        if (cell.colspan && cell.colspan > 1) {
+                          for (let i = 1; i < cell.colspan; i++) {
+                            totalWidth += columnWidths[colIndex + i] || 64;
+                          }
+                        }
+                        if (cell.rowspan && cell.rowspan > 1) {
+                          for (let i = 1; i < cell.rowspan; i++) {
+                            totalHeight += rowHeights[rowIndex + i] || 20;
+                          }
+                        }
+                        
+                        const isSelected = isCellSelected(rowIndex, colIndex);
+                        const isEditing = editingCell?.row === rowIndex && editingCell?.col === colIndex;
+                        
+                        return (
                           <td 
-                            key={colIndex} 
-                            className={`border border-border p-0 ${
-                              isCellSelected(rowIndex, colIndex)
-                                ? 'ring-2 ring-primary ring-inset bg-primary/5' 
-                                : ''
-                            }`}
-                            style={getCellStyle(cell)}
+                            key={colIndex}
+                            colSpan={cell.colspan}
+                            rowSpan={cell.rowspan}
+                            style={{
+                              ...cellStyles,
+                              minWidth: totalWidth,
+                              maxWidth: totalWidth,
+                              height: totalHeight,
+                              padding: 0,
+                              border: hasCustomBorder ? undefined : '1px solid #e0e0e0',
+                              fontSize: cellStyles.fontSize || '11pt',
+                              lineHeight: 1.2,
+                              boxSizing: 'border-box',
+                              outline: isSelected ? '2px solid hsl(var(--primary))' : undefined,
+                              outlineOffset: '-2px',
+                              backgroundColor: isSelected && !cell.style?.backgroundColor ? 'hsl(var(--primary) / 0.05)' : cellStyles.backgroundColor
+                            }}
                             onMouseDown={() => handleMouseDown(rowIndex, colIndex)}
                             onMouseEnter={() => handleMouseEnter(rowIndex, colIndex)}
                             onDoubleClick={() => setEditingCell({ row: rowIndex, col: colIndex })}
+                            title={cell.value}
                           >
-                            {editingCell?.row === rowIndex && editingCell?.col === colIndex ? (
+                            {isEditing ? (
                               <Input
                                 value={cell.formula || cell.value}
                                 onChange={(e) => handleCellChange(rowIndex, colIndex, e.target.value)}
@@ -1137,32 +1460,38 @@ const SpreadsheetEditor: React.FC<SpreadsheetEditorProps> = ({
                                   }
                                 }}
                                 autoFocus
-                                className="border-0 rounded-none h-7 text-sm focus-visible:ring-0 focus-visible:ring-offset-0 font-mono"
-                                style={getCellStyle(cell)}
+                                className="border-0 rounded-none h-full w-full text-sm focus-visible:ring-0 focus-visible:ring-offset-0 font-mono p-1"
+                                style={{ 
+                                  ...cellStyles,
+                                  minHeight: totalHeight
+                                }}
                               />
                             ) : (
                               <div 
-                                className="px-2 py-1 h-7 flex items-center text-sm overflow-hidden whitespace-nowrap"
-                                style={getCellStyle(cell)}
+                                className="px-1 py-0.5 h-full flex items-center"
+                                style={{
+                                  justifyContent: cellStyles.textAlign === 'center' ? 'center' : 
+                                                  cellStyles.textAlign === 'right' ? 'flex-end' : 'flex-start'
+                                }}
                               >
-                                {cell.value}
+                                {cell.formattedValue || cell.value}
                               </div>
                             )}
                           </td>
-                        ))}
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </ScrollArea>
+                        );
+                      })}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           )}
         </div>
         
-        <DialogFooter className="flex-shrink-0 pt-2">
+        <DialogFooter className="flex-shrink-0 px-6 py-4 border-t">
           <Button variant="outline" onClick={handleDownloadSummaryPDF} disabled={loading}>
             <FileText className="w-4 h-4 mr-2" />
-            Baixar Resumo PDF
+            Resumo PDF
           </Button>
           <Button variant="outline" onClick={handleDownload} disabled={loading}>
             <Download className="w-4 h-4 mr-2" />
