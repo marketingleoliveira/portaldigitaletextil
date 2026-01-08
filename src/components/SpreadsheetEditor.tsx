@@ -74,8 +74,8 @@ const evaluateFormula = (formula: string, data: CellData[][]): string => {
       if (range) {
         const [, startCol, startRow, endCol, endRow] = range;
         const values = getCellRange(data, startCol, parseInt(startRow), endCol, parseInt(endRow));
-        const sum = values.reduce((acc, val) => acc + (parseFloat(val) || 0), 0);
-        return sum.toString();
+        const sum = values.reduce((acc, val) => acc + (parseFloat(val.replace(/[^\d.-]/g, '')) || 0), 0);
+        return sum.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
       }
     }
     
@@ -85,9 +85,9 @@ const evaluateFormula = (formula: string, data: CellData[][]): string => {
       if (range) {
         const [, startCol, startRow, endCol, endRow] = range;
         const values = getCellRange(data, startCol, parseInt(startRow), endCol, parseInt(endRow));
-        const nums = values.filter(v => !isNaN(parseFloat(v))).map(v => parseFloat(v));
+        const nums = values.filter(v => !isNaN(parseFloat(v.replace(/[^\d.-]/g, '')))).map(v => parseFloat(v.replace(/[^\d.-]/g, '')));
         const avg = nums.length > 0 ? nums.reduce((a, b) => a + b, 0) / nums.length : 0;
-        return avg.toFixed(2);
+        return avg.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
       }
     }
     
@@ -97,7 +97,10 @@ const evaluateFormula = (formula: string, data: CellData[][]): string => {
       if (range) {
         const [, startCol, startRow, endCol, endRow] = range;
         const values = getCellRange(data, startCol, parseInt(startRow), endCol, parseInt(endRow));
-        const count = values.filter(v => !isNaN(parseFloat(v)) && v !== '').length;
+        const count = values.filter(v => {
+          const num = v.replace(/[^\d.-]/g, '');
+          return !isNaN(parseFloat(num)) && num !== '';
+        }).length;
         return count.toString();
       }
     }
@@ -108,8 +111,8 @@ const evaluateFormula = (formula: string, data: CellData[][]): string => {
       if (range) {
         const [, startCol, startRow, endCol, endRow] = range;
         const values = getCellRange(data, startCol, parseInt(startRow), endCol, parseInt(endRow));
-        const nums = values.filter(v => !isNaN(parseFloat(v))).map(v => parseFloat(v));
-        return nums.length > 0 ? Math.max(...nums).toString() : '0';
+        const nums = values.filter(v => !isNaN(parseFloat(v.replace(/[^\d.-]/g, '')))).map(v => parseFloat(v.replace(/[^\d.-]/g, '')));
+        return nums.length > 0 ? Math.max(...nums).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0';
       }
     }
     
@@ -119,8 +122,8 @@ const evaluateFormula = (formula: string, data: CellData[][]): string => {
       if (range) {
         const [, startCol, startRow, endCol, endRow] = range;
         const values = getCellRange(data, startCol, parseInt(startRow), endCol, parseInt(endRow));
-        const nums = values.filter(v => !isNaN(parseFloat(v))).map(v => parseFloat(v));
-        return nums.length > 0 ? Math.min(...nums).toString() : '0';
+        const nums = values.filter(v => !isNaN(parseFloat(v.replace(/[^\d.-]/g, '')))).map(v => parseFloat(v.replace(/[^\d.-]/g, '')));
+        return nums.length > 0 ? Math.min(...nums).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0';
       }
     }
     
@@ -134,14 +137,17 @@ const evaluateFormula = (formula: string, data: CellData[][]): string => {
         const colIndex = columnLetterToIndex(col);
         const rowIndex = row - 1;
         const cellValue = data[rowIndex]?.[colIndex]?.value || '0';
-        const numValue = parseFloat(cellValue) || 0;
+        // Extract numeric value from formatted string (e.g., "R$ 1.234,56" -> 1234.56)
+        const numValue = parseFloat(cellValue.replace(/[^\d.-]/g, '').replace(',', '.')) || 0;
         expression = expression.replace(ref, numValue.toString());
       });
       
       const sanitized = expression.replace(/[^0-9+\-*/().]/g, '');
       if (sanitized) {
         const result = Function('"use strict"; return (' + sanitized + ')')();
-        return typeof result === 'number' ? (Number.isInteger(result) ? result.toString() : result.toFixed(2)) : result;
+        return typeof result === 'number' 
+          ? result.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+          : String(result);
       }
     }
     
@@ -149,6 +155,28 @@ const evaluateFormula = (formula: string, data: CellData[][]): string => {
   } catch (e) {
     return '#ERROR';
   }
+};
+
+// Recalculate all formulas in the data
+const recalculateAllFormulas = (data: CellData[][]): CellData[][] => {
+  const newData = data.map(row => row.map(cell => ({ ...cell })));
+  
+  // First pass: collect all cells with formulas
+  for (let rowIndex = 0; rowIndex < newData.length; rowIndex++) {
+    for (let colIndex = 0; colIndex < newData[rowIndex].length; colIndex++) {
+      const cell = newData[rowIndex][colIndex];
+      if (cell.formula && cell.formula.startsWith('=')) {
+        const result = evaluateFormula(cell.formula, newData);
+        newData[rowIndex][colIndex] = {
+          ...cell,
+          value: result,
+          formattedValue: result
+        };
+      }
+    }
+  }
+  
+  return newData;
 };
 
 const columnLetterToIndex = (letter: string): number => {
@@ -557,8 +585,11 @@ const SpreadsheetEditor: React.FC<SpreadsheetEditorProps> = ({
         formula: isFormula ? value : undefined
       };
       
-      saveToHistory(newData);
-      return newData;
+      // Recalculate all formulas that might depend on this cell
+      const recalculatedData = recalculateAllFormulas(newData);
+      
+      saveToHistory(recalculatedData);
+      return recalculatedData;
     });
     setHasChanges(true);
   };
