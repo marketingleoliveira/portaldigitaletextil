@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNotificationContext } from "@/contexts/NotificationContext";
 import { useUserPresence } from "@/hooks/useUserPresence";
+import { useNewUpdates } from "@/hooks/useNewUpdates";
 import Logo from "@/components/Logo";
 import RoleBadge from "@/components/RoleBadge";
 import InactivityWarningModal from "@/components/InactivityWarningModal";
@@ -106,6 +107,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
 
   const { unreadCount, newAlerts, showBanner, setShowBanner, dismissAlert, dismissAllAlerts } =
     useNotificationContext();
+  const { hasNewUpdates, markAsViewed } = useNewUpdates();
 
   // Show loading spinner only during initial load, not indefinitely
   const isUserDataLoading = loading;
@@ -171,12 +173,20 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
                   const Icon = item.icon;
                   const isActive = location.pathname === item.href || location.pathname.startsWith(item.href + "/");
                   const isNotificationsItem = item.href === "/notificacoes";
+                  const isUpdatesItem = item.href === "/atualizacoes";
+
+                  const handleClick = () => {
+                    setSidebarOpen(false);
+                    if (isUpdatesItem && hasNewUpdates) {
+                      markAsViewed();
+                    }
+                  };
 
                   return (
                     <Link
                       key={item.href}
                       to={item.href}
-                      onClick={() => setSidebarOpen(false)}
+                      onClick={handleClick}
                       className={cn(
                         "flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 relative",
                         isActive
@@ -186,7 +196,11 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
                             : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground",
                       )}
                     >
-                      <Icon className={cn("w-5 h-5", item.highlight && !isActive && "text-amber-400")} />
+                      <Icon className={cn(
+                        "w-5 h-5", 
+                        item.highlight && !isActive && "text-amber-400",
+                        isUpdatesItem && hasNewUpdates && !isActive && "text-primary animate-pulse"
+                      )} />
                       <span className="font-medium">{item.label}</span>
 
                       {/* Badge for notifications */}
@@ -194,6 +208,11 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
                         <span className="absolute right-3 w-5 h-5 bg-destructive text-destructive-foreground text-xs rounded-full flex items-center justify-center animate-pulse-glow">
                           {unreadCount.total > 9 ? "9+" : unreadCount.total}
                         </span>
+                      )}
+
+                      {/* Indicator for new updates */}
+                      {isUpdatesItem && hasNewUpdates && !isActive && (
+                        <span className="absolute right-3 w-2 h-2 bg-primary rounded-full animate-pulse" />
                       )}
                     </Link>
                   );
