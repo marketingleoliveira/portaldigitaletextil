@@ -18,9 +18,9 @@ serve(async (req) => {
     }
 
     const { action, roomName, meetingCode } = await req.json();
+    const dailyRoomName = roomName || meetingCode?.replace(/-/g, "");
 
     if (action === "create") {
-      // Create a new Daily room
       const response = await fetch("https://api.daily.co/v1/rooms", {
         method: "POST",
         headers: {
@@ -28,7 +28,7 @@ serve(async (req) => {
           Authorization: `Bearer ${DAILY_API_KEY}`,
         },
         body: JSON.stringify({
-          name: meetingCode.replace(/-/g, ""),
+          name: dailyRoomName,
           privacy: "public",
           properties: {
             enable_chat: true,
@@ -36,22 +36,17 @@ serve(async (req) => {
             enable_recording: "cloud",
             start_video_off: false,
             start_audio_off: false,
-            exp: Math.floor(Date.now() / 1000) + 3600 * 24, // Expires in 24 hours
+            exp: Math.floor(Date.now() / 1000) + 3600 * 24,
           },
         }),
       });
 
       if (!response.ok) {
         const error = await response.json();
-        // If room already exists, try to get it
-        if (error.info === "a]ready taken" || error.error === "invalid-request-error") {
+        if (error.info === "already taken" || error.error === "invalid-request-error") {
           const getResponse = await fetch(
-            `https://api.daily.co/v1/rooms/${meetingCode.replace(/-/g, "")}`,
-            {
-              headers: {
-                Authorization: `Bearer ${DAILY_API_KEY}`,
-              },
-            }
+            `https://api.daily.co/v1/rooms/${dailyRoomName}`,
+            { headers: { Authorization: `Bearer ${DAILY_API_KEY}` } }
           );
           
           if (getResponse.ok) {
@@ -71,18 +66,12 @@ serve(async (req) => {
     }
 
     if (action === "get") {
-      // Get room info
       const response = await fetch(
-        `https://api.daily.co/v1/rooms/${roomName || meetingCode.replace(/-/g, "")}`,
-        {
-          headers: {
-            Authorization: `Bearer ${DAILY_API_KEY}`,
-          },
-        }
+        `https://api.daily.co/v1/rooms/${dailyRoomName}`,
+        { headers: { Authorization: `Bearer ${DAILY_API_KEY}` } }
       );
 
       if (!response.ok) {
-        // Room doesn't exist, create it
         const createResponse = await fetch("https://api.daily.co/v1/rooms", {
           method: "POST",
           headers: {
@@ -90,11 +79,12 @@ serve(async (req) => {
             Authorization: `Bearer ${DAILY_API_KEY}`,
           },
           body: JSON.stringify({
-            name: meetingCode.replace(/-/g, ""),
+            name: dailyRoomName,
             privacy: "public",
             properties: {
               enable_chat: true,
               enable_screenshare: true,
+              enable_recording: "cloud",
               start_video_off: false,
               start_audio_off: false,
               exp: Math.floor(Date.now() / 1000) + 3600 * 24,
@@ -120,16 +110,93 @@ serve(async (req) => {
 
     if (action === "delete") {
       const response = await fetch(
-        `https://api.daily.co/v1/rooms/${roomName || meetingCode.replace(/-/g, "")}`,
+        `https://api.daily.co/v1/rooms/${dailyRoomName}`,
         {
           method: "DELETE",
-          headers: {
-            Authorization: `Bearer ${DAILY_API_KEY}`,
-          },
+          headers: { Authorization: `Bearer ${DAILY_API_KEY}` },
         }
       );
 
       return new Response(JSON.stringify({ success: response.ok }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Recording actions
+    if (action === "start-recording") {
+      const response = await fetch(
+        `https://api.daily.co/v1/rooms/${dailyRoomName}/recordings`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${DAILY_API_KEY}`,
+          },
+          body: JSON.stringify({
+            type: "cloud",
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(`Failed to start recording: ${JSON.stringify(error)}`);
+      }
+
+      const recording = await response.json();
+      return new Response(JSON.stringify({ success: true, recording }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    if (action === "stop-recording") {
+      const response = await fetch(
+        `https://api.daily.co/v1/rooms/${dailyRoomName}/recordings`,
+        {
+          method: "DELETE",
+          headers: { Authorization: `Bearer ${DAILY_API_KEY}` },
+        }
+      );
+
+      return new Response(JSON.stringify({ success: response.ok }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    if (action === "get-recordings") {
+      const response = await fetch(
+        `https://api.daily.co/v1/recordings?room_name=${dailyRoomName}`,
+        { headers: { Authorization: `Bearer ${DAILY_API_KEY}` } }
+      );
+
+      if (!response.ok) {
+        throw new Error("Failed to get recordings");
+      }
+
+      const data = await response.json();
+      return new Response(JSON.stringify({ recordings: data.data || [] }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    if (action === "get-recording-link") {
+      const { recordingId } = await req.json().catch(() => ({}));
+      
+      if (!recordingId) {
+        throw new Error("Recording ID required");
+      }
+
+      const response = await fetch(
+        `https://api.daily.co/v1/recordings/${recordingId}/access-link`,
+        { headers: { Authorization: `Bearer ${DAILY_API_KEY}` } }
+      );
+
+      if (!response.ok) {
+        throw new Error("Failed to get recording link");
+      }
+
+      const data = await response.json();
+      return new Response(JSON.stringify({ link: data.download_link }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
