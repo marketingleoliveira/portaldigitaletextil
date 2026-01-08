@@ -70,7 +70,50 @@ export default function Meetings() {
   });
 
   useEffect(() => {
+    if (!user) return;
+    
     fetchMeetings();
+
+    // Subscribe to realtime changes on meetings table
+    const channel = supabase
+      .channel('meetings-realtime')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'meetings',
+        },
+        (payload) => {
+          console.log('Meeting change:', payload);
+          
+          if (payload.eventType === 'INSERT') {
+            // Add new meeting to the list
+            const newMeeting = payload.new as Meeting;
+            if (newMeeting.host_user_id === user.id || newMeeting.is_active) {
+              setMeetings(prev => [newMeeting, ...prev].slice(0, 10));
+            }
+          } else if (payload.eventType === 'UPDATE') {
+            const updatedMeeting = payload.new as Meeting;
+            // Remove if ended, otherwise update
+            if (updatedMeeting.ended_at) {
+              setMeetings(prev => prev.filter(m => m.id !== updatedMeeting.id));
+            } else {
+              setMeetings(prev => prev.map(m => 
+                m.id === updatedMeeting.id ? { ...m, ...updatedMeeting } : m
+              ));
+            }
+          } else if (payload.eventType === 'DELETE') {
+            const deletedId = (payload.old as { id: string }).id;
+            setMeetings(prev => prev.filter(m => m.id !== deletedId));
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [user]);
 
   const fetchMeetings = async () => {
