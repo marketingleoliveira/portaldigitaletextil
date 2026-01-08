@@ -125,6 +125,7 @@ export default function MeetingRoom() {
   
   const localVideoRef = useRef<HTMLVideoElement>(null);
   const participantRefs = useRef<Record<string, HTMLVideoElement | null>>({});
+  const audioRefs = useRef<Record<string, HTMLAudioElement | null>>({});
   const chatScrollRef = useRef<HTMLDivElement>(null);
 
   const isHost = meeting?.host_user_id === user?.id;
@@ -277,9 +278,11 @@ export default function MeetingRoom() {
   }, [user]);
 
   // Update remote video elements when participants change
+  // Update remote video and audio elements when participants change
   useEffect(() => {
     Object.entries(participants).forEach(([sessionId, participant]) => {
       if (!participant.local) {
+        // Handle video
         const videoEl = participantRefs.current[sessionId];
         if (videoEl) {
           // Prioritize screen share track over video track
@@ -290,6 +293,32 @@ export default function MeetingRoom() {
           if (trackToUse) {
             videoEl.srcObject = new MediaStream([trackToUse]);
           }
+        }
+        
+        // Handle audio - create audio element if needed
+        const audioTrack = participant.tracks?.audio?.track;
+        if (audioTrack) {
+          let audioEl = audioRefs.current[sessionId];
+          if (!audioEl) {
+            audioEl = document.createElement('audio');
+            audioEl.autoplay = true;
+            audioEl.id = `audio-${sessionId}`;
+            document.body.appendChild(audioEl);
+            audioRefs.current[sessionId] = audioEl;
+          }
+          audioEl.srcObject = new MediaStream([audioTrack]);
+        }
+      }
+    });
+    
+    // Clean up audio elements for participants who left
+    Object.keys(audioRefs.current).forEach(sessionId => {
+      if (!participants[sessionId]) {
+        const audioEl = audioRefs.current[sessionId];
+        if (audioEl) {
+          audioEl.srcObject = null;
+          audioEl.remove();
+          delete audioRefs.current[sessionId];
         }
       }
     });
@@ -465,6 +494,16 @@ export default function MeetingRoom() {
   }, [meeting?.id]);
 
   const cleanup = async () => {
+    // Clean up audio elements
+    Object.keys(audioRefs.current).forEach(sessionId => {
+      const audioEl = audioRefs.current[sessionId];
+      if (audioEl) {
+        audioEl.srcObject = null;
+        audioEl.remove();
+      }
+    });
+    audioRefs.current = {};
+    
     if (callObjectRef.current) {
       try {
         await callObjectRef.current.leave();

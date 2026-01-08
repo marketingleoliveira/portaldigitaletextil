@@ -111,6 +111,7 @@ export default function GuestMeetingRoom() {
   
   const localVideoRef = useRef<HTMLVideoElement>(null);
   const participantRefs = useRef<Record<string, HTMLVideoElement | null>>({});
+  const audioRefs = useRef<Record<string, HTMLAudioElement | null>>({});
   const chatScrollRef = useRef<HTMLDivElement>(null);
 
   // Load guest info from sessionStorage
@@ -262,10 +263,11 @@ export default function GuestMeetingRoom() {
     }
   }, [guestInfo]);
 
-  // Update remote video elements
+  // Update remote video and audio elements
   useEffect(() => {
     Object.entries(participants).forEach(([sessionId, participant]) => {
       if (!participant.local) {
+        // Handle video
         const videoEl = participantRefs.current[sessionId];
         if (videoEl) {
           const screenTrack = participant.tracks?.screenVideo?.track;
@@ -275,6 +277,32 @@ export default function GuestMeetingRoom() {
           if (trackToUse) {
             videoEl.srcObject = new MediaStream([trackToUse]);
           }
+        }
+        
+        // Handle audio - create audio element if needed
+        const audioTrack = participant.tracks?.audio?.track;
+        if (audioTrack) {
+          let audioEl = audioRefs.current[sessionId];
+          if (!audioEl) {
+            audioEl = document.createElement('audio');
+            audioEl.autoplay = true;
+            audioEl.id = `audio-${sessionId}`;
+            document.body.appendChild(audioEl);
+            audioRefs.current[sessionId] = audioEl;
+          }
+          audioEl.srcObject = new MediaStream([audioTrack]);
+        }
+      }
+    });
+    
+    // Clean up audio elements for participants who left
+    Object.keys(audioRefs.current).forEach(sessionId => {
+      if (!participants[sessionId]) {
+        const audioEl = audioRefs.current[sessionId];
+        if (audioEl) {
+          audioEl.srcObject = null;
+          audioEl.remove();
+          delete audioRefs.current[sessionId];
         }
       }
     });
@@ -397,6 +425,16 @@ export default function GuestMeetingRoom() {
   }, [meeting?.id]);
 
   const cleanup = async () => {
+    // Clean up audio elements
+    Object.keys(audioRefs.current).forEach(sessionId => {
+      const audioEl = audioRefs.current[sessionId];
+      if (audioEl) {
+        audioEl.srcObject = null;
+        audioEl.remove();
+      }
+    });
+    audioRefs.current = {};
+    
     if (callObjectRef.current) {
       try {
         await callObjectRef.current.leave();
