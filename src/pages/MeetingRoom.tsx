@@ -128,6 +128,7 @@ export default function MeetingRoom() {
   const participantRefs = useRef<Record<string, HTMLVideoElement | null>>({});
   const audioRefs = useRef<Record<string, HTMLAudioElement | null>>({});
   const chatScrollRef = useRef<HTMLDivElement>(null);
+  const controlsChannelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
 
   const isHost = meeting?.host_user_id === user?.id;
 
@@ -447,9 +448,14 @@ export default function MeetingRoom() {
           }
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        if (status === 'SUBSCRIBED') {
+          controlsChannelRef.current = channel;
+        }
+      });
 
     return () => {
+      controlsChannelRef.current = null;
       supabase.removeChannel(channel);
     };
   }, [meeting?.id, isHost, callObject, isScreenSharing]);
@@ -754,8 +760,9 @@ export default function MeetingRoom() {
       .update({ allow_participants_audio: newEnabled })
       .eq("id", meeting.id);
     
-    // Broadcast to all participants
-    await supabase.channel(`meeting-controls-${meeting.id}`).send({
+    // Broadcast to all participants using subscribed channel
+    const channel = controlsChannelRef.current || supabase.channel(`meeting-controls-${meeting.id}`);
+    await channel.send({
       type: 'broadcast',
       event: 'host_control',
       payload: { action: 'toggle_all_audio', enabled: newEnabled }
@@ -776,8 +783,9 @@ export default function MeetingRoom() {
       .update({ allow_participants_video: newEnabled })
       .eq("id", meeting.id);
     
-    // Broadcast to all participants
-    await supabase.channel(`meeting-controls-${meeting.id}`).send({
+    // Broadcast to all participants using subscribed channel
+    const channel = controlsChannelRef.current || supabase.channel(`meeting-controls-${meeting.id}`);
+    await channel.send({
       type: 'broadcast',
       event: 'host_control',
       payload: { action: 'toggle_all_video', enabled: newEnabled }
@@ -798,8 +806,9 @@ export default function MeetingRoom() {
       .update({ allow_screen_share: newEnabled })
       .eq("id", meeting.id);
     
-    // Broadcast to all participants
-    await supabase.channel(`meeting-controls-${meeting.id}`).send({
+    // Broadcast to all participants using subscribed channel
+    const channel = controlsChannelRef.current || supabase.channel(`meeting-controls-${meeting.id}`);
+    await channel.send({
       type: 'broadcast',
       event: 'host_control',
       payload: { action: 'toggle_screen_share', enabled: newEnabled }
@@ -812,7 +821,8 @@ export default function MeetingRoom() {
   const muteParticipant = async (sessionId: string, participantName: string) => {
     if (!meeting || !isHost) return;
     
-    await supabase.channel(`meeting-controls-${meeting.id}`).send({
+    const channel = controlsChannelRef.current || supabase.channel(`meeting-controls-${meeting.id}`);
+    await channel.send({
       type: 'broadcast',
       event: 'host_control',
       payload: { action: 'mute_participant', targetSessionId: sessionId }
@@ -825,7 +835,8 @@ export default function MeetingRoom() {
   const disableParticipantCamera = async (sessionId: string, participantName: string) => {
     if (!meeting || !isHost) return;
     
-    await supabase.channel(`meeting-controls-${meeting.id}`).send({
+    const channel = controlsChannelRef.current || supabase.channel(`meeting-controls-${meeting.id}`);
+    await channel.send({
       type: 'broadcast',
       event: 'host_control',
       payload: { action: 'disable_camera', targetSessionId: sessionId }
@@ -838,7 +849,8 @@ export default function MeetingRoom() {
   const removeParticipant = async (sessionId: string, participantName: string) => {
     if (!meeting || !isHost) return;
     
-    await supabase.channel(`meeting-controls-${meeting.id}`).send({
+    const channel = controlsChannelRef.current || supabase.channel(`meeting-controls-${meeting.id}`);
+    await channel.send({
       type: 'broadcast',
       event: 'host_control',
       payload: { action: 'remove_participant', targetSessionId: sessionId }
