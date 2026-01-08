@@ -1147,6 +1147,46 @@ const SpreadsheetEditor: React.FC<SpreadsheetEditorProps> = ({
     setResizingColumn(null);
   }, []);
 
+  // Auto-fit column width based on content
+  const handleColumnAutoFit = useCallback((colIndex: number) => {
+    // Create a temporary canvas to measure text width
+    const canvas = document.createElement('canvas');
+    const context = canvas.getContext('2d');
+    if (!context) return;
+
+    let maxWidth = 30; // Minimum width
+    const padding = 16; // Padding for cell content
+
+    // Check header width
+    const headerText = getColumnLetter(colIndex);
+    context.font = '500 11px Arial';
+    maxWidth = Math.max(maxWidth, context.measureText(headerText).width + padding);
+
+    // Check all cells in the column
+    data.forEach((row) => {
+      const cell = row[colIndex];
+      if (cell) {
+        const displayValue = cell.formattedValue || cell.value || '';
+        const fontSize = cell.style?.fontSize || 11;
+        const fontWeight = cell.style?.bold ? 'bold' : 'normal';
+        const fontFamily = cell.style?.fontFamily || 'Arial';
+        
+        context.font = `${fontWeight} ${fontSize}pt ${fontFamily}`;
+        const textWidth = context.measureText(displayValue).width + padding;
+        maxWidth = Math.max(maxWidth, textWidth);
+      }
+    });
+
+    // Add some extra padding and cap at reasonable max
+    maxWidth = Math.min(Math.max(maxWidth, 40), 500);
+
+    setColumnWidths(prev => {
+      const newWidths = [...prev];
+      newWidths[colIndex] = Math.round(maxWidth);
+      return newWidths;
+    });
+  }, [data]);
+
   // Add global mouse listeners for column resize
   useEffect(() => {
     if (resizingColumn !== null) {
@@ -1644,6 +1684,8 @@ const SpreadsheetEditor: React.FC<SpreadsheetEditorProps> = ({
                         <div
                           className="absolute right-0 top-0 h-full w-2 cursor-col-resize hover:bg-primary/30 group"
                           onMouseDown={(e) => handleColumnResizeStart(e, colIndex)}
+                          onDoubleClick={() => handleColumnAutoFit(colIndex)}
+                          title="Arraste para redimensionar, duplo-clique para auto-ajustar"
                           style={{ 
                             backgroundColor: resizingColumn === colIndex ? 'hsl(var(--primary) / 0.5)' : undefined 
                           }}
