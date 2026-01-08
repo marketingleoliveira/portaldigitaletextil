@@ -486,64 +486,65 @@ export default function MeetingRoom() {
   }
 
   return (
-    <div className="h-screen bg-gray-900 flex flex-col">
-      {/* Header */}
-      <header className="h-14 bg-gray-800 flex items-center justify-between px-4 border-b border-gray-700">
-        <div className="flex items-center gap-4">
+    <div className="h-screen bg-gray-900 flex flex-col overflow-hidden">
+      {/* Header - Mobile optimized */}
+      <header className="h-12 sm:h-14 bg-gray-800 flex items-center justify-between px-2 sm:px-4 border-b border-gray-700 shrink-0">
+        <div className="flex items-center gap-2 sm:gap-4 min-w-0">
           <Button
             variant="ghost"
             size="icon"
-            className="text-white hover:bg-gray-700"
+            className="text-white hover:bg-gray-700 shrink-0 w-8 h-8 sm:w-10 sm:h-10"
             onClick={() => navigate("/reunioes")}
           >
-            <ChevronLeft className="w-5 h-5" />
+            <ChevronLeft className="w-4 h-4 sm:w-5 sm:h-5" />
           </Button>
-          <div>
-            <h1 className="text-white font-medium">{meeting?.title}</h1>
-            <div className="flex items-center gap-2 text-xs text-gray-400">
-              <span>{code}</span>
-              <button onClick={copyMeetingLink} className="hover:text-white">
+          <div className="min-w-0">
+            <h1 className="text-white font-medium text-sm sm:text-base truncate">{meeting?.title}</h1>
+            <div className="flex items-center gap-1 sm:gap-2 text-xs text-gray-400">
+              <span className="truncate max-w-[80px] sm:max-w-none">{code}</span>
+              <button onClick={copyMeetingLink} className="hover:text-white shrink-0">
                 <Copy className="w-3 h-3" />
               </button>
             </div>
           </div>
         </div>
         
-        <div className="flex items-center gap-2 text-gray-400 text-sm">
+        <div className="flex items-center gap-1 sm:gap-2 text-gray-400 text-xs sm:text-sm shrink-0">
           {isRecording && (
-            <span className="flex items-center gap-2 text-red-500 animate-pulse">
-              <Circle className="w-3 h-3 fill-red-500" />
-              REC {recordingStartTime && formatRecordingTime(recordingStartTime)}
+            <span className="flex items-center gap-1 text-red-500 animate-pulse">
+              <Circle className="w-2 h-2 sm:w-3 sm:h-3 fill-red-500" />
+              <span className="hidden sm:inline">REC {recordingStartTime && formatRecordingTime(recordingStartTime)}</span>
             </span>
           )}
           {joiningDaily && (
-            <span className="flex items-center gap-2 text-yellow-400">
-              <Loader2 className="w-4 h-4 animate-spin" />
-              Conectando vídeo...
+            <span className="flex items-center gap-1 text-yellow-400">
+              <Loader2 className="w-3 h-3 sm:w-4 sm:h-4 animate-spin" />
+              <span className="hidden sm:inline">Conectando...</span>
             </span>
           )}
-          <span>{format(new Date(), "HH:mm", { locale: ptBR })}</span>
+          <span className="hidden sm:inline">{format(new Date(), "HH:mm", { locale: ptBR })}</span>
           {isHost && (
-            <span className="px-2 py-0.5 bg-primary text-primary-foreground rounded text-xs">
-              Anfitrião
+            <span className="px-1.5 sm:px-2 py-0.5 bg-primary text-primary-foreground rounded text-[10px] sm:text-xs">
+              Host
             </span>
           )}
         </div>
       </header>
 
       {/* Main content */}
-      <div className="flex-1 flex overflow-hidden">
+      <div className="flex-1 flex overflow-hidden min-h-0">
         {/* Video grid */}
-        <div className="flex-1 p-4 flex items-center justify-center">
+        <div className="flex-1 p-2 sm:p-4 flex items-center justify-center overflow-auto">
           <div className={cn(
-            "grid gap-4 w-full max-w-6xl",
+            "grid gap-2 sm:gap-4 w-full max-w-6xl",
+            // Mobile: stack vertically for 1-2 participants
             participantCount <= 1 && "grid-cols-1",
-            participantCount === 2 && "grid-cols-2",
+            participantCount === 2 && "grid-cols-1 sm:grid-cols-2",
             participantCount <= 4 && participantCount > 2 && "grid-cols-2",
-            participantCount > 4 && "grid-cols-3"
+            participantCount > 4 && "grid-cols-2 sm:grid-cols-3"
           )}>
             {/* Local video (self) */}
-            <div className="relative bg-gray-800 rounded-xl overflow-hidden aspect-video">
+            <div className="relative bg-gray-800 rounded-lg sm:rounded-xl overflow-hidden aspect-video">
               <video
                 ref={localVideoRef}
                 autoPlay
@@ -557,19 +558,19 @@ export default function MeetingRoom() {
               />
               {!isVideoOn && (
                 <div className="absolute inset-0 flex items-center justify-center">
-                  <Avatar className="w-24 h-24">
+                  <Avatar className="w-16 h-16 sm:w-24 sm:h-24">
                     <AvatarImage src={user?.profile?.avatar_url || undefined} />
-                    <AvatarFallback className="text-3xl bg-primary">
+                    <AvatarFallback className="text-xl sm:text-3xl bg-primary">
                       {user?.profile?.full_name?.charAt(0) || "U"}
                     </AvatarFallback>
                   </Avatar>
                 </div>
               )}
-              <div className="absolute bottom-3 left-3 flex items-center gap-2">
-                <span className="px-2 py-1 bg-black/60 rounded text-white text-sm">
+              <div className="absolute bottom-2 left-2 sm:bottom-3 sm:left-3 flex items-center gap-1 sm:gap-2">
+                <span className="px-1.5 sm:px-2 py-0.5 sm:py-1 bg-black/60 rounded text-white text-xs sm:text-sm truncate max-w-[120px] sm:max-w-none">
                   {user?.profile?.full_name} (Você)
                 </span>
-                {isMuted && <MicOff className="w-4 h-4 text-red-500" />}
+                {isMuted && <MicOff className="w-3 h-3 sm:w-4 sm:h-4 text-red-500" />}
               </div>
             </div>
 
@@ -577,7 +578,7 @@ export default function MeetingRoom() {
             {remoteParticipants.map(([sessionId, participant]) => (
               <div
                 key={sessionId}
-                className="relative bg-gray-800 rounded-xl overflow-hidden aspect-video"
+                className="relative bg-gray-800 rounded-lg sm:rounded-xl overflow-hidden aspect-video"
               >
                 <video
                   ref={el => { participantRefs.current[sessionId] = el; }}
@@ -590,18 +591,18 @@ export default function MeetingRoom() {
                 />
                 {!participant.video && (
                   <div className="absolute inset-0 flex items-center justify-center">
-                    <Avatar className="w-20 h-20">
-                      <AvatarFallback className="text-2xl bg-primary">
+                    <Avatar className="w-14 h-14 sm:w-20 sm:h-20">
+                      <AvatarFallback className="text-lg sm:text-2xl bg-primary">
                         {participant.user_name?.charAt(0) || "P"}
                       </AvatarFallback>
                     </Avatar>
                   </div>
                 )}
-                <div className="absolute bottom-3 left-3 flex items-center gap-2">
-                  <span className="px-2 py-1 bg-black/60 rounded text-white text-sm">
+                <div className="absolute bottom-2 left-2 sm:bottom-3 sm:left-3 flex items-center gap-1 sm:gap-2">
+                  <span className="px-1.5 sm:px-2 py-0.5 sm:py-1 bg-black/60 rounded text-white text-xs sm:text-sm truncate max-w-[100px] sm:max-w-none">
                     {participant.user_name || "Participante"}
                   </span>
-                  {!participant.audio && <MicOff className="w-4 h-4 text-red-500" />}
+                  {!participant.audio && <MicOff className="w-3 h-3 sm:w-4 sm:h-4 text-red-500" />}
                 </div>
               </div>
             ))}
@@ -721,8 +722,8 @@ export default function MeetingRoom() {
         </Sheet>
       </div>
 
-      {/* Controls bar */}
-      <div className="h-20 bg-gray-800 flex items-center justify-center gap-2 border-t border-gray-700">
+      {/* Controls bar - Mobile optimized */}
+      <div className="h-16 sm:h-20 bg-gray-800 flex items-center justify-center px-2 sm:px-4 gap-1 sm:gap-2 border-t border-gray-700 shrink-0">
         <TooltipProvider>
           {/* Mic toggle */}
           <Tooltip>
@@ -730,14 +731,14 @@ export default function MeetingRoom() {
               <Button
                 variant={isMuted ? "destructive" : "secondary"}
                 size="lg"
-                className="rounded-full w-12 h-12"
+                className="rounded-full w-10 h-10 sm:w-12 sm:h-12"
                 onClick={toggleMute}
                 disabled={!callObject}
               >
-                {isMuted ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
+                {isMuted ? <MicOff className="w-4 h-4 sm:w-5 sm:h-5" /> : <Mic className="w-4 h-4 sm:w-5 sm:h-5" />}
               </Button>
             </TooltipTrigger>
-            <TooltipContent>{isMuted ? "Ativar microfone" : "Desativar microfone"}</TooltipContent>
+            <TooltipContent className="hidden sm:block">{isMuted ? "Ativar microfone" : "Desativar microfone"}</TooltipContent>
           </Tooltip>
 
           {/* Video toggle */}
@@ -746,53 +747,53 @@ export default function MeetingRoom() {
               <Button
                 variant={isVideoOn ? "secondary" : "destructive"}
                 size="lg"
-                className="rounded-full w-12 h-12"
+                className="rounded-full w-10 h-10 sm:w-12 sm:h-12"
                 onClick={toggleVideo}
                 disabled={!callObject}
               >
-                {isVideoOn ? <Video className="w-5 h-5" /> : <VideoOff className="w-5 h-5" />}
+                {isVideoOn ? <Video className="w-4 h-4 sm:w-5 sm:h-5" /> : <VideoOff className="w-4 h-4 sm:w-5 sm:h-5" />}
               </Button>
             </TooltipTrigger>
-            <TooltipContent>{isVideoOn ? "Desativar câmera" : "Ativar câmera"}</TooltipContent>
+            <TooltipContent className="hidden sm:block">{isVideoOn ? "Desativar câmera" : "Ativar câmera"}</TooltipContent>
           </Tooltip>
 
-          {/* Screen share */}
+          {/* Screen share - Hidden on mobile */}
           {meeting?.allow_screen_share && (
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
                   variant={isScreenSharing ? "default" : "secondary"}
                   size="lg"
-                  className="rounded-full w-12 h-12"
+                  className="rounded-full w-10 h-10 sm:w-12 sm:h-12 hidden sm:flex"
                   onClick={toggleScreenShare}
                   disabled={!callObject}
                 >
-                  {isScreenSharing ? <ScreenShareOff className="w-5 h-5" /> : <ScreenShare className="w-5 h-5" />}
+                  {isScreenSharing ? <ScreenShareOff className="w-4 h-4 sm:w-5 sm:h-5" /> : <ScreenShare className="w-4 h-4 sm:w-5 sm:h-5" />}
                 </Button>
               </TooltipTrigger>
-              <TooltipContent>{isScreenSharing ? "Parar compartilhamento" : "Compartilhar tela"}</TooltipContent>
+              <TooltipContent className="hidden sm:block">{isScreenSharing ? "Parar compartilhamento" : "Compartilhar tela"}</TooltipContent>
             </Tooltip>
           )}
 
-          {/* Recording (Host only) */}
+          {/* Recording (Host only) - Hidden on mobile */}
           {isHost && (
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
                   variant={isRecording ? "destructive" : "secondary"}
                   size="lg"
-                  className="rounded-full w-12 h-12"
+                  className="rounded-full w-10 h-10 sm:w-12 sm:h-12 hidden sm:flex"
                   onClick={isRecording ? stopRecording : startRecording}
                   disabled={!callObject}
                 >
-                  {isRecording ? <Square className="w-5 h-5" /> : <Circle className="w-5 h-5 fill-current" />}
+                  {isRecording ? <Square className="w-4 h-4 sm:w-5 sm:h-5" /> : <Circle className="w-4 h-4 sm:w-5 sm:h-5 fill-current" />}
                 </Button>
               </TooltipTrigger>
-              <TooltipContent>{isRecording ? "Parar gravação" : "Iniciar gravação"}</TooltipContent>
+              <TooltipContent className="hidden sm:block">{isRecording ? "Parar gravação" : "Iniciar gravação"}</TooltipContent>
             </Tooltip>
           )}
 
-          <div className="w-px h-8 bg-gray-600 mx-2" />
+          <div className="w-px h-6 sm:h-8 bg-gray-600 mx-1 sm:mx-2 hidden sm:block" />
 
           {/* Chat */}
           <Tooltip>
@@ -800,13 +801,13 @@ export default function MeetingRoom() {
               <Button
                 variant="secondary"
                 size="lg"
-                className="rounded-full w-12 h-12"
+                className="rounded-full w-10 h-10 sm:w-12 sm:h-12"
                 onClick={() => setShowChat(true)}
               >
-                <MessageSquare className="w-5 h-5" />
+                <MessageSquare className="w-4 h-4 sm:w-5 sm:h-5" />
               </Button>
             </TooltipTrigger>
-            <TooltipContent>Chat</TooltipContent>
+            <TooltipContent className="hidden sm:block">Chat</TooltipContent>
           </Tooltip>
 
           {/* Participants */}
@@ -815,40 +816,66 @@ export default function MeetingRoom() {
               <Button
                 variant="secondary"
                 size="lg"
-                className="rounded-full w-12 h-12 relative"
+                className="rounded-full w-10 h-10 sm:w-12 sm:h-12 relative"
                 onClick={() => setShowParticipants(true)}
               >
-                <Users className="w-5 h-5" />
-                <span className="absolute -top-1 -right-1 w-5 h-5 bg-primary text-primary-foreground text-xs rounded-full flex items-center justify-center">
+                <Users className="w-4 h-4 sm:w-5 sm:h-5" />
+                <span className="absolute -top-1 -right-1 w-4 h-4 sm:w-5 sm:h-5 bg-primary text-primary-foreground text-[10px] sm:text-xs rounded-full flex items-center justify-center">
                   {participantCount}
                 </span>
               </Button>
             </TooltipTrigger>
-            <TooltipContent>Participantes</TooltipContent>
+            <TooltipContent className="hidden sm:block">Participantes</TooltipContent>
           </Tooltip>
 
           {/* More options */}
           <DropdownMenu>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    variant="secondary"
-                    size="lg"
-                    className="rounded-full w-12 h-12"
-                  >
-                    <MoreVertical className="w-5 h-5" />
-                  </Button>
-                </DropdownMenuTrigger>
-              </TooltipTrigger>
-              <TooltipContent>Mais opções</TooltipContent>
-            </Tooltip>
-            <DropdownMenuContent>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="secondary"
+                size="lg"
+                className="rounded-full w-10 h-10 sm:w-12 sm:h-12"
+              >
+                <MoreVertical className="w-4 h-4 sm:w-5 sm:h-5" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
               <DropdownMenuItem onClick={copyMeetingLink}>
                 <Copy className="w-4 h-4 mr-2" />
-                Copiar link da reunião
+                Copiar link
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={toggleFullscreen}>
+              {/* Mobile-only options */}
+              {meeting?.allow_screen_share && (
+                <DropdownMenuItem onClick={toggleScreenShare} className="sm:hidden">
+                  {isScreenSharing ? (
+                    <>
+                      <ScreenShareOff className="w-4 h-4 mr-2" />
+                      Parar compartilhamento
+                    </>
+                  ) : (
+                    <>
+                      <ScreenShare className="w-4 h-4 mr-2" />
+                      Compartilhar tela
+                    </>
+                  )}
+                </DropdownMenuItem>
+              )}
+              {isHost && (
+                <DropdownMenuItem onClick={isRecording ? stopRecording : startRecording} className="sm:hidden">
+                  {isRecording ? (
+                    <>
+                      <Square className="w-4 h-4 mr-2" />
+                      Parar gravação
+                    </>
+                  ) : (
+                    <>
+                      <Circle className="w-4 h-4 mr-2 fill-current" />
+                      Iniciar gravação
+                    </>
+                  )}
+                </DropdownMenuItem>
+              )}
+              <DropdownMenuItem onClick={toggleFullscreen} className="hidden sm:flex">
                 {isFullscreen ? (
                   <>
                     <Minimize className="w-4 h-4 mr-2" />
@@ -866,44 +893,36 @@ export default function MeetingRoom() {
                   <DropdownMenuSeparator />
                   <DropdownMenuItem>
                     <Settings className="w-4 h-4 mr-2" />
-                    Configurações da reunião
+                    Configurações
                   </DropdownMenuItem>
                 </>
               )}
             </DropdownMenuContent>
           </DropdownMenu>
 
-          <div className="w-px h-8 bg-gray-600 mx-2" />
+          <div className="w-px h-6 sm:h-8 bg-gray-600 mx-1 sm:mx-2" />
 
           {/* Leave call */}
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant="destructive"
-                size="lg"
-                className="rounded-full px-6"
-                onClick={leaveMeeting}
-              >
-                <Phone className="w-5 h-5 rotate-[135deg]" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>Sair da reunião</TooltipContent>
-          </Tooltip>
+          <Button
+            variant="destructive"
+            size="lg"
+            className="rounded-full w-10 h-10 sm:w-auto sm:px-6 sm:h-12"
+            onClick={leaveMeeting}
+          >
+            <Phone className="w-4 h-4 sm:w-5 sm:h-5 rotate-[135deg]" />
+          </Button>
 
+          {/* End meeting (Host only) - Hidden on very small screens */}
           {isHost && (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="outline"
-                  size="lg"
-                  className="rounded-full px-4 border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground"
-                  onClick={endMeeting}
-                >
-                  Encerrar
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>Encerrar reunião para todos</TooltipContent>
-            </Tooltip>
+            <Button
+              variant="outline"
+              size="lg"
+              className="rounded-full px-2 sm:px-4 h-10 sm:h-12 border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground text-xs sm:text-sm hidden xs:flex"
+              onClick={endMeeting}
+            >
+              <span className="hidden sm:inline">Encerrar</span>
+              <span className="sm:hidden">Fim</span>
+            </Button>
           )}
         </TooltipProvider>
       </div>
