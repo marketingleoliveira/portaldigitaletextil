@@ -39,6 +39,7 @@ import {
   DollarSign,
   MapPin,
   Video,
+  Film,
 } from "lucide-react";
 import { useTimeClockReminder } from "@/hooks/useTimeClockReminder";
 import { useLocationTracking } from "@/hooks/useLocationTracking";
@@ -71,6 +72,7 @@ const navItems: NavItem[] = [
   { label: "Relatórios", href: "/relatorios", icon: BarChart3, roles: ["dev", "admin", "gerente"] },
   { label: "Tabelas de Preços", href: "/precos", icon: DollarSign, roles: ["dev", "admin", "gerente", "vendedor"] },
   { label: "Materiais Comerciais", href: "/downloads", icon: FileText, roles: ["dev", "admin", "gerente", "vendedor"] },
+  { label: "Gravações de Reuniões", href: "/gravacoes", icon: Film, roles: ["dev"] },
   { label: "Notificações", href: "/notificacoes", icon: Bell, roles: ["dev", "admin", "gerente", "vendedor"] },
   {
     label: "Solicitar Ajuda",

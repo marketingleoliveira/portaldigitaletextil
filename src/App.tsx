@@ -38,6 +38,7 @@ import Meetings from "./pages/Meetings";
 import MeetingRoom from "./pages/MeetingRoom";
 import GuestJoin from "./pages/GuestJoin";
 import GuestMeetingRoom from "./pages/GuestMeetingRoom";
+import Recordings from "./pages/Recordings";
 
 const queryClient = new QueryClient();
 
@@ -90,6 +91,7 @@ const App = () => (
                 <Route path="/atualizacoes" element={<ProtectedRoute><Updates /></ProtectedRoute>} />
                 <Route path="/reunioes" element={<ProtectedRoute><Meetings /></ProtectedRoute>} />
                 <Route path="/reuniao/:code" element={<ProtectedRoute><MeetingRoom /></ProtectedRoute>} />
+                <Route path="/gravacoes" element={<ProtectedRoute allowedRoles={['dev']}><Recordings /></ProtectedRoute>} />
                 <Route path="/entrar/:code" element={<GuestJoin />} />
                 <Route path="/convidado/:code" element={<GuestMeetingRoom />} />
                 

@@ -841,6 +841,25 @@ export default function MeetingRoom() {
       setIsRecording(false);
       setRecordingStartTime(null);
       toast.success("Gravação finalizada! O vídeo estará disponível em breve.");
+      
+      // Sync recordings after stopping
+      if (meeting) {
+        setTimeout(async () => {
+          try {
+            await supabase.functions.invoke("sync-recordings", {
+              body: { 
+                action: "sync-meeting",
+                meetingId: meeting.id,
+                meetingTitle: meeting.title,
+                meetingDate: new Date().toISOString()
+              }
+            });
+            console.log("Recording synced successfully");
+          } catch (err) {
+            console.error("Error syncing recording:", err);
+          }
+        }, 5000); // Wait 5 seconds for Daily.co to process
+      }
     } catch (err) {
       console.error("Error stopping recording:", err);
       toast.error("Erro ao parar gravação");
