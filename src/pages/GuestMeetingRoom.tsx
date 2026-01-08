@@ -1001,85 +1001,86 @@ export default function GuestMeetingRoom() {
           </Sheet>
         </div>
 
-        {/* Control bar */}
-        <div className="h-20 bg-[#202124] border-t border-[#3c4043] flex items-center justify-center gap-3 px-4">
-          {/* Left section - Info */}
-          <div className="flex-1" />
-
-          {/* Center section - Main controls */}
-          <div className="flex items-center gap-2">
+        {/* Control bar - Mobile optimized */}
+        <div className="h-16 sm:h-20 bg-[#202124] border-t border-[#3c4043] flex items-center justify-center px-2 sm:px-4 shrink-0">
+          {/* Main controls - scrollable on very small screens */}
+          <div className="flex items-center gap-1 sm:gap-2 overflow-x-auto max-w-full scrollbar-hide">
+            {/* Mic toggle */}
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
                   variant={isMuted ? "destructive" : "secondary"}
                   size="icon"
                   className={cn(
-                    "rounded-full h-12 w-12",
+                    "rounded-full h-10 w-10 sm:h-12 sm:w-12 shrink-0",
                     isMuted ? "bg-red-600 hover:bg-red-700" : "bg-[#3c4043] hover:bg-[#5f6368]"
                   )}
                   onClick={toggleMute}
                   disabled={joiningDaily}
                 >
-                  {isMuted ? <MicOff className="h-5 w-5" /> : <Mic className="h-5 w-5" />}
+                  {isMuted ? <MicOff className="h-4 w-4 sm:h-5 sm:w-5" /> : <Mic className="h-4 w-4 sm:h-5 sm:w-5" />}
                 </Button>
               </TooltipTrigger>
-              <TooltipContent>{isMuted ? "Ativar microfone" : "Desativar microfone"}</TooltipContent>
+              <TooltipContent className="hidden sm:block">{isMuted ? "Ativar microfone" : "Desativar microfone"}</TooltipContent>
             </Tooltip>
 
+            {/* Video toggle */}
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
                   variant={!isVideoOn ? "destructive" : "secondary"}
                   size="icon"
                   className={cn(
-                    "rounded-full h-12 w-12",
+                    "rounded-full h-10 w-10 sm:h-12 sm:w-12 shrink-0",
                     !isVideoOn ? "bg-red-600 hover:bg-red-700" : "bg-[#3c4043] hover:bg-[#5f6368]"
                   )}
                   onClick={toggleVideo}
                   disabled={joiningDaily}
                 >
-                  {isVideoOn ? <Video className="h-5 w-5" /> : <VideoOff className="h-5 w-5" />}
+                  {isVideoOn ? <Video className="h-4 w-4 sm:h-5 sm:w-5" /> : <VideoOff className="h-4 w-4 sm:h-5 sm:w-5" />}
                 </Button>
               </TooltipTrigger>
-              <TooltipContent>{isVideoOn ? "Desativar câmera" : "Ativar câmera"}</TooltipContent>
+              <TooltipContent className="hidden sm:block">{isVideoOn ? "Desativar câmera" : "Ativar câmera"}</TooltipContent>
             </Tooltip>
 
+            {/* Screen share */}
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
                   variant={isScreenSharing ? "default" : "secondary"}
                   size="icon"
                   className={cn(
-                    "rounded-full h-12 w-12",
+                    "rounded-full h-10 w-10 sm:h-12 sm:w-12 shrink-0",
                     isScreenSharing ? "bg-green-600 hover:bg-green-700" : "bg-[#3c4043] hover:bg-[#5f6368]"
                   )}
                   onClick={toggleScreenShare}
                   disabled={joiningDaily || !callObject}
                 >
-                  {isScreenSharing ? <ScreenShareOff className="h-5 w-5" /> : <ScreenShare className="h-5 w-5" />}
+                  {isScreenSharing ? <ScreenShareOff className="h-4 w-4 sm:h-5 sm:w-5" /> : <ScreenShare className="h-4 w-4 sm:h-5 sm:w-5" />}
                 </Button>
               </TooltipTrigger>
-              <TooltipContent>
+              <TooltipContent className="hidden sm:block">
                 {isScreenSharing ? "Parar compartilhamento" : "Compartilhar tela"}
               </TooltipContent>
             </Tooltip>
 
+            {/* Hand raise */}
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
                   variant={handRaised ? "default" : "secondary"}
                   size="icon"
                   className={cn(
-                    "rounded-full h-12 w-12",
+                    "rounded-full h-10 w-10 sm:h-12 sm:w-12 shrink-0",
                     handRaised ? "bg-yellow-600 hover:bg-yellow-700" : "bg-[#3c4043] hover:bg-[#5f6368]"
                   )}
                   onClick={toggleHandRaise}
                   disabled={joiningDaily}
                 >
-                  <Hand className={cn("h-5 w-5", handRaised && "fill-current")} />
+                  <Hand className={cn("h-4 w-4 sm:h-5 sm:w-5", handRaised && "fill-current")} />
                 </Button>
               </TooltipTrigger>
-              <TooltipContent>{handRaised ? "Abaixar mão" : "Levantar mão"}</TooltipContent>
+              <TooltipContent className="hidden sm:block">{handRaised ? "Abaixar mão" : "Levantar mão"}</TooltipContent>
             </Tooltip>
 
             {/* Reactions popover */}
@@ -1088,19 +1089,19 @@ export default function GuestMeetingRoom() {
                 <Button
                   variant="secondary"
                   size="icon"
-                  className="rounded-full h-12 w-12 bg-[#3c4043] hover:bg-[#5f6368]"
+                  className="rounded-full h-10 w-10 sm:h-12 sm:w-12 bg-[#3c4043] hover:bg-[#5f6368] shrink-0"
                   disabled={joiningDaily}
                 >
-                  <Smile className="h-5 w-5" />
+                  <Smile className="h-4 w-4 sm:h-5 sm:w-5" />
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-auto p-2 bg-[#3c4043] border-[#5f6368]">
-                <div className="flex gap-1">
+              <PopoverContent className="w-auto p-2 bg-[#3c4043] border-[#5f6368]" side="top">
+                <div className="flex gap-1 flex-wrap max-w-[200px] sm:max-w-none">
                   {REACTIONS.map((emoji) => (
                     <button
                       key={emoji}
                       onClick={() => sendReaction(emoji)}
-                      className="text-2xl hover:bg-[#5f6368] p-2 rounded transition-transform hover:scale-125"
+                      className="text-xl sm:text-2xl hover:bg-[#5f6368] p-1.5 sm:p-2 rounded transition-transform hover:scale-110 active:scale-95"
                     >
                       {emoji}
                     </button>
@@ -1109,30 +1110,14 @@ export default function GuestMeetingRoom() {
               </PopoverContent>
             </Popover>
 
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="destructive"
-                  size="icon"
-                  className="rounded-full h-12 w-12"
-                  onClick={leaveMeeting}
-                >
-                  <Phone className="h-5 w-5 rotate-135" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>Sair da reunião</TooltipContent>
-            </Tooltip>
-          </div>
-
-          {/* Right section - Chat and participants */}
-          <div className="flex-1 flex justify-end gap-2">
+            {/* Chat button */}
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
                   variant="ghost"
                   size="icon"
                   className={cn(
-                    "rounded-full h-10 w-10 relative",
+                    "rounded-full h-10 w-10 sm:h-12 sm:w-12 relative shrink-0",
                     showChat ? "bg-[#8ab4f8]/20 text-[#8ab4f8]" : "text-white hover:bg-[#3c4043]"
                   )}
                   onClick={() => {
@@ -1140,32 +1125,51 @@ export default function GuestMeetingRoom() {
                     if (!showChat) setUnreadMessages(0);
                   }}
                 >
-                  <MessageSquare className="h-5 w-5" />
+                  <MessageSquare className="h-4 w-4 sm:h-5 sm:w-5" />
                   {unreadMessages > 0 && (
-                    <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                    <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] rounded-full h-4 w-4 sm:h-5 sm:w-5 flex items-center justify-center">
                       {unreadMessages > 9 ? "9+" : unreadMessages}
                     </span>
                   )}
                 </Button>
               </TooltipTrigger>
-              <TooltipContent>Chat</TooltipContent>
+              <TooltipContent className="hidden sm:block">Chat</TooltipContent>
             </Tooltip>
 
+            {/* Participants button */}
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
                   variant="ghost"
                   size="icon"
                   className={cn(
-                    "rounded-full h-10 w-10",
+                    "rounded-full h-10 w-10 sm:h-12 sm:w-12 relative shrink-0",
                     showParticipants ? "bg-[#8ab4f8]/20 text-[#8ab4f8]" : "text-white hover:bg-[#3c4043]"
                   )}
                   onClick={() => setShowParticipants(!showParticipants)}
                 >
-                  <Users className="h-5 w-5" />
+                  <Users className="h-4 w-4 sm:h-5 sm:w-5" />
+                  <span className="absolute -top-1 -right-1 bg-primary text-primary-foreground text-[10px] rounded-full h-4 w-4 sm:h-5 sm:w-5 flex items-center justify-center">
+                    {participantCount}
+                  </span>
                 </Button>
               </TooltipTrigger>
-              <TooltipContent>Participantes ({participantCount})</TooltipContent>
+              <TooltipContent className="hidden sm:block">Participantes ({participantCount})</TooltipContent>
+            </Tooltip>
+
+            {/* Leave button */}
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="destructive"
+                  size="icon"
+                  className="rounded-full h-10 w-10 sm:h-12 sm:w-12 shrink-0"
+                  onClick={leaveMeeting}
+                >
+                  <Phone className="h-4 w-4 sm:h-5 sm:w-5 rotate-135" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent className="hidden sm:block">Sair da reunião</TooltipContent>
             </Tooltip>
           </div>
         </div>
