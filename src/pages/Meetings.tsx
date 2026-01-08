@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Video, Users, Clock, Calendar, Copy, Settings, Keyboard, History, Lock, Eye, EyeOff, Trash2 } from "lucide-react";
+import { Video, Users, Clock, Calendar, Copy, Settings, Keyboard, History, Lock, Eye, EyeOff, Trash2, UserPlus } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
@@ -230,6 +230,12 @@ export default function Meetings() {
     toast.success("Link copiado!");
   };
 
+  const copyGuestLink = (code: string) => {
+    const link = `${window.location.origin}/entrar/${code}`;
+    navigator.clipboard.writeText(link);
+    toast.success("Link para convidados copiado!");
+  };
+
   const endAllMeetings = async () => {
     if (!isDev) return;
     
@@ -378,11 +384,20 @@ export default function Meetings() {
                           <span>{format(new Date(meeting.created_at), "dd/MM/yyyy", { locale: ptBR })}</span>
                         </div>
                       </div>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-1">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => copyGuestLink(meeting.meeting_code)}
+                          title="Copiar link para convidados"
+                        >
+                          <UserPlus className="w-4 h-4" />
+                        </Button>
                         <Button
                           variant="ghost"
                           size="icon"
                           onClick={() => copyMeetingLink(meeting.meeting_code)}
+                          title="Copiar link da reunião"
                         >
                           <Copy className="w-4 h-4" />
                         </Button>
