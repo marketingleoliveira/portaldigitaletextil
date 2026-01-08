@@ -446,6 +446,7 @@ export type Database = {
           is_active: boolean | null
           max_participants: number | null
           meeting_code: string
+          password: string | null
           scheduled_end: string | null
           scheduled_start: string | null
           started_at: string | null
@@ -466,6 +467,7 @@ export type Database = {
           is_active?: boolean | null
           max_participants?: number | null
           meeting_code: string
+          password?: string | null
           scheduled_end?: string | null
           scheduled_start?: string | null
           started_at?: string | null
@@ -486,6 +488,7 @@ export type Database = {
           is_active?: boolean | null
           max_participants?: number | null
           meeting_code?: string
+          password?: string | null
           scheduled_end?: string | null
           scheduled_start?: string | null
           started_at?: string | null
