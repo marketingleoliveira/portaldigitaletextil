@@ -13,8 +13,9 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSepara
 import DailyIframe, { DailyCall, DailyParticipant, DailyEventObjectParticipant, DailyEventObjectParticipantLeft, DailyParticipantsObject } from "@daily-co/daily-js";
 import {
   Mic, MicOff, Video, VideoOff, Phone, MessageSquare, Users, 
-  ScreenShare, ScreenShareOff, Hand, MoreVertical, Settings,
-  Copy, UserX, VolumeX, Maximize, Minimize, Send, ChevronLeft, Loader2
+  ScreenShare, ScreenShareOff, MoreVertical, Settings,
+  Copy, Maximize, Minimize, Send, ChevronLeft, Loader2,
+  Circle, Square
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
@@ -71,6 +72,10 @@ export default function MeetingRoom() {
   const [showParticipants, setShowParticipants] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [newMessage, setNewMessage] = useState("");
+  
+  // Recording state
+  const [isRecording, setIsRecording] = useState(false);
+  const [recordingStartTime, setRecordingStartTime] = useState<Date | null>(null);
   
   const localVideoRef = useRef<HTMLVideoElement>(null);
   const participantRefs = useRef<Record<string, HTMLVideoElement | null>>({});
@@ -409,6 +414,43 @@ export default function MeetingRoom() {
     }
   };
 
+  // Recording functions
+  const startRecording = async () => {
+    if (!callObject || !isHost) return;
+    
+    try {
+      await callObject.startRecording();
+      setIsRecording(true);
+      setRecordingStartTime(new Date());
+      toast.success("Gravação iniciada!");
+    } catch (err) {
+      console.error("Error starting recording:", err);
+      toast.error("Erro ao iniciar gravação");
+    }
+  };
+
+  const stopRecording = async () => {
+    if (!callObject || !isHost) return;
+    
+    try {
+      await callObject.stopRecording();
+      setIsRecording(false);
+      setRecordingStartTime(null);
+      toast.success("Gravação finalizada! O vídeo estará disponível em breve.");
+    } catch (err) {
+      console.error("Error stopping recording:", err);
+      toast.error("Erro ao parar gravação");
+    }
+  };
+
+  const formatRecordingTime = (startTime: Date) => {
+    const now = new Date();
+    const diff = Math.floor((now.getTime() - startTime.getTime()) / 1000);
+    const minutes = Math.floor(diff / 60);
+    const seconds = diff % 60;
+    return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+  };
+
   const participantCount = Object.keys(participants).length;
   const remoteParticipants = Object.entries(participants).filter(([_, p]) => !p.local);
 
@@ -463,6 +505,12 @@ export default function MeetingRoom() {
         </div>
         
         <div className="flex items-center gap-2 text-gray-400 text-sm">
+          {isRecording && (
+            <span className="flex items-center gap-2 text-red-500 animate-pulse">
+              <Circle className="w-3 h-3 fill-red-500" />
+              REC {recordingStartTime && formatRecordingTime(recordingStartTime)}
+            </span>
+          )}
           {joiningDaily && (
             <span className="flex items-center gap-2 text-yellow-400">
               <Loader2 className="w-4 h-4 animate-spin" />
@@ -718,6 +766,24 @@ export default function MeetingRoom() {
                 </Button>
               </TooltipTrigger>
               <TooltipContent>{isScreenSharing ? "Parar compartilhamento" : "Compartilhar tela"}</TooltipContent>
+            </Tooltip>
+          )}
+
+          {/* Recording (Host only) */}
+          {isHost && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant={isRecording ? "destructive" : "secondary"}
+                  size="lg"
+                  className="rounded-full w-12 h-12"
+                  onClick={isRecording ? stopRecording : startRecording}
+                  disabled={!callObject}
+                >
+                  {isRecording ? <Square className="w-5 h-5" /> : <Circle className="w-5 h-5 fill-current" />}
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>{isRecording ? "Parar gravação" : "Iniciar gravação"}</TooltipContent>
             </Tooltip>
           )}
 
