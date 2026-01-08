@@ -472,9 +472,14 @@ export default function MeetingRoom() {
           <Video className="w-16 h-16 mx-auto mb-4 opacity-50" />
           <h2 className="text-2xl font-bold mb-2">{error}</h2>
           <p className="text-gray-400 mb-4">Verifique o código e tente novamente</p>
-          <Button onClick={() => navigate("/reunioes")} variant="secondary">
-            Voltar para reuniões
-          </Button>
+          <div className="flex gap-3 justify-center">
+            <Button onClick={() => { setError(null); setLoading(true); initializeMeeting(); }} variant="default">
+              Tentar novamente
+            </Button>
+            <Button onClick={() => navigate("/reunioes")} variant="secondary">
+              Voltar para reuniões
+            </Button>
+          </div>
         </div>
       </div>
     );
