@@ -61,117 +61,322 @@ interface SpreadsheetEditorProps {
   onSave?: () => void;
 }
 
+// Helper to parse Brazilian number format (1.234,56) or standard (1234.56)
+const parseNumber = (value: string): number => {
+  if (value === null || value === undefined || value === '') return 0;
+  
+  const str = String(value).trim();
+  
+  // Remove currency symbols and spaces
+  let cleaned = str.replace(/[R$€£¥\s]/gi, '');
+  
+  // Check if it's Brazilian format (has comma as decimal separator)
+  if (cleaned.includes(',') && cleaned.includes('.')) {
+    const lastComma = cleaned.lastIndexOf(',');
+    const lastDot = cleaned.lastIndexOf('.');
+    
+    if (lastComma > lastDot) {
+      // Brazilian format: 1.234,56
+      cleaned = cleaned.replace(/\./g, '').replace(',', '.');
+    } else {
+      // Standard format: 1,234.56
+      cleaned = cleaned.replace(/,/g, '');
+    }
+  } else if (cleaned.includes(',') && !cleaned.includes('.')) {
+    const parts = cleaned.split(',');
+    if (parts.length === 2 && parts[1].length <= 2) {
+      cleaned = cleaned.replace(',', '.');
+    } else {
+      cleaned = cleaned.replace(/,/g, '');
+    }
+  }
+  
+  cleaned = cleaned.replace(/[^\d.-]/g, '');
+  
+  const result = parseFloat(cleaned);
+  return isNaN(result) ? 0 : result;
+};
+
+// Get cell value as number
+const getCellNumericValue = (data: CellData[][], rowIndex: number, colIndex: number): number => {
+  const cell = data[rowIndex]?.[colIndex];
+  if (!cell) return 0;
+  return parseNumber(cell.value);
+};
+
 // Formula evaluation functions
 const evaluateFormula = (formula: string, data: CellData[][]): string => {
   if (!formula.startsWith('=')) return formula;
   
-  const cleanFormula = formula.substring(1).toUpperCase();
+  const cleanFormula = formula.substring(1).toUpperCase().trim();
   
   try {
-    // SUM function
-    if (cleanFormula.startsWith('SUM(')) {
-      const range = cleanFormula.match(/SUM\(([A-Z]+)(\d+):([A-Z]+)(\d+)\)/);
-      if (range) {
-        const [, startCol, startRow, endCol, endRow] = range;
-        const values = getCellRange(data, startCol, parseInt(startRow), endCol, parseInt(endRow));
-        const sum = values.reduce((acc, val) => acc + (parseFloat(val.replace(/[^\d.-]/g, '')) || 0), 0);
-        return sum.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    // SUM function - supports both range (A1:B5) and individual cells (A1,B2,C3)
+    if (cleanFormula.startsWith('SUM(') || cleanFormula.startsWith('SOMA(')) {
+      const content = cleanFormula.match(/(?:SUM|SOMA)\((.+)\)/)?.[1];
+      if (content) {
+        let sum = 0;
+        const rangeMatch = content.match(/([A-Z]+)(\d+):([A-Z]+)(\d+)/);
+        if (rangeMatch) {
+          const [, startCol, startRow, endCol, endRow] = rangeMatch;
+          const values = getCellRange(data, startCol, parseInt(startRow), endCol, parseInt(endRow));
+          sum = values.reduce((acc, val) => acc + parseNumber(val), 0);
+        } else {
+          const cells = content.split(/[,;]/);
+          cells.forEach(cellRef => {
+            const match = cellRef.trim().match(/([A-Z]+)(\d+)/);
+            if (match) {
+              const colIndex = columnLetterToIndex(match[1]);
+              const rowIndex = parseInt(match[2]) - 1;
+              sum += getCellNumericValue(data, rowIndex, colIndex);
+            }
+          });
+        }
+        return formatResult(sum);
       }
     }
     
     // AVERAGE function
-    if (cleanFormula.startsWith('AVERAGE(') || cleanFormula.startsWith('MEDIA(')) {
-      const range = cleanFormula.match(/(?:AVERAGE|MEDIA)\(([A-Z]+)(\d+):([A-Z]+)(\d+)\)/);
-      if (range) {
-        const [, startCol, startRow, endCol, endRow] = range;
-        const values = getCellRange(data, startCol, parseInt(startRow), endCol, parseInt(endRow));
-        const nums = values.filter(v => !isNaN(parseFloat(v.replace(/[^\d.-]/g, '')))).map(v => parseFloat(v.replace(/[^\d.-]/g, '')));
-        const avg = nums.length > 0 ? nums.reduce((a, b) => a + b, 0) / nums.length : 0;
-        return avg.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    if (cleanFormula.startsWith('AVERAGE(') || cleanFormula.startsWith('MEDIA(') || cleanFormula.startsWith('MÉDIA(')) {
+      const content = cleanFormula.match(/(?:AVERAGE|MEDIA|MÉDIA)\((.+)\)/)?.[1];
+      if (content) {
+        const rangeMatch = content.match(/([A-Z]+)(\d+):([A-Z]+)(\d+)/);
+        if (rangeMatch) {
+          const [, startCol, startRow, endCol, endRow] = rangeMatch;
+          const values = getCellRange(data, startCol, parseInt(startRow), endCol, parseInt(endRow));
+          const nums = values.filter(v => v.trim() !== '').map(v => parseNumber(v));
+          const avg = nums.length > 0 ? nums.reduce((a, b) => a + b, 0) / nums.length : 0;
+          return formatResult(avg);
+        }
       }
     }
     
     // COUNT function
-    if (cleanFormula.startsWith('COUNT(') || cleanFormula.startsWith('CONT(')) {
-      const range = cleanFormula.match(/(?:COUNT|CONT)\(([A-Z]+)(\d+):([A-Z]+)(\d+)\)/);
-      if (range) {
-        const [, startCol, startRow, endCol, endRow] = range;
-        const values = getCellRange(data, startCol, parseInt(startRow), endCol, parseInt(endRow));
-        const count = values.filter(v => {
-          const num = v.replace(/[^\d.-]/g, '');
-          return !isNaN(parseFloat(num)) && num !== '';
-        }).length;
-        return count.toString();
+    if (cleanFormula.startsWith('COUNT(') || cleanFormula.startsWith('CONT(') || cleanFormula.startsWith('CONTAR(')) {
+      const content = cleanFormula.match(/(?:COUNT|CONT|CONTAR)\((.+)\)/)?.[1];
+      if (content) {
+        const rangeMatch = content.match(/([A-Z]+)(\d+):([A-Z]+)(\d+)/);
+        if (rangeMatch) {
+          const [, startCol, startRow, endCol, endRow] = rangeMatch;
+          const values = getCellRange(data, startCol, parseInt(startRow), endCol, parseInt(endRow));
+          const count = values.filter(v => v.trim() !== '' && !isNaN(parseNumber(v))).length;
+          return count.toString();
+        }
       }
     }
     
     // MAX function
-    if (cleanFormula.startsWith('MAX(') || cleanFormula.startsWith('MAXIMO(')) {
-      const range = cleanFormula.match(/(?:MAX|MAXIMO)\(([A-Z]+)(\d+):([A-Z]+)(\d+)\)/);
-      if (range) {
-        const [, startCol, startRow, endCol, endRow] = range;
-        const values = getCellRange(data, startCol, parseInt(startRow), endCol, parseInt(endRow));
-        const nums = values.filter(v => !isNaN(parseFloat(v.replace(/[^\d.-]/g, '')))).map(v => parseFloat(v.replace(/[^\d.-]/g, '')));
-        return nums.length > 0 ? Math.max(...nums).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0';
+    if (cleanFormula.startsWith('MAX(') || cleanFormula.startsWith('MAXIMO(') || cleanFormula.startsWith('MÁXIMO(')) {
+      const content = cleanFormula.match(/(?:MAX|MAXIMO|MÁXIMO)\((.+)\)/)?.[1];
+      if (content) {
+        const rangeMatch = content.match(/([A-Z]+)(\d+):([A-Z]+)(\d+)/);
+        if (rangeMatch) {
+          const [, startCol, startRow, endCol, endRow] = rangeMatch;
+          const values = getCellRange(data, startCol, parseInt(startRow), endCol, parseInt(endRow));
+          const nums = values.filter(v => v.trim() !== '').map(v => parseNumber(v));
+          return nums.length > 0 ? formatResult(Math.max(...nums)) : '0';
+        }
       }
     }
     
     // MIN function
-    if (cleanFormula.startsWith('MIN(') || cleanFormula.startsWith('MINIMO(')) {
-      const range = cleanFormula.match(/(?:MIN|MINIMO)\(([A-Z]+)(\d+):([A-Z]+)(\d+)\)/);
-      if (range) {
-        const [, startCol, startRow, endCol, endRow] = range;
-        const values = getCellRange(data, startCol, parseInt(startRow), endCol, parseInt(endRow));
-        const nums = values.filter(v => !isNaN(parseFloat(v.replace(/[^\d.-]/g, '')))).map(v => parseFloat(v.replace(/[^\d.-]/g, '')));
-        return nums.length > 0 ? Math.min(...nums).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0';
+    if (cleanFormula.startsWith('MIN(') || cleanFormula.startsWith('MINIMO(') || cleanFormula.startsWith('MÍNIMO(')) {
+      const content = cleanFormula.match(/(?:MIN|MINIMO|MÍNIMO)\((.+)\)/)?.[1];
+      if (content) {
+        const rangeMatch = content.match(/([A-Z]+)(\d+):([A-Z]+)(\d+)/);
+        if (rangeMatch) {
+          const [, startCol, startRow, endCol, endRow] = rangeMatch;
+          const values = getCellRange(data, startCol, parseInt(startRow), endCol, parseInt(endRow));
+          const nums = values.filter(v => v.trim() !== '').map(v => parseNumber(v));
+          return nums.length > 0 ? formatResult(Math.min(...nums)) : '0';
+        }
+      }
+    }
+    
+    // ROUND function
+    if (cleanFormula.startsWith('ROUND(') || cleanFormula.startsWith('ARRED(') || cleanFormula.startsWith('ARREDONDAR(')) {
+      const content = cleanFormula.match(/(?:ROUND|ARRED|ARREDONDAR)\((.+)\)/)?.[1];
+      if (content) {
+        const parts = splitFormulaArgs(content);
+        if (parts.length >= 1) {
+          const value = evaluateExpression(parts[0].trim(), data);
+          const decimals = parts.length > 1 ? parseInt(parts[1].trim()) : 0;
+          const rounded = Math.round(value * Math.pow(10, decimals)) / Math.pow(10, decimals);
+          return formatResult(rounded, decimals);
+        }
+      }
+    }
+    
+    // ABS function
+    if (cleanFormula.startsWith('ABS(')) {
+      const content = cleanFormula.match(/ABS\((.+)\)/)?.[1];
+      if (content) {
+        const value = evaluateExpression(content.trim(), data);
+        return formatResult(Math.abs(value));
+      }
+    }
+    
+    // IF function
+    if (cleanFormula.startsWith('IF(') || cleanFormula.startsWith('SE(')) {
+      const content = cleanFormula.match(/(?:IF|SE)\((.+)\)/)?.[1];
+      if (content) {
+        const parts = splitFormulaArgs(content);
+        if (parts.length >= 2) {
+          const condition = evaluateCondition(parts[0].trim(), data);
+          const trueValue = parts[1]?.trim() || '';
+          const falseValue = parts[2]?.trim() || '';
+          
+          const resultPart = condition ? trueValue : falseValue;
+          
+          if (resultPart.startsWith('"') && resultPart.endsWith('"')) {
+            return resultPart.slice(1, -1);
+          }
+          
+          return formatResult(evaluateExpression(resultPart, data));
+        }
+      }
+    }
+    
+    // POWER function
+    if (cleanFormula.startsWith('POWER(') || cleanFormula.startsWith('POTENCIA(') || cleanFormula.startsWith('POTÊNCIA(')) {
+      const content = cleanFormula.match(/(?:POWER|POTENCIA|POTÊNCIA)\((.+)\)/)?.[1];
+      if (content) {
+        const parts = splitFormulaArgs(content);
+        if (parts.length >= 2) {
+          const base = evaluateExpression(parts[0].trim(), data);
+          const exp = evaluateExpression(parts[1].trim(), data);
+          return formatResult(Math.pow(base, exp));
+        }
+      }
+    }
+    
+    // SQRT function
+    if (cleanFormula.startsWith('SQRT(') || cleanFormula.startsWith('RAIZ(')) {
+      const content = cleanFormula.match(/(?:SQRT|RAIZ)\((.+)\)/)?.[1];
+      if (content) {
+        const value = evaluateExpression(content.trim(), data);
+        return formatResult(Math.sqrt(value));
       }
     }
     
     // Simple arithmetic with cell references
-    let expression = cleanFormula;
-    const cellRefs = expression.match(/[A-Z]+\d+/g);
-    if (cellRefs) {
-      cellRefs.forEach(ref => {
-        const col = ref.match(/[A-Z]+/)?.[0] || 'A';
-        const row = parseInt(ref.match(/\d+/)?.[0] || '1');
-        const colIndex = columnLetterToIndex(col);
-        const rowIndex = row - 1;
-        const cellValue = data[rowIndex]?.[colIndex]?.value || '0';
-        // Extract numeric value from formatted string (e.g., "R$ 1.234,56" -> 1234.56)
-        const numValue = parseFloat(cellValue.replace(/[^\d.-]/g, '').replace(',', '.')) || 0;
-        expression = expression.replace(ref, numValue.toString());
-      });
-      
-      const sanitized = expression.replace(/[^0-9+\-*/().]/g, '');
-      if (sanitized) {
-        const result = Function('"use strict"; return (' + sanitized + ')')();
-        return typeof result === 'number' 
-          ? result.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-          : String(result);
-      }
-    }
+    return formatResult(evaluateExpression(cleanFormula, data));
     
-    return formula;
   } catch (e) {
+    console.error('Formula error:', e, formula);
     return '#ERROR';
   }
 };
 
-// Recalculate all formulas in the data
+// Split formula arguments respecting parentheses
+const splitFormulaArgs = (content: string): string[] => {
+  const parts: string[] = [];
+  let current = '';
+  let depth = 0;
+  
+  for (const char of content) {
+    if (char === '(') depth++;
+    else if (char === ')') depth--;
+    else if ((char === ',' || char === ';') && depth === 0) {
+      parts.push(current);
+      current = '';
+      continue;
+    }
+    current += char;
+  }
+  if (current) parts.push(current);
+  
+  return parts;
+};
+
+// Evaluate a condition (for IF function)
+const evaluateCondition = (condition: string, data: CellData[][]): boolean => {
+  const operators = ['>=', '<=', '<>', '!=', '=', '>', '<'];
+  
+  for (const op of operators) {
+    if (condition.includes(op)) {
+      const parts = condition.split(op);
+      if (parts.length === 2) {
+        const left = evaluateExpression(parts[0].trim(), data);
+        const right = evaluateExpression(parts[1].trim(), data);
+        
+        switch (op) {
+          case '>=': return left >= right;
+          case '<=': return left <= right;
+          case '<>': 
+          case '!=': return left !== right;
+          case '=': return left === right;
+          case '>': return left > right;
+          case '<': return left < right;
+        }
+      }
+    }
+  }
+  
+  return evaluateExpression(condition, data) !== 0;
+};
+
+// Evaluate arithmetic expression with cell references
+const evaluateExpression = (expr: string, data: CellData[][]): number => {
+  let expression = expr.toUpperCase();
+  
+  const cellRefs = expression.match(/[A-Z]+\d+/g);
+  if (cellRefs) {
+    const sortedRefs = [...new Set(cellRefs)].sort((a, b) => b.length - a.length);
+    sortedRefs.forEach(ref => {
+      const col = ref.match(/[A-Z]+/)?.[0] || 'A';
+      const row = parseInt(ref.match(/\d+/)?.[0] || '1');
+      const colIndex = columnLetterToIndex(col);
+      const rowIndex = row - 1;
+      const numValue = getCellNumericValue(data, rowIndex, colIndex);
+      expression = expression.split(ref).join(numValue.toString());
+    });
+  }
+  
+  const sanitized = expression.replace(/[^0-9+\-*/().]/g, '');
+  if (sanitized) {
+    try {
+      const result = Function('"use strict"; return (' + sanitized + ')')();
+      return typeof result === 'number' && !isNaN(result) ? result : 0;
+    } catch {
+      return 0;
+    }
+  }
+  
+  return parseNumber(expression);
+};
+
+// Format result number
+const formatResult = (value: number, decimals: number = 2): string => {
+  if (isNaN(value) || !isFinite(value)) return '#ERROR';
+  
+  if (Number.isInteger(value) && decimals === 2) {
+    return value.toLocaleString('pt-BR');
+  }
+  
+  return value.toLocaleString('pt-BR', { 
+    minimumFractionDigits: decimals, 
+    maximumFractionDigits: decimals 
+  });
+};
+
+// Recalculate all formulas in the data (with dependency resolution)
 const recalculateAllFormulas = (data: CellData[][]): CellData[][] => {
   const newData = data.map(row => row.map(cell => ({ ...cell })));
   
-  // First pass: collect all cells with formulas
-  for (let rowIndex = 0; rowIndex < newData.length; rowIndex++) {
-    for (let colIndex = 0; colIndex < newData[rowIndex].length; colIndex++) {
-      const cell = newData[rowIndex][colIndex];
-      if (cell.formula && cell.formula.startsWith('=')) {
-        const result = evaluateFormula(cell.formula, newData);
-        newData[rowIndex][colIndex] = {
-          ...cell,
-          value: result,
-          formattedValue: result
-        };
+  // Multiple passes to handle formula dependencies
+  for (let pass = 0; pass < 3; pass++) {
+    for (let rowIndex = 0; rowIndex < newData.length; rowIndex++) {
+      for (let colIndex = 0; colIndex < newData[rowIndex].length; colIndex++) {
+        const cell = newData[rowIndex][colIndex];
+        if (cell.formula && cell.formula.startsWith('=')) {
+          const result = evaluateFormula(cell.formula, newData);
+          newData[rowIndex][colIndex] = {
+            ...cell,
+            value: result,
+            formattedValue: result
+          };
+        }
       }
     }
   }
