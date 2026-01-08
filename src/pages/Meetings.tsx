@@ -204,7 +204,9 @@ export default function Meetings() {
       toast.success("Reunião criada!");
       setCreateDialogOpen(false);
       setNewMeeting({ title: "", password: "" });
-      navigate(`/reuniao/${data.meeting_code}`);
+      
+      // Open meeting in new tab
+      window.open(`/reuniao/${data.meeting_code}`, '_blank');
     } catch (error) {
       console.error("Error creating meeting:", error);
       toast.error("Erro ao criar reunião");

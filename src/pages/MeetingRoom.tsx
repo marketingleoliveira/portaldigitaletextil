@@ -15,7 +15,7 @@ import {
   Mic, MicOff, Video, VideoOff, Phone, MessageSquare, Users, 
   ScreenShare, ScreenShareOff, MoreVertical, Settings,
   Copy, Maximize, Minimize, Send, ChevronLeft, Loader2,
-  Circle, Square
+  Circle, Square, Lock
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
@@ -33,6 +33,7 @@ interface Meeting {
   allow_screen_share: boolean;
   allow_chat: boolean;
   waiting_room_enabled: boolean;
+  password: string | null;
 }
 
 interface ChatMessage {
@@ -78,6 +79,11 @@ export default function MeetingRoom() {
   // Recording state
   const [isRecording, setIsRecording] = useState(false);
   const [recordingStartTime, setRecordingStartTime] = useState<Date | null>(null);
+  
+  // Password state
+  const [showPasswordPrompt, setShowPasswordPrompt] = useState(false);
+  const [enteredPassword, setEnteredPassword] = useState("");
+  const [passwordError, setPasswordError] = useState("");
   
   const localVideoRef = useRef<HTMLVideoElement>(null);
   const participantRefs = useRef<Record<string, HTMLVideoElement | null>>({});
@@ -217,8 +223,15 @@ export default function MeetingRoom() {
     Object.entries(participants).forEach(([sessionId, participant]) => {
       if (!participant.local) {
         const videoEl = participantRefs.current[sessionId];
-        if (videoEl && participant.tracks?.video?.track) {
-          videoEl.srcObject = new MediaStream([participant.tracks.video.track]);
+        if (videoEl) {
+          // Prioritize screen share track over video track
+          const screenTrack = participant.tracks?.screenVideo?.track;
+          const videoTrack = participant.tracks?.video?.track;
+          const trackToUse = screenTrack || videoTrack;
+          
+          if (trackToUse) {
+            videoEl.srcObject = new MediaStream([trackToUse]);
+          }
         }
       }
     });
@@ -276,6 +289,29 @@ export default function MeetingRoom() {
       }
 
       setMeeting(meetingData);
+      
+      // Check if password is required (non-host and meeting has password)
+      const isUserHost = meetingData.host_user_id === user.id;
+      if (!isUserHost && meetingData.password) {
+        setLoading(false);
+        setShowPasswordPrompt(true);
+        return;
+      }
+
+      await joinMeetingAfterPassword(meetingData);
+
+    } catch (err) {
+      console.error("Error initializing meeting:", err);
+      setError("Erro ao entrar na reunião");
+      setLoading(false);
+    }
+  };
+
+  const joinMeetingAfterPassword = async (meetingData: Meeting) => {
+    if (!code || !user) return;
+    
+    try {
+      setLoading(true);
 
       // Create/Get Daily room
       const room = await createOrGetDailyRoom(code);
@@ -301,14 +337,26 @@ export default function MeetingRoom() {
       subscribeToMessages(meetingData.id);
 
       setLoading(false);
+      setShowPasswordPrompt(false);
 
       // Initialize Daily.co
       await initializeDaily(room.url);
 
     } catch (err) {
-      console.error("Error initializing meeting:", err);
+      console.error("Error joining meeting:", err);
       setError("Erro ao entrar na reunião");
       setLoading(false);
+    }
+  };
+
+  const handlePasswordSubmit = () => {
+    if (!meeting) return;
+    
+    if (enteredPassword === meeting.password) {
+      setPasswordError("");
+      joinMeetingAfterPassword(meeting);
+    } else {
+      setPasswordError("Senha incorreta");
     }
   };
 
@@ -490,6 +538,11 @@ export default function MeetingRoom() {
 
   const participantCount = Object.keys(participants).length;
   const remoteParticipants = Object.entries(participants).filter(([_, p]) => !p.local);
+  
+  // Find who is sharing screen
+  const screenSharingParticipant = Object.entries(participants).find(
+    ([_, p]) => p.tracks?.screenVideo?.state === 'playable'
+  );
 
   if (loading) {
     return (
@@ -516,6 +569,60 @@ export default function MeetingRoom() {
             <Button onClick={() => navigate("/reunioes")} variant="secondary">
               Voltar para reuniões
             </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Password prompt for non-hosts
+  if (showPasswordPrompt) {
+    return (
+      <div className="h-screen bg-gray-900 flex items-center justify-center">
+        <div className="bg-gray-800 p-8 rounded-xl max-w-md w-full mx-4">
+          <div className="text-center mb-6">
+            <div className="w-16 h-16 rounded-full bg-primary/20 flex items-center justify-center mx-auto mb-4">
+              <Lock className="w-8 h-8 text-primary" />
+            </div>
+            <h2 className="text-2xl font-bold text-white mb-2">Reunião protegida</h2>
+            <p className="text-gray-400">Esta reunião requer senha para entrar</p>
+          </div>
+          
+          <div className="space-y-4">
+            <div>
+              <Input
+                type="password"
+                placeholder="Digite a senha"
+                value={enteredPassword}
+                onChange={(e) => {
+                  setEnteredPassword(e.target.value);
+                  setPasswordError("");
+                }}
+                onKeyDown={(e) => e.key === "Enter" && handlePasswordSubmit()}
+                className="bg-gray-700 border-gray-600 text-white"
+                autoFocus
+              />
+              {passwordError && (
+                <p className="text-red-400 text-sm mt-2">{passwordError}</p>
+              )}
+            </div>
+            
+            <div className="flex gap-3">
+              <Button
+                variant="secondary"
+                className="flex-1"
+                onClick={() => navigate("/reunioes")}
+              >
+                Cancelar
+              </Button>
+              <Button
+                className="flex-1"
+                onClick={handlePasswordSubmit}
+                disabled={!enteredPassword.trim()}
+              >
+                Entrar
+              </Button>
+            </div>
           </div>
         </div>
       </div>
@@ -611,38 +718,66 @@ export default function MeetingRoom() {
               </div>
             </div>
 
-            {/* Remote participants */}
-            {remoteParticipants.map(([sessionId, participant]) => (
-              <div
-                key={sessionId}
-                className="relative bg-gray-800 rounded-lg sm:rounded-xl overflow-hidden aspect-video"
-              >
+            {/* Screen share view - show prominently when someone is sharing */}
+            {screenSharingParticipant && (
+              <div className="col-span-full relative bg-gray-800 rounded-lg sm:rounded-xl overflow-hidden aspect-video border-2 border-primary">
                 <video
-                  ref={el => { participantRefs.current[sessionId] = el; }}
+                  ref={el => { 
+                    if (el && screenSharingParticipant[1].tracks?.screenVideo?.track) {
+                      el.srcObject = new MediaStream([screenSharingParticipant[1].tracks.screenVideo.track]);
+                    }
+                  }}
                   autoPlay
                   playsInline
-                  className={cn(
-                    "w-full h-full object-cover",
-                    !participant.video && "hidden"
-                  )}
+                  className="w-full h-full object-contain bg-black"
                 />
-                {!participant.video && (
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <Avatar className="w-14 h-14 sm:w-20 sm:h-20">
-                      <AvatarFallback className="text-lg sm:text-2xl bg-primary">
-                        {participant.user_name?.charAt(0) || "P"}
-                      </AvatarFallback>
-                    </Avatar>
-                  </div>
-                )}
                 <div className="absolute bottom-2 left-2 sm:bottom-3 sm:left-3 flex items-center gap-1 sm:gap-2">
-                  <span className="px-1.5 sm:px-2 py-0.5 sm:py-1 bg-black/60 rounded text-white text-xs sm:text-sm truncate max-w-[100px] sm:max-w-none">
-                    {participant.user_name || "Participante"}
+                  <span className="px-1.5 sm:px-2 py-0.5 sm:py-1 bg-primary rounded text-white text-xs sm:text-sm flex items-center gap-1">
+                    <ScreenShare className="w-3 h-3" />
+                    {screenSharingParticipant[1].local 
+                      ? "Você está compartilhando" 
+                      : `${screenSharingParticipant[1].user_name || "Participante"} está compartilhando`}
                   </span>
-                  {!participant.audio && <MicOff className="w-3 h-3 sm:w-4 sm:h-4 text-red-500" />}
                 </div>
               </div>
-            ))}
+            )}
+
+            {/* Remote participants */}
+            {remoteParticipants.map(([sessionId, participant]) => {
+              const hasVideo = participant.video || participant.tracks?.video?.state === 'playable';
+              
+              return (
+                <div
+                  key={sessionId}
+                  className="relative bg-gray-800 rounded-lg sm:rounded-xl overflow-hidden aspect-video"
+                >
+                  <video
+                    ref={el => { participantRefs.current[sessionId] = el; }}
+                    autoPlay
+                    playsInline
+                    className={cn(
+                      "w-full h-full object-cover",
+                      !hasVideo && "hidden"
+                    )}
+                  />
+                  {!hasVideo && (
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <Avatar className="w-14 h-14 sm:w-20 sm:h-20">
+                        <AvatarFallback className="text-lg sm:text-2xl bg-primary">
+                          {participant.user_name?.charAt(0) || "P"}
+                        </AvatarFallback>
+                      </Avatar>
+                    </div>
+                  )}
+                  <div className="absolute bottom-2 left-2 sm:bottom-3 sm:left-3 flex items-center gap-1 sm:gap-2">
+                    <span className="px-1.5 sm:px-2 py-0.5 sm:py-1 bg-black/60 rounded text-white text-xs sm:text-sm truncate max-w-[100px] sm:max-w-none">
+                      {participant.user_name || "Participante"}
+                    </span>
+                    {!participant.audio && <MicOff className="w-3 h-3 sm:w-4 sm:h-4 text-red-500" />}
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
 
