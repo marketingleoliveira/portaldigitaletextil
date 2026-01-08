@@ -83,36 +83,67 @@ export default function Meetings() {
       .on(
         'postgres_changes',
         {
-          event: '*',
+          event: 'INSERT',
+          schema: 'public',
+          table: 'meetings',
+        },
+        async (payload) => {
+          console.log('Meeting INSERT:', payload);
+          const newMeeting = payload.new as Meeting;
+          
+          // Fetch with host profile
+          const { data } = await supabase
+            .from("meetings")
+            .select(`*, host_profile:profiles!meetings_host_user_id_fkey(full_name, avatar_url)`)
+            .eq("id", newMeeting.id)
+            .single();
+          
+          if (data) {
+            setMeetings(prev => {
+              // Avoid duplicates
+              if (prev.some(m => m.id === data.id)) return prev;
+              return [data, ...prev].slice(0, 10);
+            });
+          }
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
           schema: 'public',
           table: 'meetings',
         },
         (payload) => {
-          console.log('Meeting change:', payload);
+          console.log('Meeting UPDATE:', payload);
+          const updatedMeeting = payload.new as Meeting;
           
-          if (payload.eventType === 'INSERT') {
-            // Add new meeting to the list
-            const newMeeting = payload.new as Meeting;
-            if (newMeeting.host_user_id === user.id || newMeeting.is_active) {
-              setMeetings(prev => [newMeeting, ...prev].slice(0, 10));
-            }
-          } else if (payload.eventType === 'UPDATE') {
-            const updatedMeeting = payload.new as Meeting;
-            // Remove if ended, otherwise update
-            if (updatedMeeting.ended_at) {
-              setMeetings(prev => prev.filter(m => m.id !== updatedMeeting.id));
-            } else {
-              setMeetings(prev => prev.map(m => 
-                m.id === updatedMeeting.id ? { ...m, ...updatedMeeting } : m
-              ));
-            }
-          } else if (payload.eventType === 'DELETE') {
-            const deletedId = (payload.old as { id: string }).id;
-            setMeetings(prev => prev.filter(m => m.id !== deletedId));
+          // Remove if ended
+          if (updatedMeeting.ended_at || !updatedMeeting.is_active) {
+            setMeetings(prev => prev.filter(m => m.id !== updatedMeeting.id));
+          } else {
+            setMeetings(prev => prev.map(m => 
+              m.id === updatedMeeting.id ? { ...m, ...updatedMeeting } : m
+            ));
           }
         }
       )
-      .subscribe();
+      .on(
+        'postgres_changes',
+        {
+          event: 'DELETE',
+          schema: 'public',
+          table: 'meetings',
+        },
+        (payload) => {
+          console.log('Meeting DELETE:', payload);
+          const deletedId = (payload.old as { id: string }).id;
+          setMeetings(prev => prev.filter(m => m.id !== deletedId));
+        }
+      )
+      .subscribe((status) => {
+        console.log('Realtime subscription status:', status);
+      });
 
     return () => {
       supabase.removeChannel(channel);
