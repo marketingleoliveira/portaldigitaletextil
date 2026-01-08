@@ -249,6 +249,17 @@ export default function MeetingRoom() {
         isInitializingRef.current = false;
       });
 
+      // Screen share events
+      call.on("local-screen-share-started", () => {
+        console.log("Screen share started");
+        setIsScreenSharing(true);
+      });
+
+      call.on("local-screen-share-stopped", () => {
+        console.log("Screen share stopped");
+        setIsScreenSharing(false);
+      });
+
       // Join the meeting
       await call.join({
         url: roomUrl,
@@ -714,7 +725,10 @@ export default function MeetingRoom() {
   }, [isVideoOn, callObject, meeting, user, isHost, globalVideoEnabled]);
 
   const toggleScreenShare = async () => {
-    if (!callObject) return;
+    if (!callObject) {
+      toast.error("Conexão não estabelecida");
+      return;
+    }
     
     // Check if screen share is allowed
     if (!isHost && !globalScreenShareEnabled) {
@@ -725,14 +739,19 @@ export default function MeetingRoom() {
     try {
       if (isScreenSharing) {
         await callObject.stopScreenShare();
-        setIsScreenSharing(false);
+        // State will be updated by event listener
       } else {
         await callObject.startScreenShare();
-        setIsScreenSharing(true);
+        // State will be updated by event listener
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error("Error toggling screen share:", err);
-      toast.error("Erro ao compartilhar tela");
+      // Handle user cancellation (not an error)
+      if (err?.message?.includes("NotAllowedError") || err?.type === "screen-share-error") {
+        console.log("Screen share cancelled by user or browser");
+        return;
+      }
+      toast.error("Erro ao compartilhar tela. Verifique as permissões do navegador.");
     }
   };
 
