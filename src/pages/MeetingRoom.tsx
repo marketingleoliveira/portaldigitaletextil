@@ -1754,13 +1754,16 @@ export default function MeetingRoom() {
             <TooltipContent className="hidden sm:block">{isVideoOn ? "Desativar câmera" : "Ativar câmera"}</TooltipContent>
           </Tooltip>
 
-          {/* Screen share - Hidden on mobile */}
+          {/* Screen share - Now visible on all devices */}
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
                 variant={isScreenSharing ? "default" : "secondary"}
                 size="lg"
-                className="rounded-full w-10 h-10 sm:w-12 sm:h-12 hidden sm:flex"
+                className={cn(
+                  "rounded-full w-10 h-10 sm:w-12 sm:h-12",
+                  isScreenSharing && "bg-green-600 hover:bg-green-700"
+                )}
                 onClick={toggleScreenShare}
                 disabled={!callObject}
               >
@@ -1915,25 +1918,12 @@ export default function MeetingRoom() {
                 <MoreVertical className="w-4 h-4 sm:w-5 sm:h-5" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
+            <DropdownMenuContent align="end" className="min-w-[180px]">
               <DropdownMenuItem onClick={copyMeetingLink}>
                 <Copy className="w-4 h-4 mr-2" />
                 Copiar link
               </DropdownMenuItem>
-              {/* Mobile-only options */}
-              <DropdownMenuItem onClick={toggleScreenShare} className="sm:hidden">
-                {isScreenSharing ? (
-                  <>
-                    <ScreenShareOff className="w-4 h-4 mr-2" />
-                    Parar compartilhamento
-                  </>
-                ) : (
-                  <>
-                    <ScreenShare className="w-4 h-4 mr-2" />
-                    Compartilhar tela
-                  </>
-                )}
-              </DropdownMenuItem>
+              {/* Recording option for host on mobile */}
               {isHost && (
                 <DropdownMenuItem onClick={isRecording ? stopRecording : startRecording} className="sm:hidden">
                   {isRecording ? (
@@ -1949,7 +1939,8 @@ export default function MeetingRoom() {
                   )}
                 </DropdownMenuItem>
               )}
-              <DropdownMenuItem onClick={toggleFullscreen} className="hidden sm:flex">
+              {/* Fullscreen toggle */}
+              <DropdownMenuItem onClick={toggleFullscreen}>
                 {isFullscreen ? (
                   <>
                     <Minimize className="w-4 h-4 mr-2" />
