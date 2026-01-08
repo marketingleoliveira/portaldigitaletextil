@@ -4,13 +4,12 @@ import DashboardLayout from "@/components/layouts/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Video, Plus, Users, Clock, Calendar, Link2, Copy, Settings, Keyboard, History } from "lucide-react";
+import { Video, Users, Clock, Calendar, Copy, Settings, Keyboard, History, Lock, Eye, EyeOff } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
@@ -32,6 +31,7 @@ interface Meeting {
   started_at: string | null;
   ended_at: string | null;
   created_at: string;
+  password?: string | null;
   host_profile?: {
     full_name: string;
     avatar_url: string | null;
@@ -62,14 +62,11 @@ export default function Meetings() {
   const [loading, setLoading] = useState(true);
   const [joinCode, setJoinCode] = useState("");
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [creatingMeeting, setCreatingMeeting] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const [newMeeting, setNewMeeting] = useState({
     title: "",
-    description: "",
-    allow_participants_video: true,
-    allow_participants_audio: true,
-    allow_screen_share: true,
-    allow_chat: true,
-    waiting_room_enabled: false,
+    password: "",
   });
 
   useEffect(() => {
@@ -99,19 +96,27 @@ export default function Meetings() {
     }
   };
 
-  const createInstantMeeting = async () => {
+  const createMeeting = async () => {
     if (!user) return;
+    
+    if (!newMeeting.title.trim()) {
+      toast.error("Informe o nome da reunião");
+      return;
+    }
 
+    setCreatingMeeting(true);
+    
     try {
       const meetingCode = generateMeetingCode();
       
       const { data, error } = await supabase
         .from("meetings")
         .insert({
-          title: "Reunião Instantânea",
+          title: newMeeting.title.trim(),
           meeting_code: meetingCode,
           host_user_id: user.id,
           started_at: new Date().toISOString(),
+          password: newMeeting.password.trim() || null,
         })
         .select()
         .single();
@@ -119,55 +124,14 @@ export default function Meetings() {
       if (error) throw error;
 
       toast.success("Reunião criada!");
+      setCreateDialogOpen(false);
+      setNewMeeting({ title: "", password: "" });
       navigate(`/reuniao/${data.meeting_code}`);
     } catch (error) {
       console.error("Error creating meeting:", error);
       toast.error("Erro ao criar reunião");
-    }
-  };
-
-  const createScheduledMeeting = async () => {
-    if (!user || !newMeeting.title.trim()) {
-      toast.error("Informe o título da reunião");
-      return;
-    }
-
-    try {
-      const meetingCode = generateMeetingCode();
-      
-      const { data, error } = await supabase
-        .from("meetings")
-        .insert({
-          title: newMeeting.title,
-          description: newMeeting.description || null,
-          meeting_code: meetingCode,
-          host_user_id: user.id,
-          allow_participants_video: newMeeting.allow_participants_video,
-          allow_participants_audio: newMeeting.allow_participants_audio,
-          allow_screen_share: newMeeting.allow_screen_share,
-          allow_chat: newMeeting.allow_chat,
-          waiting_room_enabled: newMeeting.waiting_room_enabled,
-        })
-        .select()
-        .single();
-
-      if (error) throw error;
-
-      toast.success("Reunião criada com sucesso!");
-      setCreateDialogOpen(false);
-      setNewMeeting({
-        title: "",
-        description: "",
-        allow_participants_video: true,
-        allow_participants_audio: true,
-        allow_screen_share: true,
-        allow_chat: true,
-        waiting_room_enabled: false,
-      });
-      fetchMeetings();
-    } catch (error) {
-      console.error("Error creating meeting:", error);
-      toast.error("Erro ao criar reunião");
+    } finally {
+      setCreatingMeeting(false);
     }
   };
 
@@ -189,7 +153,7 @@ export default function Meetings() {
   return (
     <DashboardLayout>
       <div className="space-y-6 max-w-6xl mx-auto">
-        {/* Header Section - Google Meet Style */}
+        {/* Header Section */}
         <div className="grid md:grid-cols-2 gap-6">
           {/* Left Side - Create/Join */}
           <Card className="border-0 shadow-lg bg-gradient-to-br from-primary/5 to-primary/10">
@@ -207,102 +171,13 @@ export default function Meetings() {
             <CardContent className="space-y-4">
               <div className="flex flex-wrap gap-3">
                 <Button 
-                  onClick={createInstantMeeting}
+                  onClick={() => setCreateDialogOpen(true)}
                   className="gap-2"
                   size="lg"
                 >
                   <Video className="w-5 h-5" />
                   Nova reunião
                 </Button>
-                
-                <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
-                  <DialogTrigger asChild>
-                    <Button variant="outline" size="lg" className="gap-2">
-                      <Calendar className="w-5 h-5" />
-                      Agendar
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent className="sm:max-w-md">
-                    <DialogHeader>
-                      <DialogTitle>Criar Reunião</DialogTitle>
-                      <DialogDescription>
-                        Configure as opções da sua reunião
-                      </DialogDescription>
-                    </DialogHeader>
-                    <div className="space-y-4 py-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="title">Título da reunião</Label>
-                        <Input
-                          id="title"
-                          value={newMeeting.title}
-                          onChange={(e) => setNewMeeting({ ...newMeeting, title: e.target.value })}
-                          placeholder="Ex: Reunião de equipe"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="description">Descrição (opcional)</Label>
-                        <Input
-                          id="description"
-                          value={newMeeting.description}
-                          onChange={(e) => setNewMeeting({ ...newMeeting, description: e.target.value })}
-                          placeholder="Pauta da reunião..."
-                        />
-                      </div>
-                      
-                      <div className="space-y-3 pt-2">
-                        <Label className="text-sm font-medium">Opções do anfitrião</Label>
-                        
-                        <div className="flex items-center justify-between">
-                          <span className="text-sm">Permitir vídeo dos participantes</span>
-                          <Switch
-                            checked={newMeeting.allow_participants_video}
-                            onCheckedChange={(checked) => setNewMeeting({ ...newMeeting, allow_participants_video: checked })}
-                          />
-                        </div>
-                        
-                        <div className="flex items-center justify-between">
-                          <span className="text-sm">Permitir áudio dos participantes</span>
-                          <Switch
-                            checked={newMeeting.allow_participants_audio}
-                            onCheckedChange={(checked) => setNewMeeting({ ...newMeeting, allow_participants_audio: checked })}
-                          />
-                        </div>
-                        
-                        <div className="flex items-center justify-between">
-                          <span className="text-sm">Permitir compartilhamento de tela</span>
-                          <Switch
-                            checked={newMeeting.allow_screen_share}
-                            onCheckedChange={(checked) => setNewMeeting({ ...newMeeting, allow_screen_share: checked })}
-                          />
-                        </div>
-                        
-                        <div className="flex items-center justify-between">
-                          <span className="text-sm">Permitir chat</span>
-                          <Switch
-                            checked={newMeeting.allow_chat}
-                            onCheckedChange={(checked) => setNewMeeting({ ...newMeeting, allow_chat: checked })}
-                          />
-                        </div>
-                        
-                        <div className="flex items-center justify-between">
-                          <span className="text-sm">Sala de espera</span>
-                          <Switch
-                            checked={newMeeting.waiting_room_enabled}
-                            onCheckedChange={(checked) => setNewMeeting({ ...newMeeting, waiting_room_enabled: checked })}
-                          />
-                        </div>
-                      </div>
-                    </div>
-                    <div className="flex justify-end gap-2">
-                      <Button variant="outline" onClick={() => setCreateDialogOpen(false)}>
-                        Cancelar
-                      </Button>
-                      <Button onClick={createScheduledMeeting}>
-                        Criar reunião
-                      </Button>
-                    </div>
-                  </DialogContent>
-                </Dialog>
               </div>
 
               <div className="flex gap-2">
@@ -323,7 +198,7 @@ export default function Meetings() {
             </CardContent>
           </Card>
 
-          {/* Right Side - Quick Info */}
+          {/* Right Side - Recent Meetings */}
           <Card className="border-0 shadow-lg">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -350,7 +225,12 @@ export default function Meetings() {
                       className="flex items-center justify-between p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors"
                     >
                       <div className="flex-1 min-w-0">
-                        <p className="font-medium truncate">{meeting.title}</p>
+                        <div className="flex items-center gap-2">
+                          <p className="font-medium truncate">{meeting.title}</p>
+                          {meeting.password && (
+                            <Lock className="w-3 h-3 text-muted-foreground" />
+                          )}
+                        </div>
                         <div className="flex items-center gap-2 text-xs text-muted-foreground">
                           <span className="font-mono">{meeting.meeting_code}</span>
                           <span>•</span>
@@ -414,6 +294,86 @@ export default function Meetings() {
           </Card>
         </div>
       </div>
+
+      {/* Create Meeting Modal */}
+      <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Video className="w-5 h-5 text-primary" />
+              Nova Reunião
+            </DialogTitle>
+            <DialogDescription>
+              Preencha as informações para criar sua reunião
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="title">Nome da reunião *</Label>
+              <Input
+                id="title"
+                value={newMeeting.title}
+                onChange={(e) => setNewMeeting({ ...newMeeting, title: e.target.value })}
+                placeholder="Ex: Reunião de equipe"
+                autoFocus
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="password" className="flex items-center gap-2">
+                <Lock className="w-4 h-4" />
+                Senha (opcional)
+              </Label>
+              <div className="relative">
+                <Input
+                  id="password"
+                  type={showPassword ? "text" : "password"}
+                  value={newMeeting.password}
+                  onChange={(e) => setNewMeeting({ ...newMeeting, password: e.target.value })}
+                  placeholder="Deixe em branco para reunião sem senha"
+                  className="pr-10"
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
+                  onClick={() => setShowPassword(!showPassword)}
+                >
+                  {showPassword ? (
+                    <EyeOff className="w-4 h-4 text-muted-foreground" />
+                  ) : (
+                    <Eye className="w-4 h-4 text-muted-foreground" />
+                  )}
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Se definir uma senha, os participantes precisarão informá-la para entrar
+              </p>
+            </div>
+          </div>
+          <div className="flex justify-end gap-2">
+            <Button 
+              variant="outline" 
+              onClick={() => {
+                setCreateDialogOpen(false);
+                setNewMeeting({ title: "", password: "" });
+              }}
+            >
+              Cancelar
+            </Button>
+            <Button onClick={createMeeting} disabled={creatingMeeting}>
+              {creatingMeeting ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                  Criando...
+                </>
+              ) : (
+                "Criar reunião"
+              )}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </DashboardLayout>
   );
 }
