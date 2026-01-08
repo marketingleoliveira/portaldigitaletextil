@@ -36,6 +36,8 @@ import Localizar from "./pages/Localizar";
 import Prices from "./pages/Prices";
 import Meetings from "./pages/Meetings";
 import MeetingRoom from "./pages/MeetingRoom";
+import GuestJoin from "./pages/GuestJoin";
+import GuestMeetingRoom from "./pages/GuestMeetingRoom";
 
 const queryClient = new QueryClient();
 
@@ -88,6 +90,8 @@ const App = () => (
                 <Route path="/atualizacoes" element={<ProtectedRoute><Updates /></ProtectedRoute>} />
                 <Route path="/reunioes" element={<ProtectedRoute><Meetings /></ProtectedRoute>} />
                 <Route path="/reuniao/:code" element={<ProtectedRoute><MeetingRoom /></ProtectedRoute>} />
+                <Route path="/entrar/:code" element={<GuestJoin />} />
+                <Route path="/convidado/:code" element={<GuestMeetingRoom />} />
                 
                 <Route path="*" element={<NotFound />} />
               </Routes>

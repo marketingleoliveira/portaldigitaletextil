@@ -339,24 +339,30 @@ export type Database = {
       meeting_messages: {
         Row: {
           created_at: string
+          guest_id: string | null
+          guest_name: string | null
           id: string
           meeting_id: string
           message: string
-          user_id: string
+          user_id: string | null
         }
         Insert: {
           created_at?: string
+          guest_id?: string | null
+          guest_name?: string | null
           id?: string
           meeting_id: string
           message: string
-          user_id: string
+          user_id?: string | null
         }
         Update: {
           created_at?: string
+          guest_id?: string | null
+          guest_name?: string | null
           id?: string
           meeting_id?: string
           message?: string
-          user_id?: string
+          user_id?: string | null
         }
         Relationships: [
           {
@@ -377,6 +383,8 @@ export type Database = {
       }
       meeting_participants: {
         Row: {
+          guest_id: string | null
+          guest_name: string | null
           id: string
           is_co_host: boolean | null
           is_hand_raised: boolean | null
@@ -387,9 +395,11 @@ export type Database = {
           joined_at: string | null
           left_at: string | null
           meeting_id: string
-          user_id: string
+          user_id: string | null
         }
         Insert: {
+          guest_id?: string | null
+          guest_name?: string | null
           id?: string
           is_co_host?: boolean | null
           is_hand_raised?: boolean | null
@@ -400,9 +410,11 @@ export type Database = {
           joined_at?: string | null
           left_at?: string | null
           meeting_id: string
-          user_id: string
+          user_id?: string | null
         }
         Update: {
+          guest_id?: string | null
+          guest_name?: string | null
           id?: string
           is_co_host?: boolean | null
           is_hand_raised?: boolean | null
@@ -413,7 +425,7 @@ export type Database = {
           joined_at?: string | null
           left_at?: string | null
           meeting_id?: string
-          user_id?: string
+          user_id?: string | null
         }
         Relationships: [
           {
