@@ -17,7 +17,7 @@ import {
   ScreenShare, ScreenShareOff, MoreVertical, Settings,
   Copy, Maximize, Minimize, Send, ChevronLeft, Loader2,
   Circle, Square, Lock, Hand, Smile, Volume2, Shield,
-  VideoIcon, MicIcon, Ban
+  VideoIcon, MicIcon, Ban, Sparkles
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
@@ -54,8 +54,18 @@ interface ParticipantWithExtras extends DailyParticipant {
   handRaised?: boolean;
 }
 
+interface FloatingReaction {
+  id: string;
+  emoji: string;
+  x: number;
+  userName: string;
+}
+
 // Popular emotes for chat
 const EMOTES = ["👍", "👎", "❤️", "😂", "😮", "😢", "🎉", "🔥", "👏", "🤔", "💯", "✅"];
+
+// Reactions for floating animation
+const REACTIONS = ["👍", "❤️", "😂", "👏", "🎉", "🔥", "😮", "💯"];
 
 export default function MeetingRoom() {
   const { code } = useParams<{ code: string }>();
@@ -108,6 +118,10 @@ export default function MeetingRoom() {
   const [globalAudioEnabled, setGlobalAudioEnabled] = useState(true);
   const [globalVideoEnabled, setGlobalVideoEnabled] = useState(true);
   const [globalScreenShareEnabled, setGlobalScreenShareEnabled] = useState(true);
+  
+  // Floating reactions state
+  const [floatingReactions, setFloatingReactions] = useState<FloatingReaction[]>([]);
+  const reactionIdCounter = useRef(0);
   
   const localVideoRef = useRef<HTMLVideoElement>(null);
   const participantRefs = useRef<Record<string, HTMLVideoElement | null>>({});
@@ -382,6 +396,39 @@ export default function MeetingRoom() {
       supabase.removeChannel(channel);
     };
   }, [meeting?.id, isHost, callObject, isScreenSharing]);
+
+  // Subscribe to floating reactions via realtime
+  useEffect(() => {
+    if (!meeting?.id) return;
+
+    const channel = supabase
+      .channel(`meeting-reactions-${meeting.id}`)
+      .on(
+        'broadcast',
+        { event: 'reaction' },
+        (payload) => {
+          const { emoji, userName, senderId } = payload.payload;
+          // Add floating reaction
+          const newReaction: FloatingReaction = {
+            id: `${senderId}-${Date.now()}-${reactionIdCounter.current++}`,
+            emoji,
+            x: Math.random() * 60 + 20, // Random position between 20% and 80%
+            userName
+          };
+          setFloatingReactions(prev => [...prev, newReaction]);
+          
+          // Remove after animation completes
+          setTimeout(() => {
+            setFloatingReactions(prev => prev.filter(r => r.id !== newReaction.id));
+          }, 3000);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [meeting?.id]);
 
   const cleanup = async () => {
     if (callObjectRef.current) {
@@ -715,6 +762,21 @@ export default function MeetingRoom() {
       });
   };
 
+  // Send floating reaction to all participants
+  const sendReaction = async (emoji: string) => {
+    if (!meeting || !user) return;
+
+    await supabase.channel(`meeting-reactions-${meeting.id}`).send({
+      type: 'broadcast',
+      event: 'reaction',
+      payload: {
+        emoji,
+        userName: user.profile?.full_name || "Participante",
+        senderId: user.id
+      }
+    });
+  };
+
   const leaveMeeting = async () => {
     await cleanup();
     navigate("/reunioes");
@@ -933,7 +995,25 @@ export default function MeetingRoom() {
       </header>
 
       {/* Main content */}
-      <div className="flex-1 flex overflow-hidden min-h-0">
+      <div className="flex-1 flex overflow-hidden min-h-0 relative">
+        {/* Floating Reactions Layer */}
+        <div className="absolute inset-0 pointer-events-none z-50 overflow-hidden">
+          {floatingReactions.map((reaction) => (
+            <div
+              key={reaction.id}
+              className="absolute bottom-20 animate-float-up"
+              style={{ left: `${reaction.x}%` }}
+            >
+              <div className="flex flex-col items-center">
+                <span className="text-5xl drop-shadow-lg">{reaction.emoji}</span>
+                <span className="text-xs text-white bg-black/50 px-2 py-0.5 rounded-full mt-1 whitespace-nowrap">
+                  {reaction.userName}
+                </span>
+              </div>
+            </div>
+          ))}
+        </div>
+
         {/* Video grid */}
         <div className="flex-1 p-2 sm:p-4 flex items-center justify-center overflow-auto">
           <div className={cn(
@@ -1338,6 +1418,38 @@ export default function MeetingRoom() {
             </TooltipTrigger>
             <TooltipContent className="hidden sm:block">{handRaised ? "Baixar a mão" : "Levantar a mão"}</TooltipContent>
           </Tooltip>
+
+          {/* Reactions picker */}
+          <Popover>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="secondary"
+                    size="lg"
+                    className="rounded-full w-10 h-10 sm:w-12 sm:h-12"
+                    disabled={!callObject}
+                  >
+                    <Sparkles className="w-4 h-4 sm:w-5 sm:h-5" />
+                  </Button>
+                </PopoverTrigger>
+              </TooltipTrigger>
+              <TooltipContent className="hidden sm:block">Reagir</TooltipContent>
+            </Tooltip>
+            <PopoverContent className="w-auto p-2" side="top">
+              <div className="flex gap-1">
+                {REACTIONS.map((emoji) => (
+                  <button
+                    key={emoji}
+                    onClick={() => sendReaction(emoji)}
+                    className="hover:scale-125 transition-transform text-2xl p-2 rounded-lg hover:bg-muted"
+                  >
+                    {emoji}
+                  </button>
+                ))}
+              </div>
+            </PopoverContent>
+          </Popover>
 
           {/* Recording (Host only) - Hidden on mobile */}
           {isHost && (
