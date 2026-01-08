@@ -134,6 +134,8 @@ serve(async (req) => {
     }
 
     if (action === "delete") {
+      console.log("Deleting Daily room:", dailyRoomName);
+      
       const response = await fetch(
         `https://api.daily.co/v1/rooms/${dailyRoomName}`,
         {
@@ -142,7 +144,15 @@ serve(async (req) => {
         }
       );
 
-      return new Response(JSON.stringify({ success: response.ok }), {
+      const responseOk = response.ok;
+      console.log("Delete response status:", response.status, "success:", responseOk);
+      
+      if (!responseOk) {
+        const errorData = await response.json().catch(() => ({}));
+        console.error("Delete error:", JSON.stringify(errorData));
+      }
+
+      return new Response(JSON.stringify({ success: responseOk, roomName: dailyRoomName }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
