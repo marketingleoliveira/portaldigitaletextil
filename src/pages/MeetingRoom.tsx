@@ -403,6 +403,8 @@ export default function MeetingRoom() {
           const { action, enabled, targetSessionId } = payload.payload;
           const localSessionId = getLocalSessionId();
           
+          console.log('Received host control:', { action, enabled, targetSessionId, localSessionId, isHost });
+          
           if (action === 'toggle_all_audio' && !isHost) {
             if (!enabled && callObject) {
               callObject.setLocalAudio(false);
@@ -426,25 +428,28 @@ export default function MeetingRoom() {
             if (!enabled && !isHost) {
               toast.info("Somente o anfitrião pode compartilhar tela");
             }
-          } else if (action === 'mute_participant' && targetSessionId === localSessionId) {
-            if (callObject) {
+          } else if (action === 'mute_participant' && targetSessionId && !isHost) {
+            // Check if this command is targeted at the current participant
+            if (targetSessionId === localSessionId && callObject) {
               callObject.setLocalAudio(false);
               setIsMuted(true);
               toast.info("O anfitrião desativou seu microfone");
             }
-          } else if (action === 'disable_camera' && targetSessionId === localSessionId) {
-            if (callObject) {
+          } else if (action === 'disable_camera' && targetSessionId && !isHost) {
+            if (targetSessionId === localSessionId && callObject) {
               callObject.setLocalVideo(false);
               setIsVideoOn(false);
               toast.info("O anfitrião desativou sua câmera");
             }
-          } else if (action === 'remove_participant' && targetSessionId === localSessionId) {
-            toast.error("Você foi removido da reunião pelo anfitrião");
-            // Give time for toast to show before leaving
-            setTimeout(async () => {
-              await cleanup();
-              navigate("/reunioes");
-            }, 1500);
+          } else if (action === 'remove_participant' && targetSessionId && !isHost) {
+            if (targetSessionId === localSessionId) {
+              toast.error("Você foi removido da reunião pelo anfitrião");
+              // Give time for toast to show before leaving
+              setTimeout(async () => {
+                await cleanup();
+                navigate("/reunioes");
+              }, 1500);
+            }
           }
         }
       )
@@ -820,6 +825,8 @@ export default function MeetingRoom() {
   // Mute a specific participant
   const muteParticipant = async (sessionId: string, participantName: string) => {
     if (!meeting || !isHost) return;
+    
+    console.log('Muting participant:', { sessionId, participantName });
     
     const channel = controlsChannelRef.current || supabase.channel(`meeting-controls-${meeting.id}`);
     await channel.send({
