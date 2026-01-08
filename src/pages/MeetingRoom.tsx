@@ -63,6 +63,8 @@ export default function MeetingRoom() {
   const [dailyRoom, setDailyRoom] = useState<{ url: string; name: string } | null>(null);
   const [callObject, setCallObject] = useState<DailyCall | null>(null);
   const [participants, setParticipants] = useState<Record<string, DailyParticipant>>({});
+  const callObjectRef = useRef<DailyCall | null>(null);
+  const isInitializingRef = useRef(false);
   
   // Local state
   const [isMuted, setIsMuted] = useState(false);
@@ -96,13 +98,29 @@ export default function MeetingRoom() {
   const initializeDaily = useCallback(async (roomUrl: string) => {
     if (!user) return;
     
+    // Prevent duplicate initialization
+    if (isInitializingRef.current || callObjectRef.current) {
+      console.log("Daily already initializing or initialized, skipping...");
+      return;
+    }
+    
+    isInitializingRef.current = true;
     setJoiningDaily(true);
     
     try {
+      // Destroy any existing global Daily instances
+      const existingCalls = DailyIframe.getCallInstance();
+      if (existingCalls) {
+        console.log("Destroying existing Daily instance...");
+        await existingCalls.destroy();
+      }
+
       const call = DailyIframe.createCallObject({
         audioSource: true,
         videoSource: true,
       });
+      
+      callObjectRef.current = call;
 
       // Event handlers
       call.on("joined-meeting", () => {
@@ -148,11 +166,20 @@ export default function MeetingRoom() {
 
       call.on("error", (error) => {
         console.error("Daily error:", error);
-        toast.error("Erro na conexão de vídeo");
+        const errorMsg = error?.errorMsg || "Erro na conexão de vídeo";
+        if (errorMsg === "account-missing-payment-method") {
+          toast.error("Conta Daily.co requer método de pagamento configurado");
+        } else {
+          toast.error("Erro na conexão de vídeo");
+        }
+        setJoiningDaily(false);
+        isInitializingRef.current = false;
       });
 
       call.on("left-meeting", () => {
         setParticipants({});
+        callObjectRef.current = null;
+        isInitializingRef.current = false;
       });
 
       // Join the meeting
@@ -180,6 +207,8 @@ export default function MeetingRoom() {
       console.error("Error initializing Daily:", err);
       toast.error("Erro ao conectar ao vídeo");
       setJoiningDaily(false);
+      isInitializingRef.current = false;
+      callObjectRef.current = null;
     }
   }, [user]);
 
@@ -206,10 +235,18 @@ export default function MeetingRoom() {
   }, [code, user]);
 
   const cleanup = async () => {
-    if (callObject) {
-      await callObject.leave();
-      callObject.destroy();
+    if (callObjectRef.current) {
+      try {
+        await callObjectRef.current.leave();
+        await callObjectRef.current.destroy();
+      } catch (err) {
+        console.error("Error during cleanup:", err);
+      }
+      callObjectRef.current = null;
+      isInitializingRef.current = false;
     }
+    setCallObject(null);
+    setParticipants({});
     
     if (meeting && user) {
       await supabase
