@@ -1772,9 +1772,9 @@ export default function MeetingRoom() {
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
-                  variant="secondary"
+                  variant="destructive"
                   size="lg"
-                  className="rounded-full h-10 sm:h-12 px-3 sm:px-4 gap-1 sm:gap-2 bg-primary/20 hover:bg-primary/30 text-primary border border-primary/30"
+                  className="rounded-full h-10 sm:h-12 px-3 sm:px-4 gap-1 sm:gap-2"
                   onClick={() => setShowModeration(true)}
                 >
                   <Shield className="w-4 h-4 sm:w-5 sm:h-5" />
