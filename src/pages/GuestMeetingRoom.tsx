@@ -350,7 +350,13 @@ export default function GuestMeetingRoom() {
 
   // Subscribe to host controls
   useEffect(() => {
-    if (!meeting?.id) return;
+    if (!meeting?.id || !callObject) return;
+
+    // Get local participant session ID
+    const localParticipant = callObject.participants().local;
+    const localSessionId = localParticipant?.session_id;
+    
+    console.log('Guest: Setting up host controls listener. Local session ID:', localSessionId);
 
     const channel = supabase
       .channel(`meeting-controls-${meeting.id}`)
@@ -358,8 +364,17 @@ export default function GuestMeetingRoom() {
         'broadcast',
         { event: 'host_control' },
         (payload) => {
-          const { action, enabled } = payload.payload;
+          const { action, enabled, targetSessionId } = payload.payload;
           
+          console.log('Guest received host control:', { 
+            action, 
+            enabled, 
+            targetSessionId, 
+            localSessionId,
+            match: targetSessionId === localSessionId 
+          });
+          
+          // Global commands
           if (action === 'toggle_all_audio') {
             if (!enabled && callObject) {
               callObject.setLocalAudio(false);
@@ -384,14 +399,36 @@ export default function GuestMeetingRoom() {
               toast.info("O anfitrião desativou o compartilhamento de tela");
             }
           }
+          // Individual commands - check if targeted at this participant
+          else if (targetSessionId && targetSessionId === localSessionId) {
+            console.log('Guest: Processing individual command:', action);
+            
+            if (action === 'mute_participant' && callObject) {
+              callObject.setLocalAudio(false);
+              setIsMuted(true);
+              toast.info("O anfitrião desativou seu microfone");
+            } else if (action === 'disable_camera' && callObject) {
+              callObject.setLocalVideo(false);
+              setIsVideoOn(false);
+              toast.info("O anfitrião desativou sua câmera");
+            } else if (action === 'remove_participant') {
+              toast.error("Você foi removido da reunião pelo anfitrião");
+              setTimeout(async () => {
+                await cleanup();
+                navigate(`/entrar/${code}`);
+              }, 1500);
+            }
+          }
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        console.log('Guest: Host controls channel status:', status);
+      });
 
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [meeting?.id, callObject, isScreenSharing]);
+  }, [meeting?.id, callObject, isScreenSharing, navigate, code]);
 
   // Subscribe to floating reactions
   useEffect(() => {
