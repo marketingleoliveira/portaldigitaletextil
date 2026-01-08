@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Video, Users, Clock, Calendar, Copy, Settings, Keyboard, History, Lock, Eye, EyeOff } from "lucide-react";
+import { Video, Users, Clock, Calendar, Copy, Settings, Keyboard, History, Lock, Eye, EyeOff, Trash2 } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
@@ -63,11 +63,14 @@ export default function Meetings() {
   const [joinCode, setJoinCode] = useState("");
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [creatingMeeting, setCreatingMeeting] = useState(false);
+  const [endingAll, setEndingAll] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [newMeeting, setNewMeeting] = useState({
     title: "",
     password: "",
   });
+
+  const isDev = user?.role === 'dev';
 
   useEffect(() => {
     if (!user) return;
@@ -194,6 +197,28 @@ export default function Meetings() {
     toast.success("Link copiado!");
   };
 
+  const endAllMeetings = async () => {
+    if (!isDev) return;
+    
+    setEndingAll(true);
+    try {
+      const { error } = await supabase
+        .from("meetings")
+        .update({ ended_at: new Date().toISOString(), is_active: false })
+        .is("ended_at", null);
+
+      if (error) throw error;
+      
+      toast.success("Todas as reuniões foram encerradas!");
+      setMeetings([]);
+    } catch (error) {
+      console.error("Error ending all meetings:", error);
+      toast.error("Erro ao encerrar reuniões");
+    } finally {
+      setEndingAll(false);
+    }
+  };
+
   return (
     <DashboardLayout>
       <div className="space-y-6 max-w-6xl mx-auto">
@@ -244,11 +269,27 @@ export default function Meetings() {
 
           {/* Right Side - Recent Meetings */}
           <Card className="border-0 shadow-lg">
-            <CardHeader>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0">
               <CardTitle className="flex items-center gap-2">
                 <History className="w-5 h-5" />
                 Suas Reuniões
               </CardTitle>
+              {isDev && meetings.length > 0 && (
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  onClick={endAllMeetings}
+                  disabled={endingAll}
+                  className="gap-1 text-xs"
+                >
+                  {endingAll ? (
+                    <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white" />
+                  ) : (
+                    <Trash2 className="w-3 h-3" />
+                  )}
+                  ENCERRAR TUDO
+                </Button>
+              )}
             </CardHeader>
             <CardContent>
               {loading ? (
