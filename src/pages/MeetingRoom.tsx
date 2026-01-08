@@ -10,12 +10,14 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import DailyIframe, { DailyCall, DailyParticipant, DailyEventObjectParticipant, DailyEventObjectParticipantLeft, DailyParticipantsObject } from "@daily-co/daily-js";
 import {
   Mic, MicOff, Video, VideoOff, Phone, MessageSquare, Users, 
   ScreenShare, ScreenShareOff, MoreVertical, Settings,
   Copy, Maximize, Minimize, Send, ChevronLeft, Loader2,
-  Circle, Square, Lock
+  Circle, Square, Lock, Hand, Smile, Volume2, Shield,
+  VideoIcon, MicIcon, Ban
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
@@ -47,7 +49,13 @@ interface ChatMessage {
   };
 }
 
-// Use DailyParticipant directly from the SDK
+interface ParticipantWithExtras extends DailyParticipant {
+  isSpeaking?: boolean;
+  handRaised?: boolean;
+}
+
+// Popular emotes for chat
+const EMOTES = ["👍", "👎", "❤️", "😂", "😮", "😢", "🎉", "🔥", "👏", "🤔", "💯", "✅"];
 
 export default function MeetingRoom() {
   const { code } = useParams<{ code: string }>();
@@ -63,7 +71,7 @@ export default function MeetingRoom() {
   // Daily.co state
   const [dailyRoom, setDailyRoom] = useState<{ url: string; name: string } | null>(null);
   const [callObject, setCallObject] = useState<DailyCall | null>(null);
-  const [participants, setParticipants] = useState<Record<string, DailyParticipant>>({});
+  const [participants, setParticipants] = useState<Record<string, ParticipantWithExtras>>({});
   const callObjectRef = useRef<DailyCall | null>(null);
   const isInitializingRef = useRef(false);
   
@@ -85,8 +93,25 @@ export default function MeetingRoom() {
   const [enteredPassword, setEnteredPassword] = useState("");
   const [passwordError, setPasswordError] = useState("");
   
+  // Hand raise state
+  const [handRaised, setHandRaised] = useState(false);
+  const [raisedHands, setRaisedHands] = useState<Set<string>>(new Set());
+  
+  // Speaking detection
+  const [speakingParticipants, setSpeakingParticipants] = useState<Set<string>>(new Set());
+  
+  // Chat notification state
+  const [unreadMessages, setUnreadMessages] = useState(0);
+  const lastReadMessageRef = useRef<string | null>(null);
+  
+  // Host controls state
+  const [globalAudioEnabled, setGlobalAudioEnabled] = useState(true);
+  const [globalVideoEnabled, setGlobalVideoEnabled] = useState(true);
+  const [globalScreenShareEnabled, setGlobalScreenShareEnabled] = useState(true);
+  
   const localVideoRef = useRef<HTMLVideoElement>(null);
   const participantRefs = useRef<Record<string, HTMLVideoElement | null>>({});
+  const chatScrollRef = useRef<HTMLDivElement>(null);
 
   const isHost = meeting?.host_user_id === user?.id;
 
@@ -147,7 +172,11 @@ export default function MeetingRoom() {
         if (event?.participant) {
           setParticipants(prev => ({
             ...prev,
-            [event.participant.session_id]: event.participant
+            [event.participant.session_id]: {
+              ...event.participant,
+              handRaised: prev[event.participant.session_id]?.handRaised,
+              isSpeaking: prev[event.participant.session_id]?.isSpeaking
+            }
           }));
           
           // Update video element for local participant
@@ -167,6 +196,21 @@ export default function MeetingRoom() {
             delete updated[event.participant.session_id];
             return updated;
           });
+          // Remove from raised hands if they leave
+          setRaisedHands(prev => {
+            const updated = new Set(prev);
+            updated.delete(event.participant.session_id);
+            return updated;
+          });
+        }
+      });
+
+      // Active speaker detection
+      call.on("active-speaker-change", (event) => {
+        if (event?.activeSpeaker?.peerId) {
+          setSpeakingParticipants(new Set([event.activeSpeaker.peerId]));
+        } else {
+          setSpeakingParticipants(new Set());
         }
       });
 
@@ -247,6 +291,98 @@ export default function MeetingRoom() {
     };
   }, [code, user]);
 
+  // Track unread messages
+  useEffect(() => {
+    if (!showChat && messages.length > 0) {
+      const lastMessage = messages[messages.length - 1];
+      if (lastReadMessageRef.current !== lastMessage.id && lastMessage.user_id !== user?.id) {
+        setUnreadMessages(prev => prev + 1);
+      }
+    } else if (showChat) {
+      setUnreadMessages(0);
+      if (messages.length > 0) {
+        lastReadMessageRef.current = messages[messages.length - 1].id;
+      }
+    }
+  }, [messages, showChat, user?.id]);
+
+  // Subscribe to hand raises via realtime
+  useEffect(() => {
+    if (!meeting?.id) return;
+
+    const channel = supabase
+      .channel(`meeting-hands-${meeting.id}`)
+      .on(
+        'broadcast',
+        { event: 'hand_raised' },
+        (payload) => {
+          const { session_id, raised, user_name } = payload.payload;
+          setRaisedHands(prev => {
+            const updated = new Set(prev);
+            if (raised) {
+              updated.add(session_id);
+              if (isHost) {
+                toast.info(`${user_name} levantou a mão`, { icon: "✋" });
+              }
+            } else {
+              updated.delete(session_id);
+            }
+            return updated;
+          });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [meeting?.id, isHost]);
+
+  // Subscribe to host controls via realtime
+  useEffect(() => {
+    if (!meeting?.id) return;
+
+    const channel = supabase
+      .channel(`meeting-controls-${meeting.id}`)
+      .on(
+        'broadcast',
+        { event: 'host_control' },
+        (payload) => {
+          const { action, enabled } = payload.payload;
+          
+          if (action === 'toggle_all_audio' && !isHost) {
+            if (!enabled && callObject) {
+              callObject.setLocalAudio(false);
+              setIsMuted(true);
+              toast.info("O anfitrião desativou todos os microfones");
+            }
+            setGlobalAudioEnabled(enabled);
+          } else if (action === 'toggle_all_video' && !isHost) {
+            if (!enabled && callObject) {
+              callObject.setLocalVideo(false);
+              setIsVideoOn(false);
+              toast.info("O anfitrião desativou todas as câmeras");
+            }
+            setGlobalVideoEnabled(enabled);
+          } else if (action === 'toggle_screen_share') {
+            if (!enabled && isScreenSharing && callObject) {
+              callObject.stopScreenShare();
+              setIsScreenSharing(false);
+            }
+            setGlobalScreenShareEnabled(enabled);
+            if (!enabled && !isHost) {
+              toast.info("O anfitrião desativou o compartilhamento de tela");
+            }
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [meeting?.id, isHost, callObject, isScreenSharing]);
+
   const cleanup = async () => {
     if (callObjectRef.current) {
       try {
@@ -289,6 +425,9 @@ export default function MeetingRoom() {
       }
 
       setMeeting(meetingData);
+      setGlobalAudioEnabled(meetingData.allow_participants_audio);
+      setGlobalVideoEnabled(meetingData.allow_participants_video);
+      setGlobalScreenShareEnabled(meetingData.allow_screen_share);
       
       // Check if password is required (non-host and meeting has password)
       const isUserHost = meetingData.host_user_id === user.id;
@@ -396,6 +535,12 @@ export default function MeetingRoom() {
   const toggleMute = useCallback(async () => {
     if (!callObject) return;
     
+    // Check if global audio is disabled (for non-hosts)
+    if (!isHost && !globalAudioEnabled && isMuted) {
+      toast.error("O anfitrião desativou os microfones");
+      return;
+    }
+    
     const newMuted = !isMuted;
     await callObject.setLocalAudio(!newMuted);
     setIsMuted(newMuted);
@@ -407,10 +552,16 @@ export default function MeetingRoom() {
         .eq("meeting_id", meeting.id)
         .eq("user_id", user.id);
     }
-  }, [isMuted, callObject, meeting, user]);
+  }, [isMuted, callObject, meeting, user, isHost, globalAudioEnabled]);
 
   const toggleVideo = useCallback(async () => {
     if (!callObject) return;
+    
+    // Check if global video is disabled (for non-hosts)
+    if (!isHost && !globalVideoEnabled && !isVideoOn) {
+      toast.error("O anfitrião desativou as câmeras");
+      return;
+    }
     
     const newVideoOn = !isVideoOn;
     await callObject.setLocalVideo(newVideoOn);
@@ -423,10 +574,16 @@ export default function MeetingRoom() {
         .eq("meeting_id", meeting.id)
         .eq("user_id", user.id);
     }
-  }, [isVideoOn, callObject, meeting, user]);
+  }, [isVideoOn, callObject, meeting, user, isHost, globalVideoEnabled]);
 
   const toggleScreenShare = async () => {
-    if (!callObject || !meeting?.allow_screen_share) return;
+    if (!callObject) return;
+    
+    // Check if screen share is allowed
+    if (!isHost && !globalScreenShareEnabled) {
+      toast.error("O anfitrião desativou o compartilhamento de tela");
+      return;
+    }
 
     try {
       if (isScreenSharing) {
@@ -440,6 +597,94 @@ export default function MeetingRoom() {
       console.error("Error toggling screen share:", err);
       toast.error("Erro ao compartilhar tela");
     }
+  };
+
+  const toggleHandRaise = async () => {
+    if (!meeting || !callObject) return;
+    
+    const localParticipant = callObject.participants().local;
+    if (!localParticipant) return;
+    
+    const newHandRaised = !handRaised;
+    setHandRaised(newHandRaised);
+    
+    // Broadcast hand raise to all participants
+    await supabase.channel(`meeting-hands-${meeting.id}`).send({
+      type: 'broadcast',
+      event: 'hand_raised',
+      payload: {
+        session_id: localParticipant.session_id,
+        raised: newHandRaised,
+        user_name: user?.profile?.full_name || "Participante"
+      }
+    });
+  };
+
+  // Host control functions
+  const toggleAllAudio = async () => {
+    if (!meeting || !isHost) return;
+    
+    const newEnabled = !globalAudioEnabled;
+    setGlobalAudioEnabled(newEnabled);
+    
+    // Update meeting settings in database
+    await supabase
+      .from("meetings")
+      .update({ allow_participants_audio: newEnabled })
+      .eq("id", meeting.id);
+    
+    // Broadcast to all participants
+    await supabase.channel(`meeting-controls-${meeting.id}`).send({
+      type: 'broadcast',
+      event: 'host_control',
+      payload: { action: 'toggle_all_audio', enabled: newEnabled }
+    });
+    
+    toast.success(newEnabled ? "Microfones liberados" : "Todos os microfones desativados");
+  };
+
+  const toggleAllVideo = async () => {
+    if (!meeting || !isHost) return;
+    
+    const newEnabled = !globalVideoEnabled;
+    setGlobalVideoEnabled(newEnabled);
+    
+    // Update meeting settings in database
+    await supabase
+      .from("meetings")
+      .update({ allow_participants_video: newEnabled })
+      .eq("id", meeting.id);
+    
+    // Broadcast to all participants
+    await supabase.channel(`meeting-controls-${meeting.id}`).send({
+      type: 'broadcast',
+      event: 'host_control',
+      payload: { action: 'toggle_all_video', enabled: newEnabled }
+    });
+    
+    toast.success(newEnabled ? "Câmeras liberadas" : "Todas as câmeras desativadas");
+  };
+
+  const toggleAllScreenShare = async () => {
+    if (!meeting || !isHost) return;
+    
+    const newEnabled = !globalScreenShareEnabled;
+    setGlobalScreenShareEnabled(newEnabled);
+    
+    // Update meeting settings in database
+    await supabase
+      .from("meetings")
+      .update({ allow_screen_share: newEnabled })
+      .eq("id", meeting.id);
+    
+    // Broadcast to all participants
+    await supabase.channel(`meeting-controls-${meeting.id}`).send({
+      type: 'broadcast',
+      event: 'host_control',
+      payload: { action: 'toggle_screen_share', enabled: newEnabled }
+    });
+    
+    toast.success(newEnabled ? "Compartilhamento de tela liberado" : "Compartilhamento de tela desativado");
   };
 
   const sendMessage = async () => {
@@ -456,6 +701,18 @@ export default function MeetingRoom() {
     if (!error) {
       setNewMessage("");
     }
+  };
+
+  const sendEmote = async (emote: string) => {
+    if (!meeting || !user || !meeting.allow_chat) return;
+
+    await supabase
+      .from("meeting_messages")
+      .insert({
+        meeting_id: meeting.id,
+        user_id: user.id,
+        message: emote
+      });
   };
 
   const leaveMeeting = async () => {
@@ -688,7 +945,10 @@ export default function MeetingRoom() {
             participantCount > 4 && "grid-cols-2 sm:grid-cols-3"
           )}>
             {/* Local video (self) */}
-            <div className="relative bg-gray-800 rounded-lg sm:rounded-xl overflow-hidden aspect-video">
+            <div className={cn(
+              "relative bg-gray-800 rounded-lg sm:rounded-xl overflow-hidden aspect-video transition-all duration-300",
+              speakingParticipants.has(participants.local?.session_id || "") && "ring-4 ring-green-500"
+            )}>
               <video
                 ref={localVideoRef}
                 autoPlay
@@ -711,10 +971,14 @@ export default function MeetingRoom() {
                 </div>
               )}
               <div className="absolute bottom-2 left-2 sm:bottom-3 sm:left-3 flex items-center gap-1 sm:gap-2">
-                <span className="px-1.5 sm:px-2 py-0.5 sm:py-1 bg-black/60 rounded text-white text-xs sm:text-sm truncate max-w-[120px] sm:max-w-none">
+                <span className="px-1.5 sm:px-2 py-0.5 sm:py-1 bg-black/60 rounded text-white text-xs sm:text-sm truncate max-w-[120px] sm:max-w-none flex items-center gap-1">
+                  {speakingParticipants.has(participants.local?.session_id || "") && (
+                    <Volume2 className="w-3 h-3 text-green-500 animate-pulse" />
+                  )}
                   {user?.profile?.full_name} (Você)
                 </span>
                 {isMuted && <MicOff className="w-3 h-3 sm:w-4 sm:h-4 text-red-500" />}
+                {handRaised && <Hand className="w-3 h-3 sm:w-4 sm:h-4 text-yellow-500 animate-bounce" />}
               </div>
             </div>
 
@@ -745,11 +1009,16 @@ export default function MeetingRoom() {
             {/* Remote participants */}
             {remoteParticipants.map(([sessionId, participant]) => {
               const hasVideo = participant.video || participant.tracks?.video?.state === 'playable';
+              const isSpeaking = speakingParticipants.has(sessionId);
+              const hasHandRaised = raisedHands.has(sessionId);
               
               return (
                 <div
                   key={sessionId}
-                  className="relative bg-gray-800 rounded-lg sm:rounded-xl overflow-hidden aspect-video"
+                  className={cn(
+                    "relative bg-gray-800 rounded-lg sm:rounded-xl overflow-hidden aspect-video transition-all duration-300",
+                    isSpeaking && "ring-4 ring-green-500"
+                  )}
                 >
                   <video
                     ref={el => { participantRefs.current[sessionId] = el; }}
@@ -770,10 +1039,14 @@ export default function MeetingRoom() {
                     </div>
                   )}
                   <div className="absolute bottom-2 left-2 sm:bottom-3 sm:left-3 flex items-center gap-1 sm:gap-2">
-                    <span className="px-1.5 sm:px-2 py-0.5 sm:py-1 bg-black/60 rounded text-white text-xs sm:text-sm truncate max-w-[100px] sm:max-w-none">
+                    <span className="px-1.5 sm:px-2 py-0.5 sm:py-1 bg-black/60 rounded text-white text-xs sm:text-sm truncate max-w-[100px] sm:max-w-none flex items-center gap-1">
+                      {isSpeaking && (
+                        <Volume2 className="w-3 h-3 text-green-500 animate-pulse" />
+                      )}
                       {participant.user_name || "Participante"}
                     </span>
                     {!participant.audio && <MicOff className="w-3 h-3 sm:w-4 sm:h-4 text-red-500" />}
+                    {hasHandRaised && <Hand className="w-3 h-3 sm:w-4 sm:h-4 text-yellow-500 animate-bounce" />}
                   </div>
                 </div>
               );
@@ -782,13 +1055,16 @@ export default function MeetingRoom() {
         </div>
 
         {/* Chat sidebar */}
-        <Sheet open={showChat} onOpenChange={setShowChat}>
+        <Sheet open={showChat} onOpenChange={(open) => {
+          setShowChat(open);
+          if (open) setUnreadMessages(0);
+        }}>
           <SheetContent side="right" className="w-80 sm:w-96 p-0">
             <SheetHeader className="p-4 border-b">
               <SheetTitle>Chat da reunião</SheetTitle>
             </SheetHeader>
             <div className="flex flex-col h-[calc(100%-60px)]">
-              <ScrollArea className="flex-1 p-4">
+              <ScrollArea className="flex-1 p-4" ref={chatScrollRef}>
                 {messages.length === 0 ? (
                   <div className="text-center text-muted-foreground py-8">
                     <MessageSquare className="w-8 h-8 mx-auto mb-2 opacity-50" />
@@ -796,42 +1072,80 @@ export default function MeetingRoom() {
                   </div>
                 ) : (
                   <div className="space-y-4">
-                    {messages.map((msg) => (
-                      <div key={msg.id} className={cn(
-                        "flex gap-2",
-                        msg.user_id === user?.id && "flex-row-reverse"
-                      )}>
-                        <Avatar className="w-8 h-8">
-                          <AvatarImage src={msg.profile?.avatar_url || undefined} />
-                          <AvatarFallback>
-                            {msg.profile?.full_name?.charAt(0) || "U"}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div className={cn(
-                          "max-w-[70%]",
-                          msg.user_id === user?.id && "text-right"
+                    {messages.map((msg) => {
+                      const isEmote = EMOTES.includes(msg.message);
+                      return (
+                        <div key={msg.id} className={cn(
+                          "flex gap-2",
+                          msg.user_id === user?.id && "flex-row-reverse"
                         )}>
-                          <p className="text-xs text-muted-foreground mb-1">
-                            {msg.profile?.full_name}
-                          </p>
+                          <Avatar className="w-8 h-8">
+                            <AvatarImage src={msg.profile?.avatar_url || undefined} />
+                            <AvatarFallback>
+                              {msg.profile?.full_name?.charAt(0) || "U"}
+                            </AvatarFallback>
+                          </Avatar>
                           <div className={cn(
-                            "px-3 py-2 rounded-lg",
-                            msg.user_id === user?.id
-                              ? "bg-primary text-primary-foreground"
-                              : "bg-muted"
+                            "max-w-[70%]",
+                            msg.user_id === user?.id && "text-right"
                           )}>
-                            <p className="text-sm">{msg.message}</p>
+                            <p className="text-xs text-muted-foreground mb-1">
+                              {msg.profile?.full_name}
+                            </p>
+                            <div className={cn(
+                              "px-3 py-2 rounded-lg",
+                              isEmote ? "text-4xl bg-transparent" : (
+                                msg.user_id === user?.id
+                                  ? "bg-primary text-primary-foreground"
+                                  : "bg-muted"
+                              )
+                            )}>
+                              <p className={isEmote ? "" : "text-sm"}>{msg.message}</p>
+                            </div>
+                            <p className="text-xs text-muted-foreground mt-1">
+                              {format(new Date(msg.created_at), "HH:mm")}
+                            </p>
                           </div>
-                          <p className="text-xs text-muted-foreground mt-1">
-                            {format(new Date(msg.created_at), "HH:mm")}
-                          </p>
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 )}
               </ScrollArea>
-              <div className="p-4 border-t">
+              <div className="p-4 border-t space-y-2">
+                {/* Emote picker */}
+                <div className="flex gap-1 flex-wrap">
+                  {EMOTES.slice(0, 8).map((emote) => (
+                    <button
+                      key={emote}
+                      onClick={() => sendEmote(emote)}
+                      className="hover:scale-125 transition-transform text-lg p-1"
+                      disabled={!meeting?.allow_chat}
+                    >
+                      {emote}
+                    </button>
+                  ))}
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <button className="hover:bg-muted rounded p-1">
+                        <Smile className="w-5 h-5 text-muted-foreground" />
+                      </button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-2">
+                      <div className="grid grid-cols-6 gap-1">
+                        {EMOTES.map((emote) => (
+                          <button
+                            key={emote}
+                            onClick={() => sendEmote(emote)}
+                            className="hover:scale-125 transition-transform text-xl p-1"
+                          >
+                            {emote}
+                          </button>
+                        ))}
+                      </div>
+                    </PopoverContent>
+                  </Popover>
+                </div>
                 <div className="flex gap-2">
                   <Input
                     placeholder="Digite uma mensagem..."
@@ -855,39 +1169,98 @@ export default function MeetingRoom() {
             <SheetHeader>
               <SheetTitle>Participantes ({participantCount})</SheetTitle>
             </SheetHeader>
-            <ScrollArea className="h-[calc(100%-60px)] mt-4">
-              <div className="space-y-2">
-                {Object.entries(participants).map(([sessionId, participant]) => (
-                  <div
-                    key={sessionId}
-                    className="flex items-center justify-between p-3 rounded-lg hover:bg-muted"
+            
+            {/* Host controls */}
+            {isHost && (
+              <div className="mt-4 p-3 bg-muted rounded-lg space-y-2">
+                <p className="text-sm font-medium flex items-center gap-2">
+                  <Shield className="w-4 h-4" />
+                  Controles do Anfitrião
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    variant={globalAudioEnabled ? "secondary" : "destructive"}
+                    size="sm"
+                    onClick={toggleAllAudio}
+                    className="text-xs"
                   >
-                    <div className="flex items-center gap-3">
-                      <Avatar>
-                        <AvatarFallback>
-                          {participant.user_name?.charAt(0) || "P"}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div>
-                        <p className="font-medium">
-                          {participant.user_name || "Participante"}
-                          {participant.local && " (Você)"}
-                        </p>
-                        {participant.owner && (
-                          <span className="text-xs text-primary">Anfitrião</span>
+                    {globalAudioEnabled ? <Mic className="w-3 h-3 mr-1" /> : <MicOff className="w-3 h-3 mr-1" />}
+                    {globalAudioEnabled ? "Mutar todos" : "Liberar mics"}
+                  </Button>
+                  <Button
+                    variant={globalVideoEnabled ? "secondary" : "destructive"}
+                    size="sm"
+                    onClick={toggleAllVideo}
+                    className="text-xs"
+                  >
+                    {globalVideoEnabled ? <Video className="w-3 h-3 mr-1" /> : <VideoOff className="w-3 h-3 mr-1" />}
+                    {globalVideoEnabled ? "Desativar câmeras" : "Liberar câmeras"}
+                  </Button>
+                  <Button
+                    variant={globalScreenShareEnabled ? "secondary" : "destructive"}
+                    size="sm"
+                    onClick={toggleAllScreenShare}
+                    className="text-xs"
+                  >
+                    {globalScreenShareEnabled ? <ScreenShare className="w-3 h-3 mr-1" /> : <Ban className="w-3 h-3 mr-1" />}
+                    {globalScreenShareEnabled ? "Bloquear tela" : "Liberar tela"}
+                  </Button>
+                </div>
+              </div>
+            )}
+            
+            <ScrollArea className="h-[calc(100%-160px)] mt-4">
+              <div className="space-y-2">
+                {Object.entries(participants).map(([sessionId, participant]) => {
+                  const isSpeaking = speakingParticipants.has(sessionId);
+                  const hasHandRaised = participant.local ? handRaised : raisedHands.has(sessionId);
+                  
+                  return (
+                    <div
+                      key={sessionId}
+                      className={cn(
+                        "flex items-center justify-between p-3 rounded-lg hover:bg-muted transition-colors",
+                        isSpeaking && "bg-green-500/10 ring-1 ring-green-500"
+                      )}
+                    >
+                      <div className="flex items-center gap-3">
+                        <Avatar>
+                          <AvatarFallback>
+                            {participant.user_name?.charAt(0) || "P"}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div>
+                          <p className="font-medium flex items-center gap-1">
+                            {participant.user_name || "Participante"}
+                            {participant.local && " (Você)"}
+                            {isSpeaking && <Volume2 className="w-4 h-4 text-green-500 animate-pulse" />}
+                          </p>
+                          <div className="flex items-center gap-1">
+                            {participant.owner && (
+                              <span className="text-xs text-primary">Anfitrião</span>
+                            )}
+                            {hasHandRaised && (
+                              <span className="text-xs text-yellow-500 flex items-center gap-0.5">
+                                <Hand className="w-3 h-3" /> Mão levantada
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        {hasHandRaised && (
+                          <Hand className="w-4 h-4 text-yellow-500 animate-bounce" />
+                        )}
+                        {!participant.audio && (
+                          <MicOff className="w-4 h-4 text-red-500" />
+                        )}
+                        {!participant.video && (
+                          <VideoOff className="w-4 h-4 text-red-500" />
                         )}
                       </div>
                     </div>
-                    <div className="flex items-center gap-1">
-                      {!participant.audio && (
-                        <MicOff className="w-4 h-4 text-red-500" />
-                      )}
-                      {!participant.video && (
-                        <VideoOff className="w-4 h-4 text-red-500" />
-                      )}
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </ScrollArea>
           </SheetContent>
@@ -905,7 +1278,7 @@ export default function MeetingRoom() {
                 size="lg"
                 className="rounded-full w-10 h-10 sm:w-12 sm:h-12"
                 onClick={toggleMute}
-                disabled={!callObject}
+                disabled={!callObject || (!isHost && !globalAudioEnabled && isMuted)}
               >
                 {isMuted ? <MicOff className="w-4 h-4 sm:w-5 sm:h-5" /> : <Mic className="w-4 h-4 sm:w-5 sm:h-5" />}
               </Button>
@@ -921,7 +1294,7 @@ export default function MeetingRoom() {
                 size="lg"
                 className="rounded-full w-10 h-10 sm:w-12 sm:h-12"
                 onClick={toggleVideo}
-                disabled={!callObject}
+                disabled={!callObject || (!isHost && !globalVideoEnabled && !isVideoOn)}
               >
                 {isVideoOn ? <Video className="w-4 h-4 sm:w-5 sm:h-5" /> : <VideoOff className="w-4 h-4 sm:w-5 sm:h-5" />}
               </Button>
@@ -930,7 +1303,7 @@ export default function MeetingRoom() {
           </Tooltip>
 
           {/* Screen share - Hidden on mobile */}
-          {meeting?.allow_screen_share && (
+          {(globalScreenShareEnabled || isHost) && (
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
@@ -938,7 +1311,7 @@ export default function MeetingRoom() {
                   size="lg"
                   className="rounded-full w-10 h-10 sm:w-12 sm:h-12 hidden sm:flex"
                   onClick={toggleScreenShare}
-                  disabled={!callObject}
+                  disabled={!callObject || (!isHost && !globalScreenShareEnabled)}
                 >
                   {isScreenSharing ? <ScreenShareOff className="w-4 h-4 sm:w-5 sm:h-5" /> : <ScreenShare className="w-4 h-4 sm:w-5 sm:h-5" />}
                 </Button>
@@ -946,6 +1319,25 @@ export default function MeetingRoom() {
               <TooltipContent className="hidden sm:block">{isScreenSharing ? "Parar compartilhamento" : "Compartilhar tela"}</TooltipContent>
             </Tooltip>
           )}
+
+          {/* Hand raise */}
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant={handRaised ? "default" : "secondary"}
+                size="lg"
+                className={cn(
+                  "rounded-full w-10 h-10 sm:w-12 sm:h-12",
+                  handRaised && "bg-yellow-500 hover:bg-yellow-600"
+                )}
+                onClick={toggleHandRaise}
+                disabled={!callObject}
+              >
+                <Hand className={cn("w-4 h-4 sm:w-5 sm:h-5", handRaised && "animate-bounce")} />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent className="hidden sm:block">{handRaised ? "Baixar a mão" : "Levantar a mão"}</TooltipContent>
+          </Tooltip>
 
           {/* Recording (Host only) - Hidden on mobile */}
           {isHost && (
@@ -967,16 +1359,21 @@ export default function MeetingRoom() {
 
           <div className="w-px h-6 sm:h-8 bg-gray-600 mx-1 sm:mx-2 hidden sm:block" />
 
-          {/* Chat */}
+          {/* Chat with notification badge */}
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
                 variant="secondary"
                 size="lg"
-                className="rounded-full w-10 h-10 sm:w-12 sm:h-12"
+                className="rounded-full w-10 h-10 sm:w-12 sm:h-12 relative"
                 onClick={() => setShowChat(true)}
               >
                 <MessageSquare className="w-4 h-4 sm:w-5 sm:h-5" />
+                {unreadMessages > 0 && (
+                  <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-[10px] rounded-full flex items-center justify-center animate-pulse">
+                    {unreadMessages > 9 ? "9+" : unreadMessages}
+                  </span>
+                )}
               </Button>
             </TooltipTrigger>
             <TooltipContent className="hidden sm:block">Chat</TooltipContent>
@@ -995,6 +1392,11 @@ export default function MeetingRoom() {
                 <span className="absolute -top-1 -right-1 w-4 h-4 sm:w-5 sm:h-5 bg-primary text-primary-foreground text-[10px] sm:text-xs rounded-full flex items-center justify-center">
                   {participantCount}
                 </span>
+                {raisedHands.size > 0 && (
+                  <span className="absolute -top-1 -left-1 w-4 h-4 bg-yellow-500 rounded-full flex items-center justify-center animate-bounce">
+                    <Hand className="w-2.5 h-2.5 text-white" />
+                  </span>
+                )}
               </Button>
             </TooltipTrigger>
             <TooltipContent className="hidden sm:block">Participantes</TooltipContent>
@@ -1017,7 +1419,7 @@ export default function MeetingRoom() {
                 Copiar link
               </DropdownMenuItem>
               {/* Mobile-only options */}
-              {meeting?.allow_screen_share && (
+              {(globalScreenShareEnabled || isHost) && (
                 <DropdownMenuItem onClick={toggleScreenShare} className="sm:hidden">
                   {isScreenSharing ? (
                     <>
