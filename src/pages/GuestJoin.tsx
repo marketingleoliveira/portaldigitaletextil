@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -22,7 +22,7 @@ export default function GuestJoin() {
   const [checkingMeeting, setCheckingMeeting] = useState(true);
 
   // Check if meeting exists and requires password
-  useState(() => {
+  useEffect(() => {
     const checkMeeting = async () => {
       if (!code) {
         setError("Código de reunião inválido");
@@ -60,7 +60,7 @@ export default function GuestJoin() {
     };
 
     checkMeeting();
-  });
+  }, [code]);
 
   const handleJoin = async () => {
     if (!guestName.trim()) {
