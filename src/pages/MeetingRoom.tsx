@@ -1764,22 +1764,27 @@ export default function MeetingRoom() {
           </Tooltip>
 
           {/* Screen share - Hidden on mobile */}
-          {(globalScreenShareEnabled || isHost) && (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant={isScreenSharing ? "default" : "secondary"}
-                  size="lg"
-                  className="rounded-full w-10 h-10 sm:w-12 sm:h-12 hidden sm:flex"
-                  onClick={toggleScreenShare}
-                  disabled={!callObject || (!isHost && !globalScreenShareEnabled)}
-                >
-                  {isScreenSharing ? <ScreenShareOff className="w-4 h-4 sm:w-5 sm:h-5" /> : <ScreenShare className="w-4 h-4 sm:w-5 sm:h-5" />}
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent className="hidden sm:block">{isScreenSharing ? "Parar compartilhamento" : "Compartilhar tela"}</TooltipContent>
-            </Tooltip>
-          )}
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant={isScreenSharing ? "default" : "secondary"}
+                size="lg"
+                className="rounded-full w-10 h-10 sm:w-12 sm:h-12 hidden sm:flex"
+                onClick={toggleScreenShare}
+                disabled={!callObject || (!isHost && !globalScreenShareEnabled)}
+              >
+                {isScreenSharing ? <ScreenShareOff className="w-4 h-4 sm:w-5 sm:h-5" /> : <ScreenShare className="w-4 h-4 sm:w-5 sm:h-5" />}
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent className="hidden sm:block">
+              {!globalScreenShareEnabled && !isHost 
+                ? "Compartilhamento desabilitado pelo anfitrião" 
+                : isScreenSharing 
+                  ? "Parar compartilhamento" 
+                  : "Compartilhar tela"
+              }
+            </TooltipContent>
+          </Tooltip>
 
           {/* Hand raise */}
           <Tooltip>

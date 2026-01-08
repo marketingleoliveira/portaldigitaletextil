@@ -1062,7 +1062,7 @@ export default function GuestMeetingRoom() {
                     isScreenSharing ? "bg-green-600 hover:bg-green-700" : "bg-[#3c4043] hover:bg-[#5f6368]"
                   )}
                   onClick={toggleScreenShare}
-                  disabled={joiningDaily || !globalScreenShareEnabled}
+                  disabled={joiningDaily || !callObject || !globalScreenShareEnabled}
                 >
                   {isScreenSharing ? <ScreenShareOff className="h-5 w-5" /> : <ScreenShare className="h-5 w-5" />}
                 </Button>
