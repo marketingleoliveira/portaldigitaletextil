@@ -639,6 +639,9 @@ const SpreadsheetEditor: React.FC<SpreadsheetEditorProps> = ({
   const [historyIndex, setHistoryIndex] = useState(-1);
   const [isSelecting, setIsSelecting] = useState(false);
   const [zoom, setZoom] = useState(100);
+  const [resizingColumn, setResizingColumn] = useState<number | null>(null);
+  const [resizeStartX, setResizeStartX] = useState(0);
+  const [resizeStartWidth, setResizeStartWidth] = useState(0);
   const tableRef = useRef<HTMLTableElement>(null);
 
   useEffect(() => {
@@ -1113,7 +1116,53 @@ const SpreadsheetEditor: React.FC<SpreadsheetEditorProps> = ({
 
   const handleMouseUp = () => {
     setIsSelecting(false);
+    if (resizingColumn !== null) {
+      setResizingColumn(null);
+    }
   };
+
+  // Column resize handlers
+  const handleColumnResizeStart = (e: React.MouseEvent, colIndex: number) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setResizingColumn(colIndex);
+    setResizeStartX(e.clientX);
+    setResizeStartWidth(columnWidths[colIndex] || 64);
+  };
+
+  const handleColumnResizeMove = useCallback((e: MouseEvent) => {
+    if (resizingColumn === null) return;
+    
+    const diff = e.clientX - resizeStartX;
+    const newWidth = Math.max(30, resizeStartWidth + diff);
+    
+    setColumnWidths(prev => {
+      const newWidths = [...prev];
+      newWidths[resizingColumn] = newWidth;
+      return newWidths;
+    });
+  }, [resizingColumn, resizeStartX, resizeStartWidth]);
+
+  const handleColumnResizeEnd = useCallback(() => {
+    setResizingColumn(null);
+  }, []);
+
+  // Add global mouse listeners for column resize
+  useEffect(() => {
+    if (resizingColumn !== null) {
+      document.addEventListener('mousemove', handleColumnResizeMove);
+      document.addEventListener('mouseup', handleColumnResizeEnd);
+      document.body.style.cursor = 'col-resize';
+      document.body.style.userSelect = 'none';
+      
+      return () => {
+        document.removeEventListener('mousemove', handleColumnResizeMove);
+        document.removeEventListener('mouseup', handleColumnResizeEnd);
+        document.body.style.cursor = '';
+        document.body.style.userSelect = '';
+      };
+    }
+  }, [resizingColumn, handleColumnResizeMove, handleColumnResizeEnd]);
 
   const isCellSelected = (row: number, col: number): boolean => {
     if (selectedCell?.row === row && selectedCell?.col === col) return true;
@@ -1579,17 +1628,27 @@ const SpreadsheetEditor: React.FC<SpreadsheetEditorProps> = ({
                           position: 'relative'
                         }}
                       >
-                        <div className="flex items-center justify-between px-1">
-                          <span className="flex-1 text-center">{getColumnLetter(colIndex)}</span>
+                        <div className="flex items-center justify-center h-full">
+                          <span className="flex-1 text-center select-none">{getColumnLetter(colIndex)}</span>
                           <Button
                             variant="ghost"
                             size="icon"
-                            className="h-4 w-4 opacity-0 hover:opacity-100 absolute right-0.5"
+                            className="h-4 w-4 opacity-0 hover:opacity-100 absolute right-4 top-1/2 -translate-y-1/2"
                             onClick={() => deleteColumn(colIndex)}
                             title="Remover coluna"
                           >
                             <Trash2 className="w-3 h-3" />
                           </Button>
+                        </div>
+                        {/* Column resize handle */}
+                        <div
+                          className="absolute right-0 top-0 h-full w-2 cursor-col-resize hover:bg-primary/30 group"
+                          onMouseDown={(e) => handleColumnResizeStart(e, colIndex)}
+                          style={{ 
+                            backgroundColor: resizingColumn === colIndex ? 'hsl(var(--primary) / 0.5)' : undefined 
+                          }}
+                        >
+                          <div className="absolute right-0 top-0 h-full w-0.5 bg-transparent group-hover:bg-primary" />
                         </div>
                       </th>
                     ))}
