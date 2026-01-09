@@ -118,7 +118,6 @@ export default function MeetingRoom() {
   const [isRecording, setIsRecording] = useState(false);
   const [recordingStartTime, setRecordingStartTime] = useState<Date | null>(null);
   const [isLocalRecordingMode, setIsLocalRecordingMode] = useState(false);
-  const [showRecordingDownload, setShowRecordingDownload] = useState(false);
   
   // Password state
   const [showPasswordPrompt, setShowPasswordPrompt] = useState(false);
@@ -1441,10 +1440,10 @@ export default function MeetingRoom() {
     } catch (err) {
       console.error("Error starting cloud recording:", err);
       
-      // Fallback to local recording
+      // Fallback to local recording - pass callObject to capture meeting directly
       toast.info("Gravação na nuvem não disponível, iniciando gravação local...");
       
-      const success = await startLocalRecording();
+      const success = await startLocalRecording(callObject || undefined);
       if (success) {
         setIsRecording(true);
         setIsLocalRecordingMode(true);
@@ -1457,14 +1456,11 @@ export default function MeetingRoom() {
     if (!meeting || !isHost) return;
     
     if (isLocalRecordingMode) {
-      // Stop local recording
-      const blob = await stopLocalRecording();
+      // Stop local recording - will auto-download
+      await stopLocalRecording();
       setIsRecording(false);
       setRecordingStartTime(null);
-      
-      if (blob) {
-        setShowRecordingDownload(true);
-      }
+      setIsLocalRecordingMode(false);
     } else {
       // Stop cloud recording
       try {
@@ -1511,19 +1507,12 @@ export default function MeetingRoom() {
   const handleStartLocalRecording = async () => {
     if (!meeting || !isHost) return;
     
-    const success = await startLocalRecording();
+    // Pass callObject to capture meeting directly without screen picker
+    const success = await startLocalRecording(callObject || undefined);
     if (success) {
       setIsRecording(true);
       setIsLocalRecordingMode(true);
       setRecordingStartTime(new Date());
-    }
-  };
-
-  // Download the recorded file
-  const handleDownloadRecording = () => {
-    if (recordedBlob) {
-      downloadRecording(recordedBlob);
-      setShowRecordingDownload(false);
     }
   };
 
@@ -2366,15 +2355,6 @@ export default function MeetingRoom() {
                     </DropdownMenuItem>
                   </>
                 )}
-                {recordedBlob && (
-                  <>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem onClick={handleDownloadRecording}>
-                      <Download className="w-4 h-4 mr-2" />
-                      Baixar gravação
-                    </DropdownMenuItem>
-                  </>
-                )}
               </DropdownMenuContent>
             </DropdownMenu>
           )}
@@ -2498,12 +2478,6 @@ export default function MeetingRoom() {
                   Parar gravação
                 </DropdownMenuItem>
               )}
-              {isHost && recordedBlob && (
-                <DropdownMenuItem onClick={handleDownloadRecording}>
-                  <Download className="w-4 h-4 mr-2" />
-                  Baixar gravação
-                </DropdownMenuItem>
-              )}
               {/* Fullscreen toggle */}
               <DropdownMenuItem onClick={toggleFullscreen}>
                 {isFullscreen ? (
@@ -2571,38 +2545,6 @@ export default function MeetingRoom() {
         onStopSharing={toggleScreenShare}
       />
 
-      {/* Recording Download Dialog */}
-      <Dialog open={showRecordingDownload} onOpenChange={setShowRecordingDownload}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Download className="w-5 h-5 text-primary" />
-              Gravação Disponível
-            </DialogTitle>
-            <DialogDescription>
-              Sua gravação local está pronta para download. O arquivo será salvo no seu dispositivo.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="flex items-center gap-3 p-4 bg-muted rounded-lg">
-            <HardDrive className="w-8 h-8 text-muted-foreground" />
-            <div className="flex-1">
-              <p className="font-medium">{meeting?.title || 'Gravação'}.webm</p>
-              <p className="text-sm text-muted-foreground">
-                {recordedBlob && `${(recordedBlob.size / (1024 * 1024)).toFixed(2)} MB`}
-              </p>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowRecordingDownload(false)}>
-              Depois
-            </Button>
-            <Button onClick={handleDownloadRecording}>
-              <Download className="w-4 h-4 mr-2" />
-              Baixar agora
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }
