@@ -88,6 +88,7 @@ export default function MeetingRoom() {
   const [participants, setParticipants] = useState<Record<string, ParticipantWithExtras>>({});
   const callObjectRef = useRef<DailyCall | null>(null);
   const isInitializingRef = useRef(false);
+  const hasInitializedRef = useRef(false);
   
   // Local state
   const [isMuted, setIsMuted] = useState(false);
@@ -365,13 +366,15 @@ export default function MeetingRoom() {
   }, [participants]);
 
   useEffect(() => {
-    if (code && user) {
+    if (code && user && !hasInitializedRef.current) {
       setUserInMeeting(true);
+      hasInitializedRef.current = true;
       initializeMeeting();
     }
     
     return () => {
       setUserInMeeting(false);
+      hasInitializedRef.current = false;
       cleanup();
     };
   }, [code, user]);
