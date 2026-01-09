@@ -343,18 +343,23 @@ export default function GuestMeetingRoom() {
 
   // Initialize meeting
   useEffect(() => {
+    // Only initialize once when we have code and guestInfo
     if (code && guestInfo && !hasInitializedRef.current) {
       setUserInMeeting(true);
       hasInitializedRef.current = true;
       initializeMeeting();
     }
     
+    // Cleanup only when code changes, not on guestInfo reference changes
+  }, [code, guestInfo?.guestId]);
+
+  // Separate cleanup effect that only runs on unmount
+  useEffect(() => {
     return () => {
       setUserInMeeting(false);
-      hasInitializedRef.current = false;
       cleanup();
     };
-  }, [code, guestInfo]);
+  }, []);
 
   // Update document title when tab is in background to show meeting is active
   useEffect(() => {
