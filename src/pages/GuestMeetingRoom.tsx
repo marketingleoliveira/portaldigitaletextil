@@ -20,6 +20,7 @@ import { ptBR } from "date-fns/locale";
 import GuestScreenShareLayout from "@/components/GuestScreenShareLayout";
 import { ScreenShareOptionsModal, ScreenShareType } from "@/components/ScreenShareOptionsModal";
 import { ScreenSharePreview } from "@/components/ScreenSharePreview";
+import { ScreenShareIndicator } from "@/components/ScreenShareIndicator";
 import { formatParticipantName } from "@/lib/meeting-utils";
 import { setUserInMeeting } from "@/hooks/useUserPresence";
 
@@ -1022,6 +1023,16 @@ export default function GuestMeetingRoom() {
     ([_, p]) => p.tracks?.screenVideo?.state === 'playable'
   ) as [string, ParticipantWithExtras] | undefined;
 
+  // Get the name of the screen sharer
+  const getScreenSharerName = (): string | null => {
+    if (!screenSharingParticipant) return null;
+    const [_, participant] = screenSharingParticipant;
+    if (participant.local) return null; // We use ScreenSharePreview for local
+    return participant.user_name || "Participante";
+  };
+  
+  const screenSharerName = getScreenSharerName();
+
   return (
     <TooltipProvider>
       <div className="h-screen bg-[#202124] flex flex-col overflow-hidden">
@@ -1057,6 +1068,13 @@ export default function GuestMeetingRoom() {
             </span>
           </div>
         </div>
+
+        {/* Screen Share Indicator - shows who is sharing */}
+        {screenSharerName && (
+          <div className="absolute top-16 left-1/2 -translate-x-1/2 z-40">
+            <ScreenShareIndicator sharerName={screenSharerName} />
+          </div>
+        )}
 
         {/* Main content */}
         <div className="flex-1 flex overflow-hidden">
