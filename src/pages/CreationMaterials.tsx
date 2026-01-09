@@ -1152,7 +1152,24 @@ const CreationMaterials: React.FC = () => {
           previewFile?.file_type?.includes("pdf") ? "max-w-[95vw] w-full h-[95vh]" : "max-w-4xl"
         )}>
           <DialogHeader>
-            <DialogTitle>{previewFile?.name}</DialogTitle>
+            <DialogTitle className="flex items-center justify-between pr-8">
+              <span>{previewFile?.name}</span>
+              {previewFile?.file_type?.includes("pdf") && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => window.open(previewFile.file_url, '_blank')}
+                >
+                  <ExternalLink className="w-4 h-4 mr-2" />
+                  Abrir em nova aba
+                </Button>
+              )}
+            </DialogTitle>
+            {previewFile?.file_type?.includes("pdf") && (
+              <DialogDescription>
+                Para usar o modo Apresentação, clique em "Abrir em nova aba"
+              </DialogDescription>
+            )}
           </DialogHeader>
           {previewFile && (
             <div className="flex items-center justify-center flex-1">
@@ -1173,7 +1190,7 @@ const CreationMaterials: React.FC = () => {
               {previewFile.file_type?.includes("pdf") && (
                 <iframe
                   src={previewFile.file_url}
-                  className="w-full h-[85vh] rounded-md"
+                  className="w-full h-[80vh] rounded-md"
                   title={previewFile.name}
                   allowFullScreen
                 />
