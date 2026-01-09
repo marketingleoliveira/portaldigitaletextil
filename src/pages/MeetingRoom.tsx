@@ -381,10 +381,11 @@ export default function MeetingRoom() {
         setIsScreenSharing(false);
       });
 
-      // Track when another participant starts/stops screen sharing
+      // Track when another participant starts/stops screen sharing or camera
       call.on("track-started", (event) => {
-        if (event?.track?.kind === 'video' && event?.participant && !event.participant.local) {
-          // Force re-render of participants to update screen share display
+        if (event?.participant) {
+          console.log("Track started:", event.track?.kind, "from", event.participant.user_name);
+          // Force re-render of participants to update display
           setParticipants(prev => ({
             ...prev,
             [event.participant.session_id]: {
@@ -396,8 +397,9 @@ export default function MeetingRoom() {
       });
 
       call.on("track-stopped", (event) => {
-        if (event?.track?.kind === 'video' && event?.participant && !event.participant.local) {
-          // Force re-render of participants to update screen share display
+        if (event?.participant) {
+          console.log("Track stopped:", event.track?.kind, "from", event.participant.user_name);
+          // Force re-render of participants to update display
           setParticipants(prev => ({
             ...prev,
             [event.participant.session_id]: {
@@ -522,6 +524,67 @@ export default function MeetingRoom() {
       }
     });
   }, [participants]);
+
+  // Periodic sync to ensure video tracks are always attached
+  useEffect(() => {
+    if (!callObject) return;
+    
+    const syncVideoTracks = () => {
+      const currentParticipants = callObject.participants();
+      
+      // Sync local video
+      const localParticipant = currentParticipants.local;
+      if (localParticipant && localVideoRef.current) {
+        const videoTrack = localParticipant.tracks?.video?.track;
+        if (videoTrack && localVideoRef.current.srcObject !== new MediaStream([videoTrack])) {
+          const currentStream = localVideoRef.current.srcObject as MediaStream | null;
+          const currentTrack = currentStream?.getVideoTracks()[0];
+          if (currentTrack?.id !== videoTrack.id) {
+            console.log("Syncing local video track");
+            localVideoRef.current.srcObject = new MediaStream([videoTrack]);
+          }
+        }
+      }
+      
+      // Sync remote videos
+      Object.entries(currentParticipants).forEach(([sessionId, participant]) => {
+        if (!participant.local) {
+          const videoEl = participantRefs.current[sessionId];
+          if (videoEl) {
+            const videoTrack = participant.tracks?.video?.track;
+            if (videoTrack) {
+              const currentStream = videoEl.srcObject as MediaStream | null;
+              const currentTrack = currentStream?.getVideoTracks()[0];
+              if (!currentTrack || currentTrack.id !== videoTrack.id) {
+                console.log("Syncing remote video track for", participant.user_name);
+                videoEl.srcObject = new MediaStream([videoTrack]);
+              }
+            }
+          }
+        }
+      });
+      
+      // Update participants state to ensure UI is in sync
+      setParticipants(prev => {
+        const updated = { ...prev };
+        Object.entries(currentParticipants).forEach(([sessionId, participant]) => {
+          updated[sessionId] = {
+            ...updated[sessionId],
+            ...participant,
+            handRaised: updated[sessionId]?.handRaised,
+            isSpeaking: updated[sessionId]?.isSpeaking
+          };
+        });
+        return updated;
+      });
+    };
+    
+    // Sync immediately and then every 2 seconds
+    syncVideoTracks();
+    const interval = setInterval(syncVideoTracks, 2000);
+    
+    return () => clearInterval(interval);
+  }, [callObject]);
 
   // Keep userRef updated
   useEffect(() => {
