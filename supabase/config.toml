@@ -1,1 +1,34 @@
 project_id = "ddgbqeaqksiamnnzioyv"
+
+[functions.end-all-meetings]
+verify_jwt = false
+
+[functions.reset-user-password]
+verify_jwt = false
+
+[functions.daily-room]
+verify_jwt = false
+
+[functions.create-user]
+verify_jwt = false
+
+[functions.delete-auth-user]
+verify_jwt = false
+
+[functions.force-logout-all]
+verify_jwt = false
+
+[functions.get-geolocation]
+verify_jwt = false
+
+[functions.get-mapbox-token]
+verify_jwt = false
+
+[functions.notify-location-update]
+verify_jwt = false
+
+[functions.cleanup-location-history]
+verify_jwt = false
+
+[functions.sync-recordings]
+verify_jwt = false
