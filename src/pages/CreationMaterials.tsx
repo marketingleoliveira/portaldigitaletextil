@@ -57,6 +57,7 @@ import {
   ExternalLink,
   X,
   CloudUpload,
+  FolderInput,
 } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
@@ -145,6 +146,12 @@ const CreationMaterials: React.FC = () => {
   const [editFileName, setEditFileName] = useState("");
   const [editFileDescription, setEditFileDescription] = useState("");
   const [showEditFileDialog, setShowEditFileDialog] = useState(false);
+
+  // Move file states
+  const [showMoveFileDialog, setShowMoveFileDialog] = useState(false);
+  const [movingFile, setMovingFile] = useState<CreationFile | null>(null);
+  const [moveTargetCategoryId, setMoveTargetCategoryId] = useState<string | null>(null);
+  const [moveTargetSubcategoryId, setMoveTargetSubcategoryId] = useState<string | null>(null);
   
   // Preview/Delete states
   const [previewFile, setPreviewFile] = useState<CreationFile | null>(null);
@@ -549,6 +556,38 @@ const CreationMaterials: React.FC = () => {
     setShowPreviewDialog(true);
   };
 
+  const openMoveFile = (file: CreationFile) => {
+    setMovingFile(file);
+    setMoveTargetCategoryId(file.category_id);
+    setMoveTargetSubcategoryId(file.subcategory_id);
+    setShowMoveFileDialog(true);
+  };
+
+  const handleMoveFile = async () => {
+    if (!movingFile) return;
+
+    try {
+      const { error } = await supabase
+        .from("creation_files")
+        .update({
+          category_id: moveTargetCategoryId,
+          subcategory_id: moveTargetSubcategoryId,
+        })
+        .eq("id", movingFile.id);
+
+      if (error) throw error;
+      toast.success("Arquivo movido com sucesso!");
+      setShowMoveFileDialog(false);
+      setMovingFile(null);
+      setMoveTargetCategoryId(null);
+      setMoveTargetSubcategoryId(null);
+      fetchData();
+    } catch (error) {
+      console.error("Error moving file:", error);
+      toast.error("Erro ao mover arquivo");
+    }
+  };
+
   const getFilesForSubcategory = (subcategoryId: string) => {
     return files.filter((f) => f.subcategory_id === subcategoryId);
   };
@@ -711,6 +750,7 @@ const CreationMaterials: React.FC = () => {
                       file={file}
                       onPreview={() => openPreview(file)}
                       onEdit={() => openEditFile(file)}
+                      onMove={() => openMoveFile(file)}
                       onDelete={() => {
                         setDeleteItem({ type: "file", item: file });
                         setShowDeleteDialog(true);
@@ -756,6 +796,7 @@ const CreationMaterials: React.FC = () => {
                             file={file}
                             onPreview={() => openPreview(file)}
                             onEdit={() => openEditFile(file)}
+                            onMove={() => openMoveFile(file)}
                             onDelete={() => {
                               setDeleteItem({ type: "file", item: file });
                               setShowDeleteDialog(true);
@@ -795,6 +836,7 @@ const CreationMaterials: React.FC = () => {
                       file={file}
                       onPreview={() => openPreview(file)}
                       onEdit={() => openEditFile(file)}
+                      onMove={() => openMoveFile(file)}
                       onDelete={() => {
                         setDeleteItem({ type: "file", item: file });
                         setShowDeleteDialog(true);
@@ -1196,6 +1238,71 @@ const CreationMaterials: React.FC = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Move File Dialog */}
+      <Dialog open={showMoveFileDialog} onOpenChange={setShowMoveFileDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Mover Arquivo</DialogTitle>
+            <DialogDescription>
+              Selecione a nova categoria e subcategoria para "{movingFile?.name}"
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label>Categoria</Label>
+              <Select
+                value={moveTargetCategoryId || "none"}
+                onValueChange={(v) => {
+                  setMoveTargetCategoryId(v === "none" ? null : v);
+                  setMoveTargetSubcategoryId(null);
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Sem categoria" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Sem categoria</SelectItem>
+                  {categories.map((cat) => (
+                    <SelectItem key={cat.id} value={cat.id}>
+                      {cat.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            {moveTargetCategoryId && (
+              <div>
+                <Label>Subcategoria (opcional)</Label>
+                <Select
+                  value={moveTargetSubcategoryId || "none"}
+                  onValueChange={(v) => setMoveTargetSubcategoryId(v === "none" ? null : v)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Sem subcategoria" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Sem subcategoria</SelectItem>
+                    {getSubcategoriesForCategory(moveTargetCategoryId).map((sub) => (
+                      <SelectItem key={sub.id} value={sub.id}>
+                        {sub.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowMoveFileDialog(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={handleMoveFile}>
+              Mover
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </DashboardLayout>
   );
 };
@@ -1205,11 +1312,12 @@ interface FileCardProps {
   file: CreationFile;
   onPreview: () => void;
   onEdit: () => void;
+  onMove: () => void;
   onDelete: () => void;
   canPreview: boolean;
 }
 
-const FileCard: React.FC<FileCardProps> = ({ file, onPreview, onEdit, onDelete, canPreview }) => {
+const FileCard: React.FC<FileCardProps> = ({ file, onPreview, onEdit, onMove, onDelete, canPreview }) => {
   return (
     <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
       <div className="flex items-center gap-3">
@@ -1230,8 +1338,11 @@ const FileCard: React.FC<FileCardProps> = ({ file, onPreview, onEdit, onDelete, 
             <Eye className="w-4 h-4" />
           </Button>
         )}
-        <Button variant="ghost" size="icon" onClick={onEdit}>
+        <Button variant="ghost" size="icon" onClick={onEdit} title="Renomear">
           <Edit className="w-4 h-4" />
+        </Button>
+        <Button variant="ghost" size="icon" onClick={onMove} title="Mover">
+          <FolderInput className="w-4 h-4" />
         </Button>
         {file.is_external_link ? (
           <Button variant="ghost" size="icon" asChild>
