@@ -744,17 +744,35 @@ const SpreadsheetEditor: React.FC<SpreadsheetEditorProps> = ({
           const mergeInfo = mergedMap.get(`${rowIdx}-${colIdx}`);
           
           const rawValue = cell.value;
-          const value = rawValue !== null && rawValue !== undefined ? String(rawValue) : '';
-          const formattedValue = formatCellValue(cell);
           const style = extractCellStyle(cell);
           
-          const formula = typeof rawValue === 'object' && rawValue !== null && 'formula' in rawValue
-            ? `=${(rawValue as any).formula}`
-            : (value.startsWith('=') ? value : undefined);
+          // Check if the cell contains a formula
+          let formula: string | undefined;
+          let displayValue: string;
+          
+          if (typeof rawValue === 'object' && rawValue !== null && 'formula' in rawValue) {
+            // Cell has a formula object from Excel
+            const formulaObj = rawValue as ExcelJS.CellFormulaValue;
+            formula = `=${formulaObj.formula}`;
+            // Use the result for display, but keep the formula
+            displayValue = formulaObj.result !== undefined ? formatValue(formulaObj.result, cell.numFmt) : '';
+          } else if (typeof rawValue === 'object' && rawValue !== null && 'sharedFormula' in rawValue) {
+            // Handle shared formulas
+            const sharedObj = rawValue as any;
+            if (sharedObj.formula) {
+              formula = `=${sharedObj.formula}`;
+            } else if (sharedObj.sharedFormula) {
+              formula = `=${sharedObj.sharedFormula}`;
+            }
+            displayValue = sharedObj.result !== undefined ? formatValue(sharedObj.result, cell.numFmt) : '';
+          } else {
+            // Regular value (no formula)
+            displayValue = formatCellValue(cell);
+          }
           
           rowData.push({
-            value: formattedValue || value,
-            formattedValue,
+            value: displayValue,
+            formattedValue: displayValue,
             formula,
             style,
             isMerged: mergeInfo && !mergeInfo.isAnchor,
