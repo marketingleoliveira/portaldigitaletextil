@@ -55,7 +55,10 @@ import {
   Trash2,
   Edit,
   ExternalLink,
+  X,
+  CloudUpload,
 } from "lucide-react";
+import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
 
 interface CreationCategory {
@@ -130,8 +133,10 @@ const CreationMaterials: React.FC = () => {
   const [fileDescription, setFileDescription] = useState("");
   const [isExternalLink, setIsExternalLink] = useState(false);
   const [externalUrl, setExternalUrl] = useState("");
-  const [uploadingFile, setUploadingFile] = useState<File | null>(null);
+  const [uploadingFiles, setUploadingFiles] = useState<File[]>([]);
   const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
 
   // Edit states
   const [editingCategory, setEditingCategory] = useState<CreationCategory | null>(null);
@@ -277,36 +282,67 @@ const CreationMaterials: React.FC = () => {
     }
   };
 
-  // File upload
+  // File upload - handles multiple files
   const handleFileUpload = async () => {
-    if (!fileName.trim()) {
-      toast.error("Nome do arquivo é obrigatório");
+    if (isExternalLink) {
+      // Single external link upload
+      if (!fileName.trim()) {
+        toast.error("Nome do arquivo é obrigatório");
+        return;
+      }
+      if (!externalUrl.trim()) {
+        toast.error("URL é obrigatória para links externos");
+        return;
+      }
+
+      setUploading(true);
+      try {
+        const { error } = await supabase.from("creation_files").insert({
+          name: fileName.trim(),
+          description: fileDescription.trim() || null,
+          file_url: externalUrl.trim(),
+          file_type: null,
+          file_size: null,
+          category_id: selectedCategoryId || null,
+          subcategory_id: selectedSubcategoryId || null,
+          is_external_link: true,
+          created_by: user?.id,
+        });
+
+        if (error) throw error;
+        toast.success("Link adicionado com sucesso!");
+        resetFileForm();
+        setShowFileDialog(false);
+        fetchData();
+      } catch (error) {
+        console.error("Error adding link:", error);
+        toast.error("Erro ao adicionar link");
+      } finally {
+        setUploading(false);
+      }
       return;
     }
 
-    if (isExternalLink && !externalUrl.trim()) {
-      toast.error("URL é obrigatória para links externos");
-      return;
-    }
-
-    if (!isExternalLink && !uploadingFile) {
-      toast.error("Selecione um arquivo para upload");
+    // Multiple file upload
+    if (uploadingFiles.length === 0) {
+      toast.error("Selecione pelo menos um arquivo para upload");
       return;
     }
 
     setUploading(true);
-    try {
-      let fileUrl = externalUrl;
-      let fileType = null;
-      let fileSize = null;
+    setUploadProgress(0);
 
-      if (!isExternalLink && uploadingFile) {
-        const fileExt = uploadingFile.name.split(".").pop();
+    try {
+      const totalFiles = uploadingFiles.length;
+      let uploadedCount = 0;
+
+      for (const file of uploadingFiles) {
+        const fileExt = file.name.split(".").pop();
         const filePath = `${crypto.randomUUID()}.${fileExt}`;
 
         const { error: uploadError } = await supabase.storage
           .from("creation-files")
-          .upload(filePath, uploadingFile);
+          .upload(filePath, file);
 
         if (uploadError) throw uploadError;
 
@@ -314,34 +350,34 @@ const CreationMaterials: React.FC = () => {
           .from("creation-files")
           .getPublicUrl(filePath);
 
-        fileUrl = urlData.publicUrl;
-        fileType = uploadingFile.type;
-        fileSize = uploadingFile.size;
+        const { error } = await supabase.from("creation_files").insert({
+          name: file.name.replace(/\.[^/.]+$/, ""), // Remove extension for name
+          description: null,
+          file_url: urlData.publicUrl,
+          file_type: file.type,
+          file_size: file.size,
+          category_id: selectedCategoryId || null,
+          subcategory_id: selectedSubcategoryId || null,
+          is_external_link: false,
+          created_by: user?.id,
+        });
+
+        if (error) throw error;
+
+        uploadedCount++;
+        setUploadProgress(Math.round((uploadedCount / totalFiles) * 100));
       }
 
-      const { error } = await supabase.from("creation_files").insert({
-        name: fileName.trim(),
-        description: fileDescription.trim() || null,
-        file_url: fileUrl,
-        file_type: fileType,
-        file_size: fileSize,
-        category_id: selectedCategoryId || null,
-        subcategory_id: selectedSubcategoryId || null,
-        is_external_link: isExternalLink,
-        created_by: user?.id,
-      });
-
-      if (error) throw error;
-
-      toast.success("Arquivo adicionado com sucesso!");
+      toast.success(`${totalFiles} arquivo(s) adicionado(s) com sucesso!`);
       resetFileForm();
       setShowFileDialog(false);
       fetchData();
     } catch (error) {
-      console.error("Error uploading file:", error);
-      toast.error("Erro ao adicionar arquivo");
+      console.error("Error uploading files:", error);
+      toast.error("Erro ao fazer upload dos arquivos");
     } finally {
       setUploading(false);
+      setUploadProgress(0);
     }
   };
 
@@ -350,9 +386,65 @@ const CreationMaterials: React.FC = () => {
     setFileDescription("");
     setIsExternalLink(false);
     setExternalUrl("");
-    setUploadingFile(null);
+    setUploadingFiles([]);
     setSelectedCategoryId(null);
     setSelectedSubcategoryId(null);
+    setUploadProgress(0);
+  };
+
+  // Drag and drop handlers
+  const handleDragEnter = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+
+    const droppedFiles = Array.from(e.dataTransfer.files);
+    const validFiles = droppedFiles.filter((file) => {
+      const validTypes = [
+        "image/",
+        "video/",
+        "application/pdf",
+        "application/msword",
+        "application/vnd.openxmlformats-officedocument",
+        "application/vnd.ms-excel",
+        "application/vnd.ms-powerpoint",
+      ];
+      return validTypes.some((type) => file.type.startsWith(type) || file.type.includes(type));
+    });
+
+    if (validFiles.length !== droppedFiles.length) {
+      toast.warning("Alguns arquivos foram ignorados por não serem suportados");
+    }
+
+    if (validFiles.length > 0) {
+      setUploadingFiles((prev) => [...prev, ...validFiles]);
+    }
+  };
+
+  const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const selectedFiles = Array.from(e.target.files || []);
+    setUploadingFiles((prev) => [...prev, ...selectedFiles]);
+  };
+
+  const removeUploadingFile = (index: number) => {
+    setUploadingFiles((prev) => prev.filter((_, i) => i !== index));
   };
 
   // Delete
@@ -771,30 +863,14 @@ const CreationMaterials: React.FC = () => {
 
       {/* File Upload Dialog */}
       <Dialog open={showFileDialog} onOpenChange={setShowFileDialog}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-lg">
           <DialogHeader>
-            <DialogTitle>Upload de Arquivo</DialogTitle>
+            <DialogTitle>Upload de Arquivos</DialogTitle>
             <DialogDescription>
-              Adicione um novo arquivo ou link externo
+              Arraste arquivos ou clique para selecionar. Suporta múltiplos arquivos.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
-            <div>
-              <Label>Nome</Label>
-              <Input
-                value={fileName}
-                onChange={(e) => setFileName(e.target.value)}
-                placeholder="Nome do arquivo"
-              />
-            </div>
-            <div>
-              <Label>Descrição (opcional)</Label>
-              <Textarea
-                value={fileDescription}
-                onChange={(e) => setFileDescription(e.target.value)}
-                placeholder="Descrição do arquivo"
-              />
-            </div>
             <div>
               <Label>Categoria (opcional)</Label>
               <Select
@@ -842,7 +918,10 @@ const CreationMaterials: React.FC = () => {
               <Button
                 variant={isExternalLink ? "outline" : "default"}
                 size="sm"
-                onClick={() => setIsExternalLink(false)}
+                onClick={() => {
+                  setIsExternalLink(false);
+                  setUploadingFiles([]);
+                }}
               >
                 <Upload className="w-4 h-4 mr-2" />
                 Upload
@@ -850,33 +929,111 @@ const CreationMaterials: React.FC = () => {
               <Button
                 variant={isExternalLink ? "default" : "outline"}
                 size="sm"
-                onClick={() => setIsExternalLink(true)}
+                onClick={() => {
+                  setIsExternalLink(true);
+                  setUploadingFiles([]);
+                }}
               >
                 <LinkIcon className="w-4 h-4 mr-2" />
                 Link Externo
               </Button>
             </div>
             {isExternalLink ? (
-              <div>
-                <Label>URL</Label>
-                <Input
-                  value={externalUrl}
-                  onChange={(e) => setExternalUrl(e.target.value)}
-                  placeholder="https://..."
-                  type="url"
-                />
+              <div className="space-y-3">
+                <div>
+                  <Label>Nome</Label>
+                  <Input
+                    value={fileName}
+                    onChange={(e) => setFileName(e.target.value)}
+                    placeholder="Nome do link"
+                  />
+                </div>
+                <div>
+                  <Label>URL</Label>
+                  <Input
+                    value={externalUrl}
+                    onChange={(e) => setExternalUrl(e.target.value)}
+                    placeholder="https://..."
+                    type="url"
+                  />
+                </div>
               </div>
             ) : (
-              <div>
-                <Label>Arquivo</Label>
-                <Input
-                  type="file"
-                  accept="image/*,video/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx"
-                  onChange={(e) => setUploadingFile(e.target.files?.[0] || null)}
-                />
-                <p className="text-xs text-muted-foreground mt-1">
-                  Aceita: Imagens, Vídeos, PDF, Documentos Office
-                </p>
+              <div className="space-y-3">
+                {/* Drag and Drop Zone */}
+                <div
+                  onDragEnter={handleDragEnter}
+                  onDragLeave={handleDragLeave}
+                  onDragOver={handleDragOver}
+                  onDrop={handleDrop}
+                  className={cn(
+                    "border-2 border-dashed rounded-lg p-6 text-center transition-colors cursor-pointer",
+                    isDragging
+                      ? "border-primary bg-primary/10"
+                      : "border-muted-foreground/25 hover:border-primary/50"
+                  )}
+                  onClick={() => document.getElementById("file-input")?.click()}
+                >
+                  <CloudUpload className={cn(
+                    "w-10 h-10 mx-auto mb-3",
+                    isDragging ? "text-primary" : "text-muted-foreground"
+                  )} />
+                  <p className="text-sm font-medium">
+                    {isDragging ? "Solte os arquivos aqui" : "Arraste arquivos ou clique para selecionar"}
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Imagens, Vídeos, PDF, Documentos Office
+                  </p>
+                  <Input
+                    id="file-input"
+                    type="file"
+                    multiple
+                    accept="image/*,video/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx"
+                    onChange={handleFileInputChange}
+                    className="hidden"
+                  />
+                </div>
+
+                {/* Selected Files List */}
+                {uploadingFiles.length > 0 && (
+                  <div className="space-y-2">
+                    <Label>Arquivos selecionados ({uploadingFiles.length})</Label>
+                    <div className="max-h-40 overflow-y-auto space-y-1">
+                      {uploadingFiles.map((file, index) => (
+                        <div
+                          key={index}
+                          className="flex items-center justify-between p-2 bg-muted/50 rounded text-sm"
+                        >
+                          <div className="flex items-center gap-2 min-w-0">
+                            {getFileIcon(file.type, false)}
+                            <span className="truncate">{file.name}</span>
+                            <span className="text-xs text-muted-foreground whitespace-nowrap">
+                              ({formatFileSize(file.size)})
+                            </span>
+                          </div>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-6 w-6 shrink-0"
+                            onClick={() => removeUploadingFile(index)}
+                          >
+                            <X className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Upload Progress */}
+                {uploading && uploadProgress > 0 && (
+                  <div className="space-y-1">
+                    <Progress value={uploadProgress} className="h-2" />
+                    <p className="text-xs text-muted-foreground text-center">
+                      Enviando... {uploadProgress}%
+                    </p>
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -884,14 +1041,20 @@ const CreationMaterials: React.FC = () => {
             <Button variant="outline" onClick={() => setShowFileDialog(false)}>
               Cancelar
             </Button>
-            <Button onClick={handleFileUpload} disabled={uploading}>
+            <Button 
+              onClick={handleFileUpload} 
+              disabled={uploading || (!isExternalLink && uploadingFiles.length === 0)}
+            >
               {uploading ? (
                 <>
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                   Enviando...
                 </>
               ) : (
-                "Adicionar"
+                <>
+                  <Upload className="w-4 h-4 mr-2" />
+                  {isExternalLink ? "Adicionar Link" : `Enviar ${uploadingFiles.length > 0 ? `(${uploadingFiles.length})` : ""}`}
+                </>
               )}
             </Button>
           </DialogFooter>
