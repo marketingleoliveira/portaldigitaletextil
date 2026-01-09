@@ -6,6 +6,7 @@ export const ROLE_TEXT_COLORS: Record<AppRole, string> = {
   admin: 'text-violet-400', 
   gerente: 'text-blue-400',
   vendedor: 'text-emerald-400',
+  criacao: 'text-pink-400',
 };
 
 // Extract role from participant name (format: "Name (Role)")
@@ -26,6 +27,7 @@ export const getRoleColorClass = (roleLabel: string): string => {
     'Diretor': ROLE_TEXT_COLORS.admin,
     'Gerente': ROLE_TEXT_COLORS.gerente,
     'Vendedor': ROLE_TEXT_COLORS.vendedor,
+    'Criação': ROLE_TEXT_COLORS.criacao,
     'Convidado': 'text-amber-400',
   };
   return roleMap[roleLabel] || 'text-gray-400';

@@ -39,6 +39,7 @@ import MeetingRoom from "./pages/MeetingRoom";
 import GuestJoin from "./pages/GuestJoin";
 import GuestMeetingRoom from "./pages/GuestMeetingRoom";
 import Recordings from "./pages/Recordings";
+import CreationMaterials from "./pages/CreationMaterials";
 
 const queryClient = new QueryClient();
 
@@ -71,11 +72,12 @@ const App = () => (
                 <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
                 <Route path="/produtos" element={<ProtectedRoute><Products /></ProtectedRoute>} />
                 <Route path="/produtos/:id" element={<ProtectedRoute><ProductDetails /></ProtectedRoute>} />
-                <Route path="/categorias" element={<ProtectedRoute allowedRoles={['dev', 'admin']}><Categories /></ProtectedRoute>} />
+                <Route path="/categorias" element={<ProtectedRoute allowedRoles={['dev', 'admin', 'criacao']}><Categories /></ProtectedRoute>} />
                 <Route path="/usuarios" element={<ProtectedRoute allowedRoles={['dev', 'admin']}><Users /></ProtectedRoute>} />
                 <Route path="/inativos" element={<ProtectedRoute allowedRoles={['dev', 'admin']}><InactiveUsers /></ProtectedRoute>} />
                 <Route path="/equipe" element={<ProtectedRoute><Team /></ProtectedRoute>} />
-                <Route path="/arquivos" element={<ProtectedRoute allowedRoles={['dev', 'admin']}><FileManagement /></ProtectedRoute>} />
+                <Route path="/arquivos" element={<ProtectedRoute allowedRoles={['dev', 'admin', 'criacao']}><FileManagement /></ProtectedRoute>} />
+                <Route path="/material-criacao" element={<ProtectedRoute allowedRoles={['dev', 'criacao']}><CreationMaterials /></ProtectedRoute>} />
                 <Route path="/downloads" element={<ProtectedRoute><Downloads /></ProtectedRoute>} />
                 <Route path="/notificacoes" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
                 <Route path="/relatorios" element={<ProtectedRoute allowedRoles={['dev', 'admin', 'gerente']}><Reports /></ProtectedRoute>} />
