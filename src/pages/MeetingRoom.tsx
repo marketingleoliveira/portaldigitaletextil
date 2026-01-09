@@ -1028,48 +1028,64 @@ export default function MeetingRoom() {
     }
   };
 
-  // Recording functions
+  // Recording functions - using edge function for cloud recording
   const startRecording = async () => {
-    if (!callObject || !isHost) return;
+    if (!meeting || !isHost) return;
     
     try {
-      await callObject.startRecording();
+      const roomName = meeting.meeting_code.replace(/-/g, "");
+      const { data, error } = await supabase.functions.invoke("daily-room", {
+        body: { action: "start-recording", roomName }
+      });
+      
+      if (error) throw error;
+      
       setIsRecording(true);
       setRecordingStartTime(new Date());
       toast.success("Gravação iniciada!");
+      console.log("Recording started:", data);
     } catch (err) {
       console.error("Error starting recording:", err);
-      toast.error("Erro ao iniciar gravação");
+      toast.error("Erro ao iniciar gravação. Verifique se seu plano Daily.co suporta cloud recording.");
     }
   };
 
   const stopRecording = async () => {
-    if (!callObject || !isHost) return;
+    if (!meeting || !isHost) return;
     
     try {
-      await callObject.stopRecording();
+      const roomName = meeting.meeting_code.replace(/-/g, "");
+      const { error } = await supabase.functions.invoke("daily-room", {
+        body: { action: "stop-recording", roomName }
+      });
+      
+      if (error) throw error;
+      
       setIsRecording(false);
       setRecordingStartTime(null);
       toast.success("Gravação finalizada! O vídeo estará disponível em breve.");
       
-      // Sync recordings after stopping
-      if (meeting) {
-        setTimeout(async () => {
-          try {
-            await supabase.functions.invoke("sync-recordings", {
-              body: { 
-                action: "sync-meeting",
-                meetingId: meeting.id,
-                meetingTitle: meeting.title,
-                meetingDate: new Date().toISOString()
-              }
-            });
-            console.log("Recording synced successfully");
-          } catch (err) {
-            console.error("Error syncing recording:", err);
+      // Sync recordings after stopping - wait for Daily.co to process
+      setTimeout(async () => {
+        try {
+          const { data, error: syncError } = await supabase.functions.invoke("sync-recordings", {
+            body: { 
+              action: "sync-meeting",
+              meetingId: meeting.id,
+              meetingTitle: meeting.title,
+              meetingDate: new Date().toISOString()
+            }
+          });
+          
+          if (syncError) {
+            console.error("Error syncing recording:", syncError);
+          } else {
+            console.log("Recording synced successfully:", data);
           }
-        }, 5000); // Wait 5 seconds for Daily.co to process
-      }
+        } catch (err) {
+          console.error("Error syncing recording:", err);
+        }
+      }, 10000); // Wait 10 seconds for Daily.co to process the recording
     } catch (err) {
       console.error("Error stopping recording:", err);
       toast.error("Erro ao parar gravação");
