@@ -1038,7 +1038,11 @@ export default function MeetingRoom() {
       const displayMediaOptions: any = {
         screenVideoSendSettings: {
           maxQuality: 'high',
-        }
+        },
+        // Enable audio capture for screen sharing (important for sharing videos/tabs with sound)
+        screenAudioSendSettings: {
+          channelConfig: 'stereo',
+        },
       };
 
       // For browser tabs, we can hint at preferCurrentTab
@@ -1048,17 +1052,20 @@ export default function MeetingRoom() {
           selfBrowserSurface: 'include',
           surfaceSwitching: 'include',
           monitorTypeSurfaces: 'exclude',
+          audio: true, // Request tab audio
         };
       } else if (type === 'window') {
         displayMediaOptions.displayMediaOptions = {
           monitorTypeSurfaces: 'exclude',
           surfaceSwitching: 'include',
+          audio: true, // Request system audio
         };
       } else {
         // Full screen
         displayMediaOptions.displayMediaOptions = {
           monitorTypeSurfaces: 'include',
           surfaceSwitching: 'include',
+          audio: true, // Request system audio
         };
       }
 
