@@ -66,8 +66,14 @@ interface GuestInfo {
 const EMOTES = ["👍", "👎", "❤️", "😂", "😮", "😢", "🎉", "🔥", "👏", "🤔", "💯", "✅"];
 const REACTIONS = ["👍", "❤️", "😂", "👏", "🎉", "🔥", "😮", "💯"];
 
-// Track initialized meetings globally to prevent re-initialization on tab switch
-const initializedGuestMeetings = new Map<string, boolean>();
+// Global state to persist meeting data across tab switches
+interface GlobalGuestMeetingState {
+  meeting: Meeting | null;
+  dailyRoom: { url: string; name: string } | null;
+  callObject: DailyCall | null;
+  messages: ChatMessage[];
+}
+const globalGuestMeetingState = new Map<string, GlobalGuestMeetingState>();
 
 export default function GuestMeetingRoom() {
   const { code } = useParams<{ code: string }>();
@@ -348,25 +354,48 @@ export default function GuestMeetingRoom() {
   useEffect(() => {
     const meetingKey = `${code}-${guestInfo?.guestId}`;
     
+    const existingState = globalGuestMeetingState.get(meetingKey);
+    
     // Only initialize once when we have code and guestInfo
     // Check both the ref AND the global map to handle re-mounts
-    if (code && guestInfo && !hasInitializedRef.current && !initializedGuestMeetings.get(meetingKey)) {
+    if (code && guestInfo && !hasInitializedRef.current && !existingState) {
       console.log('Guest: Initializing meeting for first time:', meetingKey);
       setUserInMeeting(true);
       hasInitializedRef.current = true;
-      initializedGuestMeetings.set(meetingKey, true);
       initializeMeeting();
-    } else if (code && guestInfo && initializedGuestMeetings.get(meetingKey)) {
-      // Meeting was already initialized, just restore state
-      console.log('Guest: Meeting already initialized, skipping:', meetingKey);
+    } else if (code && guestInfo && existingState) {
+      // Meeting was already initialized, restore state from global
+      console.log('Guest: Meeting already initialized, restoring state:', meetingKey);
       setUserInMeeting(true);
       hasInitializedRef.current = true;
-      // Don't show loading if we already have meeting data
-      if (meeting) {
-        setLoading(false);
+      
+      // Restore state from global
+      if (existingState.meeting) setMeeting(existingState.meeting);
+      if (existingState.dailyRoom) setDailyRoom(existingState.dailyRoom);
+      if (existingState.callObject) {
+        setCallObject(existingState.callObject);
+        callObjectRef.current = existingState.callObject;
+        // Restore participants from callObject
+        const currentParticipants = existingState.callObject.participants();
+        setParticipants(currentParticipants as Record<string, ParticipantWithExtras>);
       }
+      if (existingState.messages.length > 0) setMessages(existingState.messages);
+      setLoading(false);
     }
   }, [code, guestInfo?.guestId]);
+
+  // Save state to global when it changes
+  useEffect(() => {
+    const meetingKey = `${code}-${guestInfo?.guestId}`;
+    if (meeting && callObject) {
+      globalGuestMeetingState.set(meetingKey, {
+        meeting,
+        dailyRoom,
+        callObject,
+        messages
+      });
+    }
+  }, [meeting, dailyRoom, callObject, messages, code, guestInfo?.guestId]);
 
   // Separate cleanup effect that only runs on unmount
   useEffect(() => {
@@ -849,9 +878,10 @@ export default function GuestMeetingRoom() {
   };
 
   const leaveMeeting = async () => {
-    // Clear the global initialized state when actually leaving
+    // Clear the global state when actually leaving
     const meetingKey = `${code}-${guestInfo?.guestId}`;
-    initializedGuestMeetings.delete(meetingKey);
+    globalGuestMeetingState.delete(meetingKey);
+    hasInitializedRef.current = false;
     setUserInMeeting(false);
     await cleanup();
     sessionStorage.removeItem(`guest_${code}`);
