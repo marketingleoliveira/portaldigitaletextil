@@ -8,8 +8,9 @@ import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { AppRole, ROLE_LABELS } from '@/types/auth';
 import RoleBadge from '@/components/RoleBadge';
-import { Loader2, Users, Code, Shield, UserCog, User, Palette, MessageCircle, Mail, X, Linkedin } from 'lucide-react';
+import { Loader2, Users, Code, Shield, UserCog, User, Palette, Mail, X, Linkedin } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
+import WhatsAppIcon from '@/components/icons/WhatsAppIcon';
 import {
   Dialog,
   DialogContent,
@@ -153,7 +154,7 @@ const Team: React.FC = () => {
                 }}
                 title="Abrir conversa no WhatsApp"
               >
-                <MessageCircle className="w-3.5 h-3.5" />
+                <WhatsAppIcon className="w-3.5 h-3.5" />
               </Button>
             )}
             {member.linkedin && (
@@ -402,7 +403,7 @@ const Team: React.FC = () => {
                   </div>
                   
                   <div className="flex items-center gap-3 p-3 bg-muted rounded-lg">
-                    <MessageCircle className="w-4 h-4 text-green-600" />
+                    <WhatsAppIcon className="w-4 h-4 text-green-600" />
                     <div className="flex-1">
                       <p className="text-xs text-muted-foreground">WhatsApp</p>
                       <p className="font-medium text-sm">{selectedMember.phone || 'Não informado'}</p>
