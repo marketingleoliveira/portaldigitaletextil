@@ -17,7 +17,7 @@ import {
   ScreenShare, ScreenShareOff, MoreVertical, Settings,
   Copy, Maximize, Minimize, Send, ChevronLeft, Loader2,
   Circle, Square, Lock, Hand, Smile, Volume2, Shield,
-  VideoIcon, MicIcon, Ban, Sparkles, UserX
+  VideoIcon, MicIcon, Ban, Sparkles, UserX, PictureInPicture2
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
@@ -127,6 +127,10 @@ export default function MeetingRoom() {
   // Floating reactions state
   const [floatingReactions, setFloatingReactions] = useState<FloatingReaction[]>([]);
   const reactionIdCounter = useRef(0);
+  
+  // Picture-in-Picture state
+  const [isPiPActive, setIsPiPActive] = useState(false);
+  const pipVideoRef = useRef<HTMLVideoElement | null>(null);
   
   const localVideoRef = useRef<HTMLVideoElement>(null);
   const participantRefs = useRef<Record<string, HTMLVideoElement | null>>({});
@@ -1073,6 +1077,51 @@ export default function MeetingRoom() {
     }
   };
 
+  // Picture-in-Picture toggle
+  const togglePiP = async () => {
+    try {
+      if (isPiPActive && document.pictureInPictureElement) {
+        await document.exitPictureInPicture();
+        setIsPiPActive(false);
+        return;
+      }
+
+      // Find the best video to use for PiP (prefer remote participant with video, fallback to local)
+      let videoElement: HTMLVideoElement | null = null;
+      
+      // First try to find a remote participant with video
+      for (const [sessionId, participant] of Object.entries(participants)) {
+        if (!participant.local && (participant.video || participant.tracks?.video?.state === 'playable')) {
+          videoElement = participantRefs.current[sessionId] || null;
+          if (videoElement) break;
+        }
+      }
+      
+      // Fallback to local video
+      if (!videoElement && localVideoRef.current && isVideoOn) {
+        videoElement = localVideoRef.current;
+      }
+
+      if (videoElement && videoElement.readyState >= 2) {
+        await videoElement.requestPictureInPicture();
+        setIsPiPActive(true);
+        
+        videoElement.addEventListener('leavepictureinpicture', () => {
+          setIsPiPActive(false);
+        }, { once: true });
+      } else {
+        toast.error("Nenhum vídeo disponível para Picture-in-Picture");
+      }
+    } catch (err: any) {
+      console.log("PiP toggle error:", err);
+      if (err.name === 'NotAllowedError') {
+        toast.error("Picture-in-Picture não permitido pelo navegador");
+      } else {
+        toast.error("Erro ao ativar Picture-in-Picture");
+      }
+    }
+  };
+
   // Recording functions - using edge function for cloud recording
   const startRecording = async () => {
     if (!meeting || !isHost) return;
@@ -1928,6 +1977,27 @@ export default function MeetingRoom() {
               <TooltipContent className="hidden sm:block">Controles de moderação</TooltipContent>
             </Tooltip>
           )}
+
+          {/* Picture-in-Picture */}
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant={isPiPActive ? "default" : "secondary"}
+                size="lg"
+                className={cn(
+                  "rounded-full w-10 h-10 sm:w-12 sm:h-12 hidden sm:flex",
+                  isPiPActive && "bg-blue-600 hover:bg-blue-700"
+                )}
+                onClick={togglePiP}
+                disabled={!callObject}
+              >
+                <PictureInPicture2 className="w-4 h-4 sm:w-5 sm:h-5" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent className="hidden sm:block">
+              {isPiPActive ? "Sair do Picture-in-Picture" : "Picture-in-Picture"}
+            </TooltipContent>
+          </Tooltip>
 
           <div className="w-px h-6 sm:h-8 bg-gray-600 mx-1 sm:mx-2 hidden sm:block" />
 

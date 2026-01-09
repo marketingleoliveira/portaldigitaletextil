@@ -12,7 +12,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import DailyIframe, { DailyCall, DailyParticipant, DailyEventObjectParticipant, DailyEventObjectParticipantLeft } from "@daily-co/daily-js";
 import {
   Mic, MicOff, Video, VideoOff, Phone, MessageSquare, Users, 
-  ScreenShare, ScreenShareOff, Send, Loader2, Hand, Smile
+  ScreenShare, ScreenShareOff, Send, Loader2, Hand, Smile, PictureInPicture2
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
@@ -111,6 +111,9 @@ export default function GuestMeetingRoom() {
   // Floating reactions
   const [floatingReactions, setFloatingReactions] = useState<FloatingReaction[]>([]);
   const reactionIdCounter = useRef(0);
+  
+  // Picture-in-Picture state
+  const [isPiPActive, setIsPiPActive] = useState(false);
   
   const localVideoRef = useRef<HTMLVideoElement>(null);
   const participantRefs = useRef<Record<string, HTMLVideoElement | null>>({});
@@ -776,6 +779,51 @@ export default function GuestMeetingRoom() {
     });
   };
 
+  // Picture-in-Picture toggle
+  const togglePiP = async () => {
+    try {
+      if (isPiPActive && document.pictureInPictureElement) {
+        await document.exitPictureInPicture();
+        setIsPiPActive(false);
+        return;
+      }
+
+      // Find the best video to use for PiP (prefer remote participant with video, fallback to local)
+      let videoElement: HTMLVideoElement | null = null;
+      
+      // First try to find a remote participant with video
+      for (const [sessionId, participant] of Object.entries(participants)) {
+        if (!participant.local && (participant.video || participant.tracks?.video?.state === 'playable')) {
+          videoElement = participantRefs.current[sessionId] || null;
+          if (videoElement) break;
+        }
+      }
+      
+      // Fallback to local video
+      if (!videoElement && localVideoRef.current && isVideoOn) {
+        videoElement = localVideoRef.current;
+      }
+
+      if (videoElement && videoElement.readyState >= 2) {
+        await videoElement.requestPictureInPicture();
+        setIsPiPActive(true);
+        
+        videoElement.addEventListener('leavepictureinpicture', () => {
+          setIsPiPActive(false);
+        }, { once: true });
+      } else {
+        toast.error("Nenhum vídeo disponível para Picture-in-Picture");
+      }
+    } catch (err: any) {
+      console.log("PiP toggle error:", err);
+      if (err.name === 'NotAllowedError') {
+        toast.error("Picture-in-Picture não permitido pelo navegador");
+      } else {
+        toast.error("Erro ao ativar Picture-in-Picture");
+      }
+    }
+  };
+
   const leaveMeeting = async () => {
     await cleanup();
     sessionStorage.removeItem(`guest_${code}`);
@@ -1176,6 +1224,27 @@ export default function GuestMeetingRoom() {
                 </div>
               </PopoverContent>
             </Popover>
+
+            {/* Picture-in-Picture */}
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant={isPiPActive ? "default" : "secondary"}
+                  size="icon"
+                  className={cn(
+                    "rounded-full h-10 w-10 sm:h-12 sm:w-12 shrink-0 hidden sm:flex",
+                    isPiPActive ? "bg-blue-600 hover:bg-blue-700" : "bg-[#3c4043] hover:bg-[#5f6368]"
+                  )}
+                  onClick={togglePiP}
+                  disabled={joiningDaily || !callObject}
+                >
+                  <PictureInPicture2 className="h-4 w-4 sm:h-5 sm:w-5" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent className="hidden sm:block">
+                {isPiPActive ? "Sair do Picture-in-Picture" : "Picture-in-Picture"}
+              </TooltipContent>
+            </Tooltip>
 
             {/* Chat button */}
             <Tooltip>
