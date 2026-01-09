@@ -5,8 +5,10 @@ export interface UserProfile {
   full_name: string;
   email: string;
   phone: string | null;
+  linkedin: string | null;
   is_active: boolean;
   avatar_url: string | null;
+  custom_image_url: string | null;
   region: string | null;
   created_at: string;
   updated_at: string;

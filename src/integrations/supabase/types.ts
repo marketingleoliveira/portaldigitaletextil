@@ -877,6 +877,7 @@ export type Database = {
           full_name: string
           id: string
           is_active: boolean | null
+          linkedin: string | null
           location_sharing_enabled: boolean | null
           phone: string | null
           region: string | null
@@ -890,6 +891,7 @@ export type Database = {
           full_name: string
           id: string
           is_active?: boolean | null
+          linkedin?: string | null
           location_sharing_enabled?: boolean | null
           phone?: string | null
           region?: string | null
@@ -903,6 +905,7 @@ export type Database = {
           full_name?: string
           id?: string
           is_active?: boolean | null
+          linkedin?: string | null
           location_sharing_enabled?: boolean | null
           phone?: string | null
           region?: string | null
