@@ -151,6 +151,9 @@ export default function MeetingRoom() {
   // Screen share options modal
   const [showScreenShareOptions, setShowScreenShareOptions] = useState(false);
   
+  // Track video state before screen share to restore it properly
+  const videoStateBeforeScreenShareRef = useRef<boolean>(true);
+  
   // Connection quality state
   const [connectionQuality, setConnectionQuality] = useState<'good' | 'poor' | 'disconnected'>('good');
   
@@ -328,21 +331,43 @@ export default function MeetingRoom() {
         setIsScreenSharing(true);
         toast.success("Compartilhamento de tela iniciado");
         
-        // Ensure camera stays on - Daily may have turned it off
-        // Use a small delay to let the screen share fully initialize
-        setTimeout(async () => {
+        // Restore camera if it was on before screen share
+        // Use multiple attempts to ensure camera is restored
+        const restoreCamera = async (attempt: number = 1) => {
+          if (attempt > 3) {
+            console.log("Max camera restore attempts reached");
+            return;
+          }
+          
           try {
             const localParticipant = call.participants()?.local;
-            // If video was supposed to be on but got turned off, restore it
-            if (localParticipant && !localParticipant.video && localVideoRef.current) {
-              console.log("Camera was turned off by screen share, restoring...");
+            const shouldRestoreVideo = videoStateBeforeScreenShareRef.current;
+            
+            console.log(`Camera restore attempt ${attempt}, shouldRestore: ${shouldRestoreVideo}, currentVideo: ${localParticipant?.video}`);
+            
+            if (shouldRestoreVideo && localParticipant && !localParticipant.video) {
+              console.log("Restoring camera after screen share...");
               await call.setLocalVideo(true);
               setIsVideoOn(true);
+              
+              // Verify it worked
+              setTimeout(async () => {
+                const updated = call.participants()?.local;
+                if (updated && !updated.video && videoStateBeforeScreenShareRef.current) {
+                  console.log("Camera still off, retrying...");
+                  restoreCamera(attempt + 1);
+                }
+              }, 300);
             }
           } catch (err) {
             console.error("Error restoring camera after screen share:", err);
+            // Retry on error
+            setTimeout(() => restoreCamera(attempt + 1), 500);
           }
-        }, 300);
+        };
+        
+        // Start restoration after a small delay
+        setTimeout(() => restoreCamera(1), 400);
       });
 
       call.on("local-screen-share-stopped", () => {
@@ -1031,6 +1056,8 @@ export default function MeetingRoom() {
       
       // Store current video state to restore after screen share starts
       const wasVideoOn = isVideoOn;
+      videoStateBeforeScreenShareRef.current = wasVideoOn;
+      console.log("Saving video state before screen share:", wasVideoOn);
       
       // Configure display media constraints based on selection
       // Note: The actual selection happens in the browser's native picker,
@@ -1072,20 +1099,33 @@ export default function MeetingRoom() {
       await callObject.startScreenShare(displayMediaOptions);
       
       // Ensure camera stays on after screen share starts (Daily may turn it off by default)
-      // Small delay to let the screen share initialize first
+      // Use multiple attempts to be more robust
       if (wasVideoOn) {
-        setTimeout(async () => {
+        const restoreCameraAfterShare = async (attempt: number = 1) => {
+          if (attempt > 3) return;
+          
           try {
             const localParticipant = callObject.participants()?.local;
             if (localParticipant && !localParticipant.video) {
-              console.log("Restoring camera after screen share start");
+              console.log(`Restoring camera after screen share start (attempt ${attempt})`);
               await callObject.setLocalVideo(true);
               setIsVideoOn(true);
+              
+              // Verify and retry if needed
+              setTimeout(async () => {
+                const updated = callObject.participants()?.local;
+                if (updated && !updated.video) {
+                  restoreCameraAfterShare(attempt + 1);
+                }
+              }, 400);
             }
           } catch (err) {
             console.error("Error restoring camera:", err);
+            setTimeout(() => restoreCameraAfterShare(attempt + 1), 500);
           }
-        }, 500);
+        };
+        
+        setTimeout(() => restoreCameraAfterShare(1), 600);
       }
       
       // State will be updated by the event listener
