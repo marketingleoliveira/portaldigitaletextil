@@ -84,6 +84,7 @@ export default function GuestMeetingRoom() {
   const [participants, setParticipants] = useState<Record<string, ParticipantWithExtras>>({});
   const callObjectRef = useRef<DailyCall | null>(null);
   const isInitializingRef = useRef(false);
+  const hasInitializedRef = useRef(false);
   
   // Local state
   const [isMuted, setIsMuted] = useState(false);
@@ -342,13 +343,15 @@ export default function GuestMeetingRoom() {
 
   // Initialize meeting
   useEffect(() => {
-    if (code && guestInfo) {
+    if (code && guestInfo && !hasInitializedRef.current) {
       setUserInMeeting(true);
+      hasInitializedRef.current = true;
       initializeMeeting();
     }
     
     return () => {
       setUserInMeeting(false);
+      hasInitializedRef.current = false;
       cleanup();
     };
   }, [code, guestInfo]);
