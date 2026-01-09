@@ -32,6 +32,7 @@ interface DashboardStats {
   totalFiles: number;
   unreadNotifications: number;
   openTickets: number;
+  totalCreationFiles: number;
 }
 
 interface LinkFile {
@@ -51,6 +52,7 @@ const Dashboard: React.FC = () => {
     totalFiles: 0,
     unreadNotifications: 0,
     openTickets: 0,
+    totalCreationFiles: 0,
   });
   const [linkFiles, setLinkFiles] = useState<LinkFile[]>([]);
   const [loading, setLoading] = useState(true);
@@ -78,6 +80,15 @@ const Dashboard: React.FC = () => {
           .from('tickets')
           .select('*', { count: 'exact', head: true })
           .eq('status', 'aberto');
+
+        // Fetch creation files count for criacao role
+        let creationFilesCount = 0;
+        if (user?.role === 'criacao' || user?.role === 'dev') {
+          const { count: creationCount } = await supabase
+            .from('creation_files')
+            .select('*', { count: 'exact', head: true });
+          creationFilesCount = creationCount || 0;
+        }
 
         // Admin/Dev-only stats
         let usersCount = 0;
@@ -113,6 +124,7 @@ const Dashboard: React.FC = () => {
           totalFiles: filesCount || 0,
           unreadNotifications: 0,
           openTickets: ticketsCount || 0,
+          totalCreationFiles: creationFilesCount,
         });
       } catch (error) {
         console.error('Error fetching stats:', error);
@@ -151,6 +163,16 @@ const Dashboard: React.FC = () => {
       bgColor: 'bg-role-gerente/10',
       href: '/downloads',
       roles: ['dev', 'admin', 'gerente', 'vendedor'],
+    },
+    {
+      title: 'Materiais de Criação',
+      value: stats.totalCreationFiles,
+      icon: Palette,
+      description: 'Recursos criativos',
+      color: 'text-role-criacao',
+      bgColor: 'bg-role-criacao/10',
+      href: '/materiais-criacao',
+      roles: ['dev', 'criacao'],
     },
     {
       title: 'Usuários',
