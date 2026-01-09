@@ -171,7 +171,7 @@ const Dashboard: React.FC = () => {
       description: 'Recursos criativos',
       color: 'text-role-criacao',
       bgColor: 'bg-role-criacao/10',
-      href: '/materiais-criacao',
+      href: '/material-criacao',
       roles: ['dev', 'criacao'],
     },
     {
@@ -216,7 +216,7 @@ const Dashboard: React.FC = () => {
       icon: Palette,
       color: 'text-role-criacao',
       bgColor: 'bg-role-criacao/10',
-      href: '/materiais-criacao',
+      href: '/material-criacao',
       roles: ['dev', 'criacao'],
     },
     {
