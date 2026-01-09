@@ -16,7 +16,8 @@ import {
   TicketIcon,
   ArrowRight,
   Link2,
-  ExternalLink
+  ExternalLink,
+  Palette
 } from 'lucide-react';
 import RoleBadge from '@/components/RoleBadge';
 import { Badge } from '@/components/ui/badge';
@@ -188,6 +189,15 @@ const Dashboard: React.FC = () => {
       roles: ['dev', 'admin', 'gerente', 'vendedor'],
     },
     {
+      title: 'Materiais de Criação',
+      description: 'Arquivos e recursos criativos',
+      icon: Palette,
+      color: 'text-role-criacao',
+      bgColor: 'bg-role-criacao/10',
+      href: '/materiais-criacao',
+      roles: ['dev', 'criacao'],
+    },
+    {
       title: 'Notificações',
       description: 'Veja os avisos recentes',
       icon: Bell,
@@ -203,7 +213,7 @@ const Dashboard: React.FC = () => {
       color: 'text-role-gerente',
       bgColor: 'bg-role-gerente/10',
       href: '/ajuda',
-      roles: ['dev', 'admin', 'gerente', 'vendedor'],
+      roles: ['dev', 'admin', 'gerente', 'vendedor', 'criacao'],
     },
     {
       title: 'Gerenciar Usuários',
