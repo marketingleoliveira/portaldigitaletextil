@@ -27,6 +27,21 @@ const whatsappSchema = z.string()
   .optional()
   .or(z.literal(''));
 
+// Format phone number to Brazilian format (XX) XXXXX-XXXX
+const formatWhatsappNumber = (value: string): string => {
+  // Remove all non-digit characters
+  const digits = value.replace(/\D/g, '');
+  
+  // Limit to 11 digits (2 DDD + 9 phone)
+  const limitedDigits = digits.slice(0, 11);
+  
+  // Apply mask based on number of digits
+  if (limitedDigits.length === 0) return '';
+  if (limitedDigits.length <= 2) return `(${limitedDigits}`;
+  if (limitedDigits.length <= 7) return `(${limitedDigits.slice(0, 2)}) ${limitedDigits.slice(2)}`;
+  return `(${limitedDigits.slice(0, 2)}) ${limitedDigits.slice(2, 7)}-${limitedDigits.slice(7)}`;
+};
+
 const Profile: React.FC = () => {
   const { user, updatePassword } = useAuth();
   const { toast } = useToast();
@@ -374,10 +389,11 @@ const Profile: React.FC = () => {
                     <div className="flex items-center gap-2 mt-1">
                       <Input
                         value={editedWhatsapp}
-                        onChange={(e) => setEditedWhatsapp(e.target.value)}
+                        onChange={(e) => setEditedWhatsapp(formatWhatsappNumber(e.target.value))}
                         className="max-w-xs h-8"
                         placeholder="(11) 99999-9999"
                         disabled={savingWhatsapp}
+                        maxLength={16}
                       />
                       <Button 
                         size="icon" 
