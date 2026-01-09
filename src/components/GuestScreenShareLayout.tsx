@@ -183,8 +183,8 @@ export default function GuestScreenShareLayout({
                     </div>
                   )}
                   <div className="absolute bottom-1 left-1 right-1 flex items-center justify-between">
-                    <span className="px-1 py-0.5 bg-black/60 rounded text-white text-[10px] sm:text-xs truncate max-w-[70%]">
-                      Você
+                    <span className="px-1 py-0.5 bg-black/60 rounded text-white text-[10px] sm:text-xs truncate max-w-[85%]">
+                      Você <span className="text-gray-300">(Convidado)</span>
                     </span>
                     <div className="flex items-center gap-0.5">
                       {isMuted && <MicOff className="w-2.5 h-2.5 text-red-500" />}

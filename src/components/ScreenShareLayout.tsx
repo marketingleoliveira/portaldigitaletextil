@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { MicOff, Hand, Volume2, ScreenShare, ChevronLeft, ChevronRight } from "lucide-react";
 import { DailyParticipant } from "@daily-co/daily-js";
+import { ROLE_LABELS, AppRole } from "@/types/auth";
 
 interface ParticipantWithExtras extends DailyParticipant {
   isSpeaking?: boolean;
@@ -15,6 +16,7 @@ interface ScreenShareLayoutProps {
   localVideoRef: React.RefObject<HTMLVideoElement>;
   isVideoOn: boolean;
   user: any;
+  userRole: AppRole | null;
   isMuted: boolean;
   handRaised: boolean;
   speakingParticipants: Set<string>;
@@ -33,6 +35,7 @@ export default function ScreenShareLayout({
   localVideoRef,
   isVideoOn,
   user,
+  userRole,
   isMuted,
   handRaised,
   speakingParticipants,
@@ -44,6 +47,9 @@ export default function ScreenShareLayout({
   meeting,
 }: ScreenShareLayoutProps) {
   const [currentPage, setCurrentPage] = useState(0);
+  
+  // Get role label for display
+  const roleLabel = userRole ? ROLE_LABELS[userRole] : '';
 
   // Sort participants: host first, then by name
   const sortedParticipants = [...remoteParticipants].sort((a, b) => {
@@ -189,12 +195,12 @@ export default function ScreenShareLayout({
                     </div>
                   )}
                   <div className="absolute bottom-1 left-1 right-1 flex items-center justify-between">
-                    <span className="px-1 py-0.5 bg-black/60 rounded text-white text-[10px] sm:text-xs truncate max-w-[70%] flex items-center gap-0.5">
+                    <span className="px-1 py-0.5 bg-black/60 rounded text-white text-[10px] sm:text-xs truncate max-w-[85%] flex items-center gap-0.5">
                       {speakingParticipants.has(participants.local?.session_id || "") && (
                         <Volume2 className="w-2 h-2 text-green-500 animate-pulse" />
                       )}
                       {camera.isHostCamera && <span className="text-primary font-medium">★</span>}
-                      Você
+                      Você {roleLabel && <span className="text-gray-300">({roleLabel})</span>}
                     </span>
                     <div className="flex items-center gap-0.5">
                       {isMuted && <MicOff className="w-2.5 h-2.5 text-red-500" />}

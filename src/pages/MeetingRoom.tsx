@@ -23,6 +23,7 @@ import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import ScreenShareLayout from "@/components/ScreenShareLayout";
+import { ROLE_LABELS } from "@/types/auth";
 
 interface Meeting {
   id: string;
@@ -276,10 +277,14 @@ export default function MeetingRoom() {
         setIsScreenSharing(false);
       });
 
-      // Join the meeting
+      // Join the meeting with name and role
+      const roleLabel = user.role ? ROLE_LABELS[user.role] : '';
+      const displayName = user.profile?.full_name || user.email || "Participante";
+      const userNameWithRole = roleLabel ? `${displayName} (${roleLabel})` : displayName;
+      
       await call.join({
         url: roomUrl,
-        userName: user.profile?.full_name || user.email || "Participante",
+        userName: userNameWithRole,
       });
 
       setCallObject(call);
@@ -1246,6 +1251,7 @@ export default function MeetingRoom() {
               localVideoRef={localVideoRef}
               isVideoOn={isVideoOn}
               user={user}
+              userRole={user?.role || null}
               isMuted={isMuted}
               handRaised={handRaised}
               speakingParticipants={speakingParticipants}
@@ -1293,11 +1299,11 @@ export default function MeetingRoom() {
                     </div>
                   )}
                   <div className="absolute bottom-2 left-2 sm:bottom-3 sm:left-3 flex items-center gap-1 sm:gap-2">
-                    <span className="px-1.5 sm:px-2 py-0.5 sm:py-1 bg-black/60 rounded text-white text-xs sm:text-sm truncate max-w-[120px] sm:max-w-none flex items-center gap-1">
+                    <span className="px-1.5 sm:px-2 py-0.5 sm:py-1 bg-black/60 rounded text-white text-xs sm:text-sm truncate max-w-[180px] sm:max-w-none flex items-center gap-1">
                       {speakingParticipants.has(participants.local?.session_id || "") && (
                         <Volume2 className="w-3 h-3 text-green-500 animate-pulse" />
                       )}
-                      {user?.profile?.full_name} (Você)
+                      {user?.profile?.full_name} {user?.role && `(${ROLE_LABELS[user.role]})`} - Você
                     </span>
                     {isMuted && <MicOff className="w-3 h-3 sm:w-4 sm:h-4 text-red-500" />}
                     {handRaised && <Hand className="w-3 h-3 sm:w-4 sm:h-4 text-yellow-500 animate-bounce" />}
