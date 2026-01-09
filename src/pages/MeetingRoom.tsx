@@ -25,6 +25,7 @@ import { ptBR } from "date-fns/locale";
 import ScreenShareLayout from "@/components/ScreenShareLayout";
 import { ScreenShareOptionsModal, ScreenShareType } from "@/components/ScreenShareOptionsModal";
 import { ScreenSharePreview } from "@/components/ScreenSharePreview";
+import { ScreenShareIndicator } from "@/components/ScreenShareIndicator";
 import { ROLE_LABELS } from "@/types/auth";
 import { ROLE_TEXT_COLORS, formatParticipantName } from "@/lib/meeting-utils";
 import { setUserInMeeting } from "@/hooks/useUserPresence";
@@ -1377,6 +1378,16 @@ export default function MeetingRoom() {
     ([_, p]) => p.tracks?.screenVideo?.state === 'playable'
   );
 
+  // Get the name of the screen sharer
+  const getScreenSharerName = (): string | null => {
+    if (!screenSharingParticipant) return null;
+    const [_, participant] = screenSharingParticipant;
+    if (participant.local) return null; // We use ScreenSharePreview for local
+    return participant.user_name || "Participante";
+  };
+  
+  const screenSharerName = getScreenSharerName();
+
   if (loading) {
     return (
       <div className="h-screen bg-gray-900 flex items-center justify-center">
@@ -1527,6 +1538,13 @@ export default function MeetingRoom() {
             </div>
           ))}
         </div>
+
+        {/* Screen Share Indicator - shows who is sharing */}
+        {screenSharerName && (
+          <div className="absolute top-2 left-1/2 -translate-x-1/2 z-40">
+            <ScreenShareIndicator sharerName={screenSharerName} />
+          </div>
+        )}
 
         {/* Video grid - different layout when screen sharing */}
         <div className="flex-1 p-2 sm:p-4 flex overflow-hidden">
