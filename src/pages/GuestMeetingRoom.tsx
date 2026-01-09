@@ -1045,42 +1045,52 @@ export default function GuestMeetingRoom() {
       videoStateBeforeScreenShareRef.current = wasVideoOn;
       console.log("Saving video state before screen share:", wasVideoOn);
       
-      // Configure display media constraints based on selection
-      const displayMediaOptions: any = {
+      // Manually capture screen with system audio using getDisplayMedia
+      // This ensures we get system audio which Daily.co may not capture by default
+      const displayMediaConstraints: DisplayMediaStreamOptions = {
+        video: {
+          displaySurface: type === 'screen' ? 'monitor' : type === 'window' ? 'window' : 'browser',
+          frameRate: { ideal: 30 },
+        } as MediaTrackConstraints,
+        audio: {
+          // Request system audio - this is crucial for video playback sound
+          suppressLocalAudioPlayback: false,
+          noiseSuppression: false,
+          autoGainControl: false,
+          echoCancellation: false,
+        } as MediaTrackConstraints,
+      };
+      
+      // Add additional hints based on type
+      const extendedConstraints = displayMediaConstraints as any;
+      if (type === 'tab') {
+        extendedConstraints.preferCurrentTab = false;
+        extendedConstraints.selfBrowserSurface = 'include';
+      }
+      extendedConstraints.systemAudio = 'include'; // Force include system audio
+      extendedConstraints.surfaceSwitching = 'include';
+      
+      console.log("Requesting screen capture with constraints:", extendedConstraints);
+      
+      // Get the media stream with system audio
+      const screenStream = await navigator.mediaDevices.getDisplayMedia(extendedConstraints);
+      
+      const hasAudioTrack = screenStream.getAudioTracks().length > 0;
+      console.log("Screen stream obtained, has audio:", hasAudioTrack, "audio tracks:", screenStream.getAudioTracks());
+      
+      if (hasAudioTrack) {
+        toast.success("Compartilhamento com áudio do sistema ativado");
+      } else {
+        toast.info("Compartilhamento iniciado (sem áudio do sistema - verifique as configurações)");
+      }
+      
+      // Pass the captured stream to Daily.co
+      await callObject.startScreenShare({
+        mediaStream: screenStream,
         screenVideoSendSettings: {
           maxQuality: 'high',
         },
-        // Enable audio capture for screen sharing (important for sharing videos/tabs with sound)
-        screenAudioSendSettings: {
-          channelConfig: 'stereo',
-        },
-      };
-
-      // For browser tabs, we can hint at preferCurrentTab
-      if (type === 'tab') {
-        displayMediaOptions.displayMediaOptions = {
-          preferCurrentTab: false,
-          selfBrowserSurface: 'include',
-          surfaceSwitching: 'include',
-          monitorTypeSurfaces: 'exclude',
-          audio: true, // Request tab audio
-        };
-      } else if (type === 'window') {
-        displayMediaOptions.displayMediaOptions = {
-          monitorTypeSurfaces: 'exclude',
-          surfaceSwitching: 'include',
-          audio: true, // Request system audio
-        };
-      } else {
-        // Full screen
-        displayMediaOptions.displayMediaOptions = {
-          monitorTypeSurfaces: 'include',
-          surfaceSwitching: 'include',
-          audio: true, // Request system audio
-        };
-      }
-
-      await callObject.startScreenShare(displayMediaOptions);
+      } as any);
       
       // Ensure camera stays on after screen share starts (Daily may turn it off by default)
       // Use multiple attempts to be more robust
