@@ -7,6 +7,13 @@ const DURATION_UPDATE_INTERVAL = 1000; // Update duration every second
 const INACTIVITY_WARNING = 5 * 60 * 1000; // 5 minutes
 const INACTIVITY_LOGOUT = 10 * 60 * 1000; // 10 minutes
 
+// Global flag to check if user is in a meeting (set by MeetingRoom)
+let isUserInMeeting = false;
+
+export const setUserInMeeting = (value: boolean) => {
+  isUserInMeeting = value;
+};
+
 export const useUserPresence = () => {
   const { user, signOut } = useAuth();
   const sessionIdRef = useRef<string | null>(null);
@@ -149,8 +156,15 @@ export const useUserPresence = () => {
     }
   }, [user?.id, updatePresence]);
 
-  // Check for inactivity
+  // Check for inactivity (skip if user is in a meeting)
   const checkInactivity = useCallback(async () => {
+    // Skip inactivity check if user is in a meeting
+    if (isUserInMeeting) {
+      // Reset activity to prevent logout when leaving meeting
+      lastActivityRef.current = Date.now();
+      return;
+    }
+
     const now = Date.now();
     const inactiveTime = now - lastActivityRef.current;
 
@@ -195,8 +209,13 @@ export const useUserPresence = () => {
       checkInactivity();
     }, 1000);
 
-    // Handle visibility change
+    // Handle visibility change (skip if user is in a meeting)
     const handleVisibilityChange = async () => {
+      // If user is in a meeting, don't change presence status
+      if (isUserInMeeting) {
+        return;
+      }
+
       if (document.hidden) {
         // User minimized or switched tabs - mark as offline immediately
         await updateSessionDuration();

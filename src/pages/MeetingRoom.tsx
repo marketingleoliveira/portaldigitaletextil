@@ -25,6 +25,7 @@ import { ptBR } from "date-fns/locale";
 import ScreenShareLayout from "@/components/ScreenShareLayout";
 import { ROLE_LABELS } from "@/types/auth";
 import { ROLE_TEXT_COLORS, formatParticipantName } from "@/lib/meeting-utils";
+import { setUserInMeeting } from "@/hooks/useUserPresence";
 
 interface Meeting {
   id: string;
@@ -361,10 +362,12 @@ export default function MeetingRoom() {
 
   useEffect(() => {
     if (code && user) {
+      setUserInMeeting(true);
       initializeMeeting();
     }
     
     return () => {
+      setUserInMeeting(false);
       cleanup();
     };
   }, [code, user]);

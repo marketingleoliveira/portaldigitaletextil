@@ -19,6 +19,7 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import GuestScreenShareLayout from "@/components/GuestScreenShareLayout";
 import { formatParticipantName } from "@/lib/meeting-utils";
+import { setUserInMeeting } from "@/hooks/useUserPresence";
 
 interface Meeting {
   id: string;
@@ -339,10 +340,12 @@ export default function GuestMeetingRoom() {
   // Initialize meeting
   useEffect(() => {
     if (code && guestInfo) {
+      setUserInMeeting(true);
       initializeMeeting();
     }
     
     return () => {
+      setUserInMeeting(false);
       cleanup();
     };
   }, [code, guestInfo]);
