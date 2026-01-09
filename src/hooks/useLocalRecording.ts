@@ -1,20 +1,22 @@
 import { useState, useRef, useCallback } from 'react';
 import { toast } from 'sonner';
+import DailyIframe, { DailyCall } from '@daily-co/daily-js';
 
 interface UseLocalRecordingOptions {
   meetingTitle?: string;
+  autoDownload?: boolean;
 }
 
 interface UseLocalRecordingReturn {
   isLocalRecording: boolean;
   localRecordingStartTime: Date | null;
-  startLocalRecording: (stream?: MediaStream) => Promise<boolean>;
+  startLocalRecording: (callObject?: DailyCall) => Promise<boolean>;
   stopLocalRecording: () => Promise<Blob | null>;
   downloadRecording: (blob: Blob, filename?: string) => void;
   recordedBlob: Blob | null;
 }
 
-export function useLocalRecording({ meetingTitle }: UseLocalRecordingOptions = {}): UseLocalRecordingReturn {
+export function useLocalRecording({ meetingTitle, autoDownload = true }: UseLocalRecordingOptions = {}): UseLocalRecordingReturn {
   const [isLocalRecording, setIsLocalRecording] = useState(false);
   const [localRecordingStartTime, setLocalRecordingStartTime] = useState<Date | null>(null);
   const [recordedBlob, setRecordedBlob] = useState<Blob | null>(null);
@@ -22,62 +24,132 @@ export function useLocalRecording({ meetingTitle }: UseLocalRecordingOptions = {
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
   const streamRef = useRef<MediaStream | null>(null);
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const meetingTitleRef = useRef<string | undefined>(meetingTitle);
 
-  const startLocalRecording = useCallback(async (existingStream?: MediaStream): Promise<boolean> => {
+  // Keep meetingTitle ref updated
+  meetingTitleRef.current = meetingTitle;
+
+  const downloadRecording = useCallback((blob: Blob, filename?: string) => {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    
+    const date = new Date().toISOString().split('T')[0];
+    const time = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }).replace(':', '-');
+    const safeName = meetingTitleRef.current?.replace(/[^a-zA-Z0-9]/g, '_') || 'reuniao';
+    
+    a.download = filename || `${safeName}_${date}_${time}.webm`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    
+    toast.success('Gravação baixada com sucesso!');
+  }, []);
+
+  const startLocalRecording = useCallback(async (callObject?: DailyCall): Promise<boolean> => {
     try {
       let stream: MediaStream;
+      const tracks: MediaStreamTrack[] = [];
       
-      if (existingStream) {
-        stream = existingStream;
-      } else {
-        // Capture screen and audio
-        const displayStream = await navigator.mediaDevices.getDisplayMedia({
-          video: {
-            displaySurface: 'browser',
-            width: { ideal: 1920 },
-            height: { ideal: 1080 },
-            frameRate: { ideal: 30 }
-          },
-          audio: true
-        });
-
-        // Try to get microphone audio
-        try {
-          const audioStream = await navigator.mediaDevices.getUserMedia({
-            audio: {
-              echoCancellation: true,
-              noiseSuppression: true,
-              sampleRate: 44100
+      // If we have a Daily call object, capture directly from the meeting
+      if (callObject) {
+        const participants = callObject.participants();
+        
+        // Get local participant tracks
+        const localParticipant = participants.local;
+        if (localParticipant) {
+          // Get local video track
+          const localVideoTrack = localParticipant.tracks?.video?.track;
+          if (localVideoTrack) {
+            tracks.push(localVideoTrack);
+          }
+          
+          // Get local screen share track if sharing
+          const localScreenTrack = localParticipant.tracks?.screenVideo?.track;
+          if (localScreenTrack) {
+            tracks.push(localScreenTrack);
+          }
+        }
+        
+        // Create audio context to mix all audio sources
+        const audioContext = new AudioContext();
+        audioContextRef.current = audioContext;
+        const destination = audioContext.createMediaStreamDestination();
+        
+        // Add local audio
+        const localAudioTrack = localParticipant?.tracks?.audio?.track;
+        if (localAudioTrack) {
+          try {
+            const localAudioSource = audioContext.createMediaStreamSource(new MediaStream([localAudioTrack]));
+            localAudioSource.connect(destination);
+          } catch (err) {
+            console.warn('Could not add local audio to recording:', err);
+          }
+        }
+        
+        // Add remote participants' audio
+        Object.entries(participants).forEach(([sessionId, participant]) => {
+          if (sessionId !== 'local' && participant.tracks?.audio?.track) {
+            try {
+              const remoteAudioSource = audioContext.createMediaStreamSource(
+                new MediaStream([participant.tracks.audio.track])
+              );
+              remoteAudioSource.connect(destination);
+            } catch (err) {
+              console.warn('Could not add remote audio to recording:', err);
             }
+          }
+        });
+        
+        // Add mixed audio to tracks
+        destination.stream.getAudioTracks().forEach(track => tracks.push(track));
+        
+        // If no video tracks from meeting, capture the viewport
+        if (!tracks.some(t => t.kind === 'video')) {
+          // Fallback: capture the current tab/window without user selection
+          try {
+            const displayStream = await navigator.mediaDevices.getDisplayMedia({
+              video: {
+                displaySurface: 'browser',
+                width: { ideal: 1920 },
+                height: { ideal: 1080 },
+                frameRate: { ideal: 30 }
+              },
+              audio: false,
+              // @ts-ignore - preferCurrentTab is a Chrome-specific option
+              preferCurrentTab: true
+            });
+            displayStream.getVideoTracks().forEach(track => tracks.push(track));
+          } catch (displayErr) {
+            console.error('Could not capture display:', displayErr);
+            toast.error('Não foi possível capturar a tela da reunião');
+            return false;
+          }
+        }
+        
+        stream = new MediaStream(tracks);
+      } else {
+        // Fallback: capture the current tab automatically
+        try {
+          const displayStream = await navigator.mediaDevices.getDisplayMedia({
+            video: {
+              displaySurface: 'browser',
+              width: { ideal: 1920 },
+              height: { ideal: 1080 },
+              frameRate: { ideal: 30 }
+            },
+            audio: true,
+            // @ts-ignore - preferCurrentTab is a Chrome-specific option
+            preferCurrentTab: true
           });
           
-          // Combine video from screen with audio from microphone
-          const audioTracks = audioStream.getAudioTracks();
-          const displayAudioTracks = displayStream.getAudioTracks();
-          
-          // Create audio context to mix both audio sources
-          const audioContext = new AudioContext();
-          const destination = audioContext.createMediaStreamDestination();
-          
-          if (displayAudioTracks.length > 0) {
-            const displaySource = audioContext.createMediaStreamSource(new MediaStream(displayAudioTracks));
-            displaySource.connect(destination);
-          }
-          
-          if (audioTracks.length > 0) {
-            const micSource = audioContext.createMediaStreamSource(new MediaStream(audioTracks));
-            micSource.connect(destination);
-          }
-          
-          // Create combined stream with display video and mixed audio
-          stream = new MediaStream([
-            ...displayStream.getVideoTracks(),
-            ...destination.stream.getAudioTracks()
-          ]);
-          
-        } catch (micError) {
-          console.log('Microphone not available, recording screen audio only');
           stream = displayStream;
+        } catch (displayErr) {
+          console.error('Could not capture display:', displayErr);
+          toast.error('Não foi possível iniciar a gravação');
+          return false;
         }
       }
 
@@ -129,13 +201,40 @@ export function useLocalRecording({ meetingTitle }: UseLocalRecordingOptions = {
         if (streamRef.current) {
           streamRef.current.getTracks().forEach(track => track.stop());
         }
+        
+        // Close audio context
+        if (audioContextRef.current) {
+          audioContextRef.current.close();
+          audioContextRef.current = null;
+        }
+        
+        // Auto download if enabled
+        if (autoDownload && blob.size > 0) {
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          
+          const date = new Date().toISOString().split('T')[0];
+          const time = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }).replace(':', '-');
+          const safeName = meetingTitleRef.current?.replace(/[^a-zA-Z0-9]/g, '_') || 'reuniao';
+          
+          a.download = `${safeName}_${date}_${time}.webm`;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          URL.revokeObjectURL(url);
+          
+          toast.success('Gravação baixada com sucesso!');
+        }
       };
 
       // Handle when user stops screen sharing via browser UI
       stream.getVideoTracks()[0]?.addEventListener('ended', () => {
         if (mediaRecorderRef.current?.state === 'recording') {
-          toast.info('Compartilhamento de tela encerrado, parando gravação...');
-          stopLocalRecording();
+          toast.info('Gravação encerrada');
+          mediaRecorderRef.current.stop();
+          setIsLocalRecording(false);
+          setLocalRecordingStartTime(null);
         }
       });
 
@@ -151,7 +250,7 @@ export function useLocalRecording({ meetingTitle }: UseLocalRecordingOptions = {
       console.error('Error starting local recording:', error);
       
       if (error.name === 'NotAllowedError') {
-        toast.error('Permissão de captura de tela negada');
+        toast.error('Permissão de captura negada');
       } else if (error.name === 'NotFoundError') {
         toast.error('Nenhuma fonte de captura encontrada');
       } else {
@@ -160,7 +259,7 @@ export function useLocalRecording({ meetingTitle }: UseLocalRecordingOptions = {
       
       return false;
     }
-  }, []);
+  }, [autoDownload]);
 
   const stopLocalRecording = useCallback(async (): Promise<Blob | null> => {
     return new Promise((resolve) => {
@@ -171,9 +270,10 @@ export function useLocalRecording({ meetingTitle }: UseLocalRecordingOptions = {
         return;
       }
 
+      const currentMimeType = mediaRecorderRef.current.mimeType || 'video/webm';
+      
       mediaRecorderRef.current.onstop = () => {
-        const mimeType = mediaRecorderRef.current?.mimeType || 'video/webm';
-        const blob = new Blob(chunksRef.current, { type: mimeType });
+        const blob = new Blob(chunksRef.current, { type: currentMimeType });
         setRecordedBlob(blob);
         setIsLocalRecording(false);
         setLocalRecordingStartTime(null);
@@ -183,31 +283,39 @@ export function useLocalRecording({ meetingTitle }: UseLocalRecordingOptions = {
           streamRef.current.getTracks().forEach(track => track.stop());
         }
         
+        // Close audio context
+        if (audioContextRef.current) {
+          audioContextRef.current.close();
+          audioContextRef.current = null;
+        }
+        
         toast.success('Gravação local finalizada!');
+        
+        // Auto download if enabled
+        if (autoDownload && blob.size > 0) {
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          
+          const date = new Date().toISOString().split('T')[0];
+          const time = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }).replace(':', '-');
+          const safeName = meetingTitleRef.current?.replace(/[^a-zA-Z0-9]/g, '_') || 'reuniao';
+          
+          a.download = `${safeName}_${date}_${time}.webm`;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          URL.revokeObjectURL(url);
+          
+          toast.success('Gravação baixada com sucesso!');
+        }
+        
         resolve(blob);
       };
 
       mediaRecorderRef.current.stop();
     });
-  }, []);
-
-  const downloadRecording = useCallback((blob: Blob, filename?: string) => {
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    
-    const date = new Date().toISOString().split('T')[0];
-    const time = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }).replace(':', '-');
-    const safeName = meetingTitle?.replace(/[^a-zA-Z0-9]/g, '_') || 'reuniao';
-    
-    a.download = filename || `${safeName}_${date}_${time}.webm`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-    
-    toast.success('Gravação baixada com sucesso!');
-  }, [meetingTitle]);
+  }, [autoDownload]);
 
   return {
     isLocalRecording,
