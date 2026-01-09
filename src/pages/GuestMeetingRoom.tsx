@@ -18,6 +18,7 @@ import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import GuestScreenShareLayout from "@/components/GuestScreenShareLayout";
+import { formatParticipantName } from "@/lib/meeting-utils";
 
 interface Meeting {
   id: string;
@@ -878,42 +879,46 @@ export default function GuestMeetingRoom() {
                   </div>
 
                   {/* Remote participants */}
-                  {remoteParticipants.map(([sessionId, participant]) => (
-                    <div
-                      key={sessionId}
-                      className={cn(
-                        "relative bg-[#3c4043] rounded-lg overflow-hidden",
-                        speakingParticipants.has(sessionId) && "ring-2 ring-green-500",
-                        raisedHands.has(sessionId) && "ring-2 ring-yellow-500"
-                      )}
-                    >
-                      <video
-                        ref={(el) => { participantRefs.current[sessionId] = el; }}
-                        autoPlay
-                        playsInline
+                  {remoteParticipants.map(([sessionId, participant]) => {
+                    const { displayName, roleLabel, roleColorClass } = formatParticipantName(participant.user_name || "Participante");
+                    
+                    return (
+                      <div
+                        key={sessionId}
                         className={cn(
-                          "w-full h-full object-cover",
-                          !participant.video && "hidden"
+                          "relative bg-[#3c4043] rounded-lg overflow-hidden",
+                          speakingParticipants.has(sessionId) && "ring-2 ring-green-500",
+                          raisedHands.has(sessionId) && "ring-2 ring-yellow-500"
                         )}
-                      />
-                      {!participant.video && (
-                        <div className="absolute inset-0 flex items-center justify-center">
-                          <Avatar className="h-20 w-20">
-                            <AvatarFallback className="text-2xl bg-blue-600">
-                              {(participant.user_name || "P").charAt(0).toUpperCase()}
-                            </AvatarFallback>
-                          </Avatar>
+                      >
+                        <video
+                          ref={(el) => { participantRefs.current[sessionId] = el; }}
+                          autoPlay
+                          playsInline
+                          className={cn(
+                            "w-full h-full object-cover",
+                            !participant.video && "hidden"
+                          )}
+                        />
+                        {!participant.video && (
+                          <div className="absolute inset-0 flex items-center justify-center">
+                            <Avatar className="h-20 w-20">
+                              <AvatarFallback className="text-2xl bg-blue-600">
+                                {displayName.charAt(0).toUpperCase()}
+                              </AvatarFallback>
+                            </Avatar>
+                          </div>
+                        )}
+                        <div className="absolute bottom-2 left-2 flex items-center gap-2">
+                          <span className="text-white text-sm bg-black/50 px-2 py-1 rounded flex items-center gap-1">
+                            {displayName} {roleLabel && <span className={cn("font-medium", roleColorClass)}>({roleLabel})</span>}
+                          </span>
+                          {!participant.audio && <MicOff className="h-4 w-4 text-red-500" />}
+                          {raisedHands.has(sessionId) && <span className="text-lg">✋</span>}
                         </div>
-                      )}
-                      <div className="absolute bottom-2 left-2 flex items-center gap-2">
-                        <span className="text-white text-sm bg-black/50 px-2 py-1 rounded">
-                          {participant.user_name || "Participante"}
-                        </span>
-                        {!participant.audio && <MicOff className="h-4 w-4 text-red-500" />}
-                        {raisedHands.has(sessionId) && <span className="text-lg">✋</span>}
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
             )}

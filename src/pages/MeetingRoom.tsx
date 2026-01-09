@@ -24,6 +24,7 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import ScreenShareLayout from "@/components/ScreenShareLayout";
 import { ROLE_LABELS } from "@/types/auth";
+import { ROLE_TEXT_COLORS, formatParticipantName } from "@/lib/meeting-utils";
 
 interface Meeting {
   id: string;
@@ -1299,11 +1300,11 @@ export default function MeetingRoom() {
                     </div>
                   )}
                   <div className="absolute bottom-2 left-2 sm:bottom-3 sm:left-3 flex items-center gap-1 sm:gap-2">
-                    <span className="px-1.5 sm:px-2 py-0.5 sm:py-1 bg-black/60 rounded text-white text-xs sm:text-sm truncate max-w-[180px] sm:max-w-none flex items-center gap-1">
+                    <span className="px-1.5 sm:px-2 py-0.5 sm:py-1 bg-black/60 rounded text-white text-xs sm:text-sm truncate max-w-[200px] sm:max-w-none flex items-center gap-1">
                       {speakingParticipants.has(participants.local?.session_id || "") && (
                         <Volume2 className="w-3 h-3 text-green-500 animate-pulse" />
                       )}
-                      {user?.profile?.full_name} {user?.role && `(${ROLE_LABELS[user.role]})`} - Você
+                      {user?.profile?.full_name} {user?.role && <span className={cn("font-medium", ROLE_TEXT_COLORS[user.role])}>({ROLE_LABELS[user.role]})</span>} - Você
                     </span>
                     {isMuted && <MicOff className="w-3 h-3 sm:w-4 sm:h-4 text-red-500" />}
                     {handRaised && <Hand className="w-3 h-3 sm:w-4 sm:h-4 text-yellow-500 animate-bounce" />}
@@ -1315,6 +1316,7 @@ export default function MeetingRoom() {
                   const hasVideo = participant.video || participant.tracks?.video?.state === 'playable';
                   const isSpeaking = speakingParticipants.has(sessionId);
                   const hasHandRaised = raisedHands.has(sessionId);
+                  const { displayName, roleLabel, roleColorClass } = formatParticipantName(participant.user_name || "Participante");
                   
                   return (
                     <div
@@ -1337,17 +1339,17 @@ export default function MeetingRoom() {
                         <div className="absolute inset-0 flex items-center justify-center">
                           <Avatar className="w-14 h-14 sm:w-20 sm:h-20">
                             <AvatarFallback className="text-lg sm:text-2xl bg-primary">
-                              {participant.user_name?.charAt(0) || "P"}
+                              {displayName.charAt(0) || "P"}
                             </AvatarFallback>
                           </Avatar>
                         </div>
                       )}
                       <div className="absolute bottom-2 left-2 sm:bottom-3 sm:left-3 flex items-center gap-1 sm:gap-2">
-                        <span className="px-1.5 sm:px-2 py-0.5 sm:py-1 bg-black/60 rounded text-white text-xs sm:text-sm truncate max-w-[100px] sm:max-w-none flex items-center gap-1">
+                        <span className="px-1.5 sm:px-2 py-0.5 sm:py-1 bg-black/60 rounded text-white text-xs sm:text-sm truncate max-w-[180px] sm:max-w-none flex items-center gap-1">
                           {isSpeaking && (
                             <Volume2 className="w-3 h-3 text-green-500 animate-pulse" />
                           )}
-                          {participant.user_name || "Participante"}
+                          {displayName} {roleLabel && <span className={cn("font-medium", roleColorClass)}>({roleLabel})</span>}
                         </span>
                         {!participant.audio && <MicOff className="w-3 h-3 sm:w-4 sm:h-4 text-red-500" />}
                         {hasHandRaised && <Hand className="w-3 h-3 sm:w-4 sm:h-4 text-yellow-500 animate-bounce" />}
