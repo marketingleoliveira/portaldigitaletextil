@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
+import React, { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { AppRole, UserProfile, AuthUser } from '@/types/auth';
@@ -29,8 +29,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [loading, setLoading] = useState(true);
   const [userDataLoading, setUserDataLoading] = useState(false);
   const [userDataFetched, setUserDataFetched] = useState(false);
+  const lastFetchedUserIdRef = useRef<string | null>(null);
 
-  const fetchUserData = useCallback(async (authUser: User, isLogin: boolean = false) => {
+  const fetchUserData = useCallback(async (authUser: User, isLogin: boolean = false, force: boolean = false) => {
+    // Skip if we already fetched data for this user (unless forced)
+    if (!force && lastFetchedUserIdRef.current === authUser.id && userDataFetched) {
+      return;
+    }
     setUserDataLoading(true);
     setUserDataFetched(false);
     try {
@@ -105,8 +110,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } finally {
       setUserDataLoading(false);
       setUserDataFetched(true);
+      lastFetchedUserIdRef.current = authUser.id;
     }
-  }, []);
+  }, [userDataFetched]);
 
   useEffect(() => {
     let isMounted = true;
@@ -134,13 +140,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setSession(session);
         
         if (session?.user) {
-          // Only log IP on actual sign in events
+          // Only fetch on actual sign in, not on TOKEN_REFRESHED or other events
           const isLogin = event === 'SIGNED_IN';
-          setTimeout(() => {
-            fetchUserData(session.user, isLogin);
-          }, 0);
+          const shouldFetch = isLogin || event === 'USER_UPDATED';
+          
+          if (shouldFetch) {
+            setTimeout(() => {
+              fetchUserData(session.user, isLogin, isLogin);
+            }, 0);
+          }
         } else {
           setUser(null);
+          lastFetchedUserIdRef.current = null;
         }
         
         // Only set loading false if not already handled

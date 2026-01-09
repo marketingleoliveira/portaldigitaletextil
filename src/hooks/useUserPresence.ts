@@ -181,32 +181,51 @@ export const useUserPresence = () => {
     }
   }, [endSession, signOut]);
 
+  // Use refs for functions to avoid re-running effect
+  const startSessionRef = useRef(startSession);
+  const endSessionRef = useRef(endSession);
+  const updatePresenceRef = useRef(updatePresence);
+  const updateSessionDurationRef = useRef(updateSessionDuration);
+  const resetActivityRef = useRef(resetActivity);
+  const checkInactivityRef = useRef(checkInactivity);
+
+  useEffect(() => {
+    startSessionRef.current = startSession;
+    endSessionRef.current = endSession;
+    updatePresenceRef.current = updatePresence;
+    updateSessionDurationRef.current = updateSessionDuration;
+    resetActivityRef.current = resetActivity;
+    checkInactivityRef.current = checkInactivity;
+  });
+
   useEffect(() => {
     if (!user?.id) return;
 
     // Start session when hook mounts
-    startSession();
+    startSessionRef.current();
 
     // Activity event listeners
     const activityEvents = ['mousedown', 'mousemove', 'keydown', 'scroll', 'touchstart', 'click'];
     
+    const handleActivity = () => resetActivityRef.current();
+    
     activityEvents.forEach(event => {
-      document.addEventListener(event, resetActivity, { passive: true });
+      document.addEventListener(event, handleActivity, { passive: true });
     });
 
     // Heartbeat to keep presence alive
     heartbeatRef.current = setInterval(() => {
-      updatePresence(true);
+      updatePresenceRef.current(true);
     }, HEARTBEAT_INTERVAL);
 
     // Update duration every second for precise tracking
     durationUpdateRef.current = setInterval(() => {
-      updateSessionDuration();
+      updateSessionDurationRef.current();
     }, DURATION_UPDATE_INTERVAL);
 
     // Check inactivity every second
     inactivityCheckRef.current = setInterval(() => {
-      checkInactivity();
+      checkInactivityRef.current();
     }, 1000);
 
     // Handle visibility change (skip if user is in a meeting)
@@ -217,20 +236,19 @@ export const useUserPresence = () => {
       }
 
       if (document.hidden) {
-        // User minimized or switched tabs - mark as offline immediately
-        await updateSessionDuration();
-        await updatePresence(false);
+        // User minimized or switched tabs - update duration but DON'T mark offline
+        // This prevents the reload feeling
+        await updateSessionDurationRef.current();
       } else {
-        // User came back - mark as online
-        resetActivity();
-        await updatePresence(true);
+        // User came back - ensure we're marked online
+        resetActivityRef.current();
+        await updatePresenceRef.current(true);
       }
     };
 
     // Handle before unload - use synchronous approach for reliability
     const handleBeforeUnload = () => {
       // Mark session as ended and user as offline using synchronous XHR
-      // This is more reliable than sendBeacon for Supabase REST API
       if (sessionIdRef.current && sessionStartRef.current) {
         const now = new Date();
         const durationSeconds = Math.floor((now.getTime() - sessionStartRef.current.getTime()) / 1000);
@@ -284,14 +302,14 @@ export const useUserPresence = () => {
       }
       
       activityEvents.forEach(event => {
-        document.removeEventListener(event, resetActivity);
+        document.removeEventListener(event, handleActivity);
       });
       
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       window.removeEventListener('beforeunload', handleBeforeUnload);
-      endSession();
+      endSessionRef.current();
     };
-  }, [user?.id, startSession, endSession, updatePresence, updateSessionDuration, resetActivity, checkInactivity]);
+  }, [user?.id]); // Only depend on user?.id
 
   return { 
     updatePresence, 
