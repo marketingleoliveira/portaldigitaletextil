@@ -871,7 +871,7 @@ export default function GuestMeetingRoom() {
                     )}
                     <div className="absolute bottom-2 left-2 flex items-center gap-2">
                       <span className="text-white text-sm bg-black/50 px-2 py-1 rounded">
-                        {guestInfo.guestName} <span className="text-gray-300">(Convidado)</span>
+                        {guestInfo.guestName} <span className="text-amber-400 font-medium">(Convidado)</span>
                       </span>
                       {isMuted && <MicOff className="h-4 w-4 text-red-500" />}
                       {handRaised && <span className="text-lg">✋</span>}
