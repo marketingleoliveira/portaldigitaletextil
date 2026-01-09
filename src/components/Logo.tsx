@@ -31,7 +31,7 @@ const Logo: React.FC<LogoProps> = ({ className = '', size = 'md', variant = 'aut
       <img 
         src={getLogo()} 
         alt="Digitale Têxtil" 
-        className={`${sizes[size]} w-auto object-contain`}
+        className={`${sizes[size]} w-auto object-contain transition-all duration-300 hover:brightness-0 hover:invert hover:sepia hover:saturate-[10000%] hover:hue-rotate-[85deg]`}
       />
     </div>
   );
