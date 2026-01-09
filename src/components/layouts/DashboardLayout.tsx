@@ -6,6 +6,7 @@ import { useUserPresence } from "@/hooks/useUserPresence";
 import { useNewUpdates } from "@/hooks/useNewUpdates";
 import { useActiveMeetings } from "@/hooks/useActiveMeetings";
 import Logo from "@/components/Logo";
+import SustainabilityBadge from "@/components/SustainabilityBadge";
 import RoleBadge from "@/components/RoleBadge";
 import InactivityWarningModal from "@/components/InactivityWarningModal";
 import { Button } from "@/components/ui/button";
@@ -162,7 +163,10 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
           <div className="flex flex-col h-full">
             {/* Logo */}
             <div className="p-6 border-b border-sidebar-border">
-              <Logo variant="light" />
+              <div className="flex items-center gap-3">
+                <Logo variant="light" />
+                <SustainabilityBadge />
+              </div>
             </div>
 
             {/* Navigation */}
