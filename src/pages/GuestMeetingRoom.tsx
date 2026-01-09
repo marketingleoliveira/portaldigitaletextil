@@ -261,7 +261,7 @@ export default function GuestMeetingRoom() {
         isInitializingRef.current = false;
       });
 
-      // Screen share events
+      // Screen share events - handle all states properly
       call.on("local-screen-share-started", () => {
         console.log("Screen share started event received");
         setIsScreenSharing(true);
@@ -276,6 +276,31 @@ export default function GuestMeetingRoom() {
       call.on("local-screen-share-canceled", () => {
         console.log("Screen share canceled by user");
         setIsScreenSharing(false);
+      });
+
+      // Track when another participant starts/stops screen sharing
+      call.on("track-started", (event) => {
+        if (event?.track?.kind === 'video' && event?.participant && !event.participant.local) {
+          setParticipants(prev => ({
+            ...prev,
+            [event.participant.session_id]: {
+              ...prev[event.participant.session_id],
+              ...event.participant
+            }
+          }));
+        }
+      });
+
+      call.on("track-stopped", (event) => {
+        if (event?.track?.kind === 'video' && event?.participant && !event.participant.local) {
+          setParticipants(prev => ({
+            ...prev,
+            [event.participant.session_id]: {
+              ...prev[event.participant.session_id],
+              ...event.participant
+            }
+          }));
+        }
       });
 
       await call.join({
@@ -748,27 +773,63 @@ export default function GuestMeetingRoom() {
     }
   }, [isVideoOn, callObject, meeting, guestInfo, globalVideoEnabled]);
 
-  const toggleScreenShare = async () => {
+  const toggleScreenShare = useCallback(async () => {
     if (!callObject) {
       toast.error("Conexão não estabelecida");
       return;
     }
 
+    // Check if global screen share is disabled
+    if (!globalScreenShareEnabled) {
+      toast.error("O anfitrião desativou o compartilhamento de tela");
+      return;
+    }
+
     try {
-      if (isScreenSharing) {
+      // Get current screen share state directly from Daily
+      const localParticipant = callObject.participants().local;
+      const isCurrentlySharing = localParticipant?.screen;
+      
+      if (isCurrentlySharing || isScreenSharing) {
+        console.log("Stopping screen share...");
         await callObject.stopScreenShare();
+        setIsScreenSharing(false);
+        toast.info("Compartilhamento de tela encerrado");
       } else {
-        await callObject.startScreenShare();
+        console.log("Starting screen share...");
+        // Start screen share with optimal settings for background operation
+        await callObject.startScreenShare({
+          screenVideoSendSettings: {
+            maxQuality: 'high',
+          }
+        });
+        // State will be updated by the event listener
       }
     } catch (err: any) {
       console.error("Error toggling screen share:", err);
-      if (err?.message?.includes("NotAllowedError") || err?.type === "screen-share-error") {
+      
+      // Handle user cancellation gracefully
+      if (err?.message?.includes("NotAllowedError") || 
+          err?.name === "NotAllowedError" ||
+          err?.type === "screen-share-error" ||
+          err?.message?.includes("Permission denied") ||
+          err?.message?.includes("cancelled")) {
         console.log("Screen share cancelled by user or browser");
+        setIsScreenSharing(false);
         return;
       }
+      
+      // Handle macOS screen recording permission
+      if (err?.message?.includes("screen capture")) {
+        toast.error("Permissão de gravação de tela necessária. Verifique as configurações do sistema.");
+        setIsScreenSharing(false);
+        return;
+      }
+      
       toast.error("Erro ao compartilhar tela. Verifique as permissões do navegador.");
+      setIsScreenSharing(false);
     }
-  };
+  }, [callObject, isScreenSharing, globalScreenShareEnabled]);
 
   const toggleHandRaise = async () => {
     if (!meeting || !callObject) return;
