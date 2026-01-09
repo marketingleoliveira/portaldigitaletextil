@@ -1445,18 +1445,15 @@ export default function MeetingRoom() {
           ) : (
             // Normal grid layout
             <div className="flex-1 flex items-center justify-center overflow-auto">
-              <div className={cn(
-                "grid gap-2 sm:gap-4 w-full max-w-6xl",
-                participantCount <= 1 && "grid-cols-1",
-                participantCount === 2 && "grid-cols-1 sm:grid-cols-2",
-                participantCount <= 4 && participantCount > 2 && "grid-cols-2",
-                participantCount > 4 && "grid-cols-2 sm:grid-cols-3"
-              )}>
+              <div className="flex flex-wrap gap-4 justify-center items-center">
                 {/* Local video (self) */}
-                <div className={cn(
-                  "relative bg-gray-800 rounded-lg sm:rounded-xl overflow-hidden aspect-video transition-all duration-300",
-                  speakingParticipants.has(participants.local?.session_id || "") && "ring-4 ring-green-500"
-                )}>
+                <div 
+                  className={cn(
+                    "relative bg-gray-800 rounded-xl overflow-hidden transition-all duration-300 shrink-0",
+                    speakingParticipants.has(participants.local?.session_id || "") && "ring-4 ring-green-500"
+                  )}
+                  style={{ width: '300px', height: '250px' }}
+                >
                   <video
                     ref={localVideoRef}
                     autoPlay
@@ -1478,15 +1475,17 @@ export default function MeetingRoom() {
                       </Avatar>
                     </div>
                   )}
-                  <div className="absolute bottom-2 left-2 sm:bottom-3 sm:left-3 flex items-center gap-1 sm:gap-2">
-                    <span className="px-1.5 sm:px-2 py-0.5 sm:py-1 bg-black/60 rounded text-white text-xs sm:text-sm truncate max-w-[200px] sm:max-w-none flex items-center gap-1">
+                  <div className="absolute bottom-2 left-2 right-2 flex items-center justify-between">
+                    <span className="px-1.5 sm:px-2 py-0.5 sm:py-1 bg-black/60 rounded text-white text-xs sm:text-sm truncate max-w-[200px] flex items-center gap-1">
                       {speakingParticipants.has(participants.local?.session_id || "") && (
                         <Volume2 className="w-3 h-3 text-green-500 animate-pulse" />
                       )}
                       {user?.profile?.full_name} {user?.role && <span className={cn("font-medium", ROLE_TEXT_COLORS[user.role])}>({ROLE_LABELS[user.role]})</span>} - Você
                     </span>
-                    {isMuted && <MicOff className="w-3 h-3 sm:w-4 sm:h-4 text-red-500" />}
-                    {handRaised && <Hand className="w-3 h-3 sm:w-4 sm:h-4 text-yellow-500 animate-bounce" />}
+                    <div className="flex items-center gap-1">
+                      {isMuted && <MicOff className="w-3 h-3 sm:w-4 sm:h-4 text-red-500" />}
+                      {handRaised && <Hand className="w-3 h-3 sm:w-4 sm:h-4 text-yellow-500 animate-bounce" />}
+                    </div>
                   </div>
                 </div>
 
@@ -1501,9 +1500,10 @@ export default function MeetingRoom() {
                     <div
                       key={sessionId}
                       className={cn(
-                        "relative bg-gray-800 rounded-lg sm:rounded-xl overflow-hidden aspect-video transition-all duration-300",
+                        "relative bg-gray-800 rounded-xl overflow-hidden transition-all duration-300 shrink-0",
                         isSpeaking && "ring-4 ring-green-500"
                       )}
+                      style={{ width: '300px', height: '250px' }}
                     >
                       <video
                         ref={el => { participantRefs.current[sessionId] = el; }}
@@ -1523,15 +1523,17 @@ export default function MeetingRoom() {
                           </Avatar>
                         </div>
                       )}
-                      <div className="absolute bottom-2 left-2 sm:bottom-3 sm:left-3 flex items-center gap-1 sm:gap-2">
-                        <span className="px-1.5 sm:px-2 py-0.5 sm:py-1 bg-black/60 rounded text-white text-xs sm:text-sm truncate max-w-[180px] sm:max-w-none flex items-center gap-1">
+                      <div className="absolute bottom-2 left-2 right-2 flex items-center justify-between">
+                        <span className="px-1.5 sm:px-2 py-0.5 sm:py-1 bg-black/60 rounded text-white text-xs sm:text-sm truncate max-w-[200px] flex items-center gap-1">
                           {isSpeaking && (
                             <Volume2 className="w-3 h-3 text-green-500 animate-pulse" />
                           )}
                           {displayName} {roleLabel && <span className={cn("font-medium", roleColorClass)}>({roleLabel})</span>}
                         </span>
-                        {!participant.audio && <MicOff className="w-3 h-3 sm:w-4 sm:h-4 text-red-500" />}
-                        {hasHandRaised && <Hand className="w-3 h-3 sm:w-4 sm:h-4 text-yellow-500 animate-bounce" />}
+                        <div className="flex items-center gap-1">
+                          {!participant.audio && <MicOff className="w-3 h-3 sm:w-4 sm:h-4 text-red-500" />}
+                          {hasHandRaised && <Hand className="w-3 h-3 sm:w-4 sm:h-4 text-yellow-500 animate-bounce" />}
+                        </div>
                       </div>
                     </div>
                   );

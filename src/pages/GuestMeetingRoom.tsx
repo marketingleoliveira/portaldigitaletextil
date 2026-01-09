@@ -977,21 +977,16 @@ export default function GuestMeetingRoom() {
               />
             ) : (
               // Normal grid layout
-              <div className="flex-1 overflow-auto">
-                <div className={cn(
-                  "grid gap-2 h-full",
-                  participantCount <= 1 && "grid-cols-1",
-                  participantCount === 2 && "grid-cols-2",
-                  participantCount <= 4 && participantCount > 2 && "grid-cols-2 grid-rows-2",
-                  participantCount <= 6 && participantCount > 4 && "grid-cols-3 grid-rows-2",
-                  participantCount <= 9 && participantCount > 6 && "grid-cols-3 grid-rows-3",
-                  participantCount > 9 && "grid-cols-4 auto-rows-fr"
-                )}>
+              <div className="flex-1 flex items-center justify-center overflow-auto">
+                <div className="flex flex-wrap gap-4 justify-center items-center">
                   {/* Local video */}
-                  <div className={cn(
-                    "relative bg-[#3c4043] rounded-lg overflow-hidden",
-                    speakingParticipants.has(participants.local?.session_id || '') && "ring-2 ring-green-500"
-                  )}>
+                  <div 
+                    className={cn(
+                      "relative bg-[#3c4043] rounded-xl overflow-hidden shrink-0",
+                      speakingParticipants.has(participants.local?.session_id || '') && "ring-2 ring-green-500"
+                    )}
+                    style={{ width: '300px', height: '250px' }}
+                  >
                     <video
                       ref={localVideoRef}
                       autoPlay
@@ -1011,12 +1006,14 @@ export default function GuestMeetingRoom() {
                         </Avatar>
                       </div>
                     )}
-                    <div className="absolute bottom-2 left-2 flex items-center gap-2">
+                    <div className="absolute bottom-2 left-2 right-2 flex items-center justify-between">
                       <span className="text-white text-sm bg-black/50 px-2 py-1 rounded">
                         {guestInfo.guestName} <span className="text-amber-400 font-medium">(Convidado)</span>
                       </span>
-                      {isMuted && <MicOff className="h-4 w-4 text-red-500" />}
-                      {handRaised && <span className="text-lg">✋</span>}
+                      <div className="flex items-center gap-1">
+                        {isMuted && <MicOff className="h-4 w-4 text-red-500" />}
+                        {handRaised && <span className="text-lg">✋</span>}
+                      </div>
                     </div>
                   </div>
 
@@ -1028,10 +1025,11 @@ export default function GuestMeetingRoom() {
                       <div
                         key={sessionId}
                         className={cn(
-                          "relative bg-[#3c4043] rounded-lg overflow-hidden",
+                          "relative bg-[#3c4043] rounded-xl overflow-hidden shrink-0",
                           speakingParticipants.has(sessionId) && "ring-2 ring-green-500",
                           raisedHands.has(sessionId) && "ring-2 ring-yellow-500"
                         )}
+                        style={{ width: '300px', height: '250px' }}
                       >
                         <video
                           ref={(el) => { participantRefs.current[sessionId] = el; }}
@@ -1051,12 +1049,14 @@ export default function GuestMeetingRoom() {
                             </Avatar>
                           </div>
                         )}
-                        <div className="absolute bottom-2 left-2 flex items-center gap-2">
+                        <div className="absolute bottom-2 left-2 right-2 flex items-center justify-between">
                           <span className="text-white text-sm bg-black/50 px-2 py-1 rounded flex items-center gap-1">
                             {displayName} {roleLabel && <span className={cn("font-medium", roleColorClass)}>({roleLabel})</span>}
                           </span>
-                          {!participant.audio && <MicOff className="h-4 w-4 text-red-500" />}
-                          {raisedHands.has(sessionId) && <span className="text-lg">✋</span>}
+                          <div className="flex items-center gap-1">
+                            {!participant.audio && <MicOff className="h-4 w-4 text-red-500" />}
+                            {raisedHands.has(sessionId) && <span className="text-lg">✋</span>}
+                          </div>
                         </div>
                       </div>
                     );
