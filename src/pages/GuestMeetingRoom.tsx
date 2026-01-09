@@ -131,10 +131,14 @@ export default function GuestMeetingRoom() {
   // Screen share options modal
   const [showScreenShareOptions, setShowScreenShareOptions] = useState(false);
   
+  // Connection quality state
+  const [connectionQuality, setConnectionQuality] = useState<'good' | 'poor' | 'disconnected'>('good');
+  
   const localVideoRef = useRef<HTMLVideoElement>(null);
   const participantRefs = useRef<Record<string, HTMLVideoElement | null>>({});
   const audioRefs = useRef<Record<string, HTMLAudioElement | null>>({});
   const chatScrollRef = useRef<HTMLDivElement>(null);
+  const messagesChannelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
 
   // Load guest info from sessionStorage
   useEffect(() => {
@@ -265,6 +269,28 @@ export default function GuestMeetingRoom() {
         setParticipants({});
         callObjectRef.current = null;
         isInitializingRef.current = false;
+        setConnectionQuality('disconnected');
+      });
+
+      // Network quality monitoring
+      call.on("network-quality-change", (event) => {
+        if (event?.threshold) {
+          const quality = event.threshold;
+          if (quality === 'very-low' || quality === 'low') {
+            setConnectionQuality('poor');
+          } else {
+            setConnectionQuality('good');
+          }
+        }
+      });
+
+      call.on("network-connection", (event) => {
+        if (event?.event === 'connected') {
+          setConnectionQuality('good');
+        } else if (event?.event === 'interrupted') {
+          setConnectionQuality('poor');
+          toast.warning("Conexão instável detectada");
+        }
       });
 
       // Screen share events - handle all states properly
@@ -470,6 +496,38 @@ export default function GuestMeetingRoom() {
     };
   }, [meeting]);
 
+  // Subscribe to meeting end events
+  useEffect(() => {
+    if (!meeting?.id) return;
+
+    const channel = supabase
+      .channel(`meeting-status-${meeting.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'meetings',
+          filter: `id=eq.${meeting.id}`
+        },
+        (payload) => {
+          const updatedMeeting = payload.new as { is_active: boolean; ended_at: string | null };
+          if (!updatedMeeting.is_active || updatedMeeting.ended_at) {
+            toast.info("A reunião foi encerrada pelo anfitrião");
+            setTimeout(async () => {
+              await cleanup();
+              navigate("/");
+            }, 2000);
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [meeting?.id, navigate]);
+
   // Subscribe to hand raises
   useEffect(() => {
     if (!meeting?.id) return;
@@ -613,6 +671,12 @@ export default function GuestMeetingRoom() {
   }, [meeting?.id]);
 
   const cleanup = async () => {
+    // Clean up message subscription
+    if (messagesChannelRef.current) {
+      supabase.removeChannel(messagesChannelRef.current);
+      messagesChannelRef.current = null;
+    }
+    
     // Clean up audio elements
     Object.keys(audioRefs.current).forEach(sessionId => {
       const audioEl = audioRefs.current[sessionId];
@@ -635,6 +699,7 @@ export default function GuestMeetingRoom() {
     }
     setCallObject(null);
     setParticipants({});
+    setConnectionQuality('good');
     
     if (meeting && guestInfo) {
       await supabase
@@ -720,8 +785,13 @@ export default function GuestMeetingRoom() {
   };
 
   const subscribeToMessages = (meetingId: string) => {
-    supabase
-      .channel(`meeting-messages-${meetingId}`)
+    // Cleanup any existing subscription first
+    if (messagesChannelRef.current) {
+      supabase.removeChannel(messagesChannelRef.current);
+    }
+    
+    const channel = supabase
+      .channel(`guest-meeting-messages-${meetingId}`)
       .on(
         "postgres_changes",
         {
@@ -735,6 +805,8 @@ export default function GuestMeetingRoom() {
         }
       )
       .subscribe();
+    
+    messagesChannelRef.current = channel;
   };
 
   const toggleMute = useCallback(async () => {
@@ -1063,6 +1135,25 @@ export default function GuestMeetingRoom() {
             </span>
           </div>
           <div className="flex items-center gap-3">
+            {/* Connection quality indicator */}
+            {connectionQuality === 'poor' && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span className="flex items-center gap-1 text-orange-400">
+                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"/>
+                    </svg>
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent>Conexão instável</TooltipContent>
+              </Tooltip>
+            )}
+            {joiningDaily && (
+              <span className="flex items-center gap-1 text-yellow-400">
+                <Loader2 className="w-4 h-4 animate-spin" />
+                <span className="text-sm">Conectando...</span>
+              </span>
+            )}
             <span className="text-gray-400 text-sm">
               {format(new Date(), "HH:mm", { locale: ptBR })}
             </span>
