@@ -24,6 +24,7 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import ScreenShareLayout from "@/components/ScreenShareLayout";
 import { ScreenShareOptionsModal, ScreenShareType } from "@/components/ScreenShareOptionsModal";
+import { ScreenSharePreview } from "@/components/ScreenSharePreview";
 import { ROLE_LABELS } from "@/types/auth";
 import { ROLE_TEXT_COLORS, formatParticipantName } from "@/lib/meeting-utils";
 import { setUserInMeeting } from "@/hooks/useUserPresence";
@@ -2310,6 +2311,13 @@ export default function MeetingRoom() {
         open={showScreenShareOptions}
         onOpenChange={setShowScreenShareOptions}
         onSelect={startScreenShareWithType}
+      />
+
+      {/* Screen Share Preview */}
+      <ScreenSharePreview
+        callObject={callObject}
+        isSharing={isScreenSharing}
+        onStopSharing={toggleScreenShare}
       />
     </div>
   );
