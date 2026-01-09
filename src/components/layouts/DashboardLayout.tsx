@@ -60,7 +60,7 @@ interface NavItem {
 }
 
 const navItems: NavItem[] = [
-  { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard, roles: ["dev", "admin", "gerente", "vendedor"] },
+  { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard, roles: ["dev", "admin", "gerente", "vendedor", "criacao"] },
   { label: "Ponto", href: "/ponto", icon: Clock, roles: ["dev", "admin", "gerente", "vendedor"] },
   { label: "Reunião", href: "/reunioes", icon: Video, roles: ["dev", "admin", "gerente", "vendedor", "criacao"] },
   { label: "Localizar", href: "/localizar", icon: MapPin, roles: ["dev"] },
@@ -69,7 +69,7 @@ const navItems: NavItem[] = [
   { label: "Usuários", href: "/usuarios", icon: Users, roles: ["dev", "admin"] },
   { label: "Inativos", href: "/inativos", icon: UserX, roles: ["dev", "admin"] },
   { label: "Equipe", href: "/equipe", icon: UsersRound, roles: ["dev", "admin", "gerente", "vendedor", "criacao"] },
-  { label: "Arquivos", href: "/arquivos", icon: Upload, roles: ["dev", "admin", "criacao"] },
+  { label: "Arquivos", href: "/arquivos", icon: Upload, roles: ["dev", "admin"] },
   { label: "Relatórios", href: "/relatorios", icon: BarChart3, roles: ["dev", "admin", "gerente"] },
   { label: "Tabelas de Preços", href: "/precos", icon: DollarSign, roles: ["dev", "admin", "gerente", "vendedor"] },
   { label: "Materiais Comerciais", href: "/downloads", icon: FileText, roles: ["dev", "admin", "gerente", "vendedor"] },

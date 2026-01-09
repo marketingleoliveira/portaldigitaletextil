@@ -1147,30 +1147,33 @@ const CreationMaterials: React.FC = () => {
 
       {/* Preview Dialog */}
       <Dialog open={showPreviewDialog} onOpenChange={setShowPreviewDialog}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-auto">
+        <DialogContent className={cn(
+          "max-h-[95vh] overflow-auto",
+          previewFile?.file_type?.includes("pdf") ? "max-w-[95vw] w-full h-[95vh]" : "max-w-4xl"
+        )}>
           <DialogHeader>
             <DialogTitle>{previewFile?.name}</DialogTitle>
           </DialogHeader>
           {previewFile && (
-            <div className="flex items-center justify-center">
+            <div className="flex items-center justify-center flex-1">
               {previewFile.file_type?.includes("image") && (
                 <img
                   src={previewFile.file_url}
                   alt={previewFile.name}
-                  className="max-w-full max-h-[70vh] object-contain"
+                  className="max-w-full max-h-[80vh] object-contain"
                 />
               )}
               {previewFile.file_type?.includes("video") && (
                 <video
                   src={previewFile.file_url}
                   controls
-                  className="max-w-full max-h-[70vh]"
+                  className="max-w-full max-h-[80vh]"
                 />
               )}
               {previewFile.file_type?.includes("pdf") && (
                 <iframe
                   src={previewFile.file_url}
-                  className="w-full h-[70vh]"
+                  className="w-full h-[85vh] rounded-md"
                   title={previewFile.name}
                 />
               )}
