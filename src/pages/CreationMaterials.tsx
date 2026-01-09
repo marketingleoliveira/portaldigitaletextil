@@ -141,6 +141,10 @@ const CreationMaterials: React.FC = () => {
   // Edit states
   const [editingCategory, setEditingCategory] = useState<CreationCategory | null>(null);
   const [editingSubcategory, setEditingSubcategory] = useState<CreationSubcategory | null>(null);
+  const [editingFile, setEditingFile] = useState<CreationFile | null>(null);
+  const [editFileName, setEditFileName] = useState("");
+  const [editFileDescription, setEditFileDescription] = useState("");
+  const [showEditFileDialog, setShowEditFileDialog] = useState(false);
   
   // Preview/Delete states
   const [previewFile, setPreviewFile] = useState<CreationFile | null>(null);
@@ -505,6 +509,41 @@ const CreationMaterials: React.FC = () => {
     setShowSubcategoryDialog(true);
   };
 
+  const openEditFile = (file: CreationFile) => {
+    setEditingFile(file);
+    setEditFileName(file.name);
+    setEditFileDescription(file.description || "");
+    setShowEditFileDialog(true);
+  };
+
+  const handleUpdateFile = async () => {
+    if (!editingFile || !editFileName.trim()) {
+      toast.error("Nome do arquivo é obrigatório");
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from("creation_files")
+        .update({
+          name: editFileName.trim(),
+          description: editFileDescription.trim() || null,
+        })
+        .eq("id", editingFile.id);
+
+      if (error) throw error;
+      toast.success("Arquivo atualizado!");
+      setEditingFile(null);
+      setShowEditFileDialog(false);
+      setEditFileName("");
+      setEditFileDescription("");
+      fetchData();
+    } catch (error) {
+      console.error("Error updating file:", error);
+      toast.error("Erro ao atualizar arquivo");
+    }
+  };
+
   const openPreview = (file: CreationFile) => {
     setPreviewFile(file);
     setShowPreviewDialog(true);
@@ -671,6 +710,7 @@ const CreationMaterials: React.FC = () => {
                       key={file.id}
                       file={file}
                       onPreview={() => openPreview(file)}
+                      onEdit={() => openEditFile(file)}
                       onDelete={() => {
                         setDeleteItem({ type: "file", item: file });
                         setShowDeleteDialog(true);
@@ -715,6 +755,7 @@ const CreationMaterials: React.FC = () => {
                             key={file.id}
                             file={file}
                             onPreview={() => openPreview(file)}
+                            onEdit={() => openEditFile(file)}
                             onDelete={() => {
                               setDeleteItem({ type: "file", item: file });
                               setShowDeleteDialog(true);
@@ -753,6 +794,7 @@ const CreationMaterials: React.FC = () => {
                       key={file.id}
                       file={file}
                       onPreview={() => openPreview(file)}
+                      onEdit={() => openEditFile(file)}
                       onDelete={() => {
                         setDeleteItem({ type: "file", item: file });
                         setShowDeleteDialog(true);
@@ -1116,6 +1158,44 @@ const CreationMaterials: React.FC = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Edit File Dialog */}
+      <Dialog open={showEditFileDialog} onOpenChange={setShowEditFileDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Renomear Arquivo</DialogTitle>
+            <DialogDescription>
+              Altere o nome e descrição do arquivo
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label>Nome</Label>
+              <Input
+                value={editFileName}
+                onChange={(e) => setEditFileName(e.target.value)}
+                placeholder="Nome do arquivo"
+              />
+            </div>
+            <div>
+              <Label>Descrição (opcional)</Label>
+              <Textarea
+                value={editFileDescription}
+                onChange={(e) => setEditFileDescription(e.target.value)}
+                placeholder="Descrição do arquivo"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowEditFileDialog(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={handleUpdateFile}>
+              Salvar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </DashboardLayout>
   );
 };
@@ -1124,11 +1204,12 @@ const CreationMaterials: React.FC = () => {
 interface FileCardProps {
   file: CreationFile;
   onPreview: () => void;
+  onEdit: () => void;
   onDelete: () => void;
   canPreview: boolean;
 }
 
-const FileCard: React.FC<FileCardProps> = ({ file, onPreview, onDelete, canPreview }) => {
+const FileCard: React.FC<FileCardProps> = ({ file, onPreview, onEdit, onDelete, canPreview }) => {
   return (
     <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
       <div className="flex items-center gap-3">
@@ -1149,6 +1230,9 @@ const FileCard: React.FC<FileCardProps> = ({ file, onPreview, onDelete, canPrevi
             <Eye className="w-4 h-4" />
           </Button>
         )}
+        <Button variant="ghost" size="icon" onClick={onEdit}>
+          <Edit className="w-4 h-4" />
+        </Button>
         {file.is_external_link ? (
           <Button variant="ghost" size="icon" asChild>
             <a href={file.file_url} target="_blank" rel="noopener noreferrer">
