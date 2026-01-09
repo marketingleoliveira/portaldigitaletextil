@@ -140,8 +140,22 @@ const Team: React.FC = () => {
           <p className="text-muted-foreground text-sm line-clamp-1 mb-2">
             {member.email}
           </p>
-          <div className="flex items-center gap-2 mb-2">
+          <div className="flex items-center gap-1 mb-2">
             {member.role && <RoleBadge role={member.role} region={member.region} size="sm" />}
+            {member.phone && (
+              <Button
+                size="icon"
+                variant="ghost"
+                className="h-6 w-6 text-green-600 hover:text-green-700 hover:bg-green-100"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  window.open(formatWhatsappLink(member.phone!), '_blank');
+                }}
+                title="Abrir conversa no WhatsApp"
+              >
+                <MessageCircle className="w-3.5 h-3.5" />
+              </Button>
+            )}
             {member.linkedin && (
               <Button
                 size="icon"
