@@ -21,7 +21,11 @@ import {
   Image,
   Video,
   FileSpreadsheet,
-  File
+  File,
+  Presentation,
+  Music,
+  Archive,
+  Link as LinkIcon
 } from 'lucide-react';
 import RoleBadge from '@/components/RoleBadge';
 import { Badge } from '@/components/ui/badge';
@@ -32,9 +36,12 @@ interface FileTypeStats {
   pdf: number;
   word: number;
   excel: number;
+  powerpoint: number;
   image: number;
   video: number;
-  other: number;
+  audio: number;
+  zip: number;
+  link: number;
 }
 
 interface DashboardStats {
@@ -57,21 +64,29 @@ interface LinkFile {
   description: string | null;
 }
 
-const getFileTypeFromName = (fileName: string): keyof FileTypeStats => {
+const getFileTypeFromName = (fileName: string, isExternalLink?: boolean): keyof FileTypeStats | null => {
+  if (isExternalLink) return 'link';
   const ext = fileName.split('.').pop()?.toLowerCase() || '';
   if (ext === 'pdf') return 'pdf';
   if (['doc', 'docx'].includes(ext)) return 'word';
   if (['xls', 'xlsx', 'csv'].includes(ext)) return 'excel';
-  if (['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'].includes(ext)) return 'image';
-  if (['mp4', 'avi', 'mov', 'wmv', 'webm'].includes(ext)) return 'video';
-  return 'other';
+  if (['ppt', 'pptx'].includes(ext)) return 'powerpoint';
+  if (['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'bmp', 'ico'].includes(ext)) return 'image';
+  if (['mp4', 'avi', 'mov', 'wmv', 'webm', 'mkv'].includes(ext)) return 'video';
+  if (['mp3', 'wav', 'ogg', 'aac', 'flac'].includes(ext)) return 'audio';
+  if (['zip', 'rar', '7z', 'tar', 'gz'].includes(ext)) return 'zip';
+  return null;
 };
 
-const calculateFileBreakdown = (files: { name: string }[]): FileTypeStats => {
-  const breakdown: FileTypeStats = { pdf: 0, word: 0, excel: 0, image: 0, video: 0, other: 0 };
+const emptyBreakdown = (): FileTypeStats => ({ 
+  pdf: 0, word: 0, excel: 0, powerpoint: 0, image: 0, video: 0, audio: 0, zip: 0, link: 0 
+});
+
+const calculateFileBreakdown = (files: { name: string; is_external_link?: boolean }[]): FileTypeStats => {
+  const breakdown = emptyBreakdown();
   files.forEach(file => {
-    const type = getFileTypeFromName(file.name);
-    breakdown[type]++;
+    const type = getFileTypeFromName(file.name, file.is_external_link);
+    if (type) breakdown[type]++;
   });
   return breakdown;
 };
@@ -87,8 +102,8 @@ const Dashboard: React.FC = () => {
     unreadNotifications: 0,
     openTickets: 0,
     totalCreationFiles: 0,
-    filesBreakdown: { pdf: 0, word: 0, excel: 0, image: 0, video: 0, other: 0 },
-    creationFilesBreakdown: { pdf: 0, word: 0, excel: 0, image: 0, video: 0, other: 0 },
+    filesBreakdown: emptyBreakdown(),
+    creationFilesBreakdown: emptyBreakdown(),
   });
   const [linkFiles, setLinkFiles] = useState<LinkFile[]>([]);
   const [loading, setLoading] = useState(true);
@@ -109,7 +124,7 @@ const Dashboard: React.FC = () => {
         // Fetch files with names for breakdown
         const { data: filesData, count: filesCount } = await supabase
           .from('files')
-          .select('name', { count: 'exact' });
+          .select('name, is_external_link', { count: 'exact' });
         
         const filesBreakdown = calculateFileBreakdown(filesData || []);
 
@@ -121,7 +136,7 @@ const Dashboard: React.FC = () => {
 
         // Fetch creation files with names for breakdown (for criacao role)
         let creationFilesCount = 0;
-        let creationFilesBreakdown: FileTypeStats = { pdf: 0, word: 0, excel: 0, image: 0, video: 0, other: 0 };
+        let creationFilesBreakdown: FileTypeStats = emptyBreakdown();
         if (user?.role === 'criacao' || user?.role === 'dev') {
           const { data: creationData, count: creationCount } = await supabase
             .from('creation_files')
@@ -363,22 +378,40 @@ const Dashboard: React.FC = () => {
                               <span className="text-muted-foreground">{stat.breakdown.excel} Excel</span>
                             </div>
                           )}
+                          {stat.breakdown.powerpoint > 0 && (
+                            <div className="flex items-center gap-1.5">
+                              <Presentation className="w-3.5 h-3.5 text-orange-600" />
+                              <span className="text-muted-foreground">{stat.breakdown.powerpoint} PPT</span>
+                            </div>
+                          )}
                           {stat.breakdown.image > 0 && (
                             <div className="flex items-center gap-1.5">
                               <Image className="w-3.5 h-3.5 text-purple-500" />
-                              <span className="text-muted-foreground">{stat.breakdown.image} Img</span>
+                              <span className="text-muted-foreground">{stat.breakdown.image} Imagem</span>
                             </div>
                           )}
                           {stat.breakdown.video > 0 && (
                             <div className="flex items-center gap-1.5">
-                              <Video className="w-3.5 h-3.5 text-orange-500" />
+                              <Video className="w-3.5 h-3.5 text-pink-500" />
                               <span className="text-muted-foreground">{stat.breakdown.video} Vídeo</span>
                             </div>
                           )}
-                          {stat.breakdown.other > 0 && (
+                          {stat.breakdown.audio > 0 && (
                             <div className="flex items-center gap-1.5">
-                              <File className="w-3.5 h-3.5 text-muted-foreground" />
-                              <span className="text-muted-foreground">{stat.breakdown.other} Outros</span>
+                              <Music className="w-3.5 h-3.5 text-cyan-500" />
+                              <span className="text-muted-foreground">{stat.breakdown.audio} Áudio</span>
+                            </div>
+                          )}
+                          {stat.breakdown.zip > 0 && (
+                            <div className="flex items-center gap-1.5">
+                              <Archive className="w-3.5 h-3.5 text-yellow-600" />
+                              <span className="text-muted-foreground">{stat.breakdown.zip} ZIP</span>
+                            </div>
+                          )}
+                          {stat.breakdown.link > 0 && (
+                            <div className="flex items-center gap-1.5">
+                              <LinkIcon className="w-3.5 h-3.5 text-indigo-500" />
+                              <span className="text-muted-foreground">{stat.breakdown.link} Link</span>
                             </div>
                           )}
                         </div>
