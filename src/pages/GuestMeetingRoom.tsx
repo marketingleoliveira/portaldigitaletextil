@@ -294,10 +294,26 @@ export default function GuestMeetingRoom() {
       });
 
       // Screen share events - handle all states properly
-      call.on("local-screen-share-started", () => {
+      call.on("local-screen-share-started", async () => {
         console.log("Screen share started event received");
         setIsScreenSharing(true);
         toast.success("Compartilhamento de tela iniciado");
+        
+        // Ensure camera stays on - Daily may have turned it off
+        // Use a small delay to let the screen share fully initialize
+        setTimeout(async () => {
+          try {
+            const localParticipant = call.participants()?.local;
+            // If video was supposed to be on but got turned off, restore it
+            if (localParticipant && !localParticipant.video && localVideoRef.current) {
+              console.log("Camera was turned off by screen share, restoring...");
+              await call.setLocalVideo(true);
+              setIsVideoOn(true);
+            }
+          } catch (err) {
+            console.error("Error restoring camera after screen share:", err);
+          }
+        }, 300);
       });
 
       call.on("local-screen-share-stopped", () => {
@@ -889,6 +905,9 @@ export default function GuestMeetingRoom() {
     try {
       console.log("Starting screen share with type:", type);
       
+      // Store current video state to restore after screen share starts
+      const wasVideoOn = isVideoOn;
+      
       // Configure display media constraints based on selection
       const displayMediaOptions: any = {
         screenVideoSendSettings: {
@@ -918,6 +937,24 @@ export default function GuestMeetingRoom() {
       }
 
       await callObject.startScreenShare(displayMediaOptions);
+      
+      // Ensure camera stays on after screen share starts (Daily may turn it off by default)
+      // Small delay to let the screen share initialize first
+      if (wasVideoOn) {
+        setTimeout(async () => {
+          try {
+            const localParticipant = callObject.participants()?.local;
+            if (localParticipant && !localParticipant.video) {
+              console.log("Restoring camera after screen share start");
+              await callObject.setLocalVideo(true);
+              setIsVideoOn(true);
+            }
+          } catch (err) {
+            console.error("Error restoring camera:", err);
+          }
+        }, 500);
+      }
+      
       // State will be updated by the event listener
     } catch (err: any) {
       console.error("Error starting screen share:", err);
@@ -943,7 +980,7 @@ export default function GuestMeetingRoom() {
       toast.error("Erro ao compartilhar tela. Verifique as permissões do navegador.");
       setIsScreenSharing(false);
     }
-  }, [callObject]);
+  }, [callObject, isVideoOn]);
 
   const toggleHandRaise = async () => {
     if (!meeting || !callObject) return;
