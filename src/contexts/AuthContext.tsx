@@ -132,15 +132,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     });
 
-    // Set up auth state listener
+    // Set up auth state listener - IGNORE TOKEN_REFRESHED to prevent reloads
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
         if (!isMounted) return;
         
+        // Ignore TOKEN_REFRESHED events completely - they cause unnecessary reloads
+        if (event === 'TOKEN_REFRESHED') {
+          return;
+        }
+        
         setSession(session);
         
         if (session?.user) {
-          // Only fetch on actual sign in, not on TOKEN_REFRESHED or other events
+          // Only fetch on actual sign in or user update
           const isLogin = event === 'SIGNED_IN';
           const shouldFetch = isLogin || event === 'USER_UPDATED';
           
@@ -149,13 +154,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               fetchUserData(session.user, isLogin, isLogin);
             }, 0);
           }
-        } else {
+        } else if (event === 'SIGNED_OUT') {
           setUser(null);
           lastFetchedUserIdRef.current = null;
-        }
-        
-        // Only set loading false if not already handled
-        if (!session?.user) {
+          setUserDataFetched(false);
           setLoading(false);
         }
       }

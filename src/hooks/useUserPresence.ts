@@ -189,15 +189,13 @@ export const useUserPresence = () => {
     }
   }, [endSession, signOut]);
 
-  // Update refs when callbacks change
-  useEffect(() => {
-    startSessionRef.current = startSession;
-    endSessionRef.current = endSession;
-    updatePresenceRef.current = updatePresence;
-    updateSessionDurationRef.current = updateSessionDuration;
-    resetActivityRef.current = resetActivity;
-    checkInactivityRef.current = checkInactivity;
-  });
+  // Update refs when callbacks change - use sync assignment, not effect
+  startSessionRef.current = startSession;
+  endSessionRef.current = endSession;
+  updatePresenceRef.current = updatePresence;
+  updateSessionDurationRef.current = updateSessionDuration;
+  resetActivityRef.current = resetActivity;
+  checkInactivityRef.current = checkInactivity;
 
   useEffect(() => {
     if (!user?.id) return;
