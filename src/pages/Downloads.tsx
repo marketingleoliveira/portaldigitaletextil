@@ -7,7 +7,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { FileItem, AppRole } from '@/types/auth';
 import { 
   FileText, Download, Search, Loader2, FolderOpen, Eye, X,
-  FileImage, FileVideo, FileAudio, FileSpreadsheet, FileType, File, Globe, ExternalLink
+  FileImage, FileVideo, FileAudio, FileSpreadsheet, FileType, File, Globe, ExternalLink,
+  ChevronDown, ChevronRight
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/contexts/AuthContext';
@@ -28,6 +29,9 @@ const Downloads: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const [selectedSubcategory, setSelectedSubcategory] = useState<string>('all');
+  const [expandedCategory, setExpandedCategory] = useState<string | null>(null);
+  const [subcategories, setSubcategories] = useState<{id: string, name: string, category_id: string}[]>([]);
   const [previewFile, setPreviewFile] = useState<FileItem | null>(null);
 
   const handleDownload = async (file: FileItem) => {
@@ -86,12 +90,35 @@ const Downloads: React.FC = () => {
 
   const fetchFiles = async () => {
     try {
+      // Fetch files
       const { data: filesData, error } = await supabase
         .from('files')
         .select('*')
         .order('created_at', { ascending: false });
 
       if (error) throw error;
+
+      // Fetch subcategories
+      const { data: subcategoriesData } = await supabase
+        .from('subcategories')
+        .select('id, name, category_id');
+      
+      setSubcategories(subcategoriesData || []);
+
+      // Fetch categories to map category_id to category name
+      const { data: categoriesData } = await supabase
+        .from('categories')
+        .select('id, name');
+      
+      const categoryMap = new Map(categoriesData?.map(c => [c.id, c.name]) || []);
+
+      // Add category name to subcategories for easier lookup
+      const subcatsWithCategoryName = (subcategoriesData || []).map(s => ({
+        ...s,
+        categoryName: categoryMap.get(s.category_id) || ''
+      }));
+
+      setSubcategories(subcatsWithCategoryName as any);
 
       const filesWithVisibility = await Promise.all(
         (filesData || []).map(async (file) => {
@@ -117,12 +144,53 @@ const Downloads: React.FC = () => {
 
   const categories = [...new Set(files.map(f => f.category).filter(Boolean))] as string[];
 
+  // Get subcategories for a specific category
+  const getSubcategoriesForCategory = (categoryName: string) => {
+    return (subcategories as any[]).filter(s => s.categoryName === categoryName);
+  };
+
+  // Check if a category has subcategories
+  const categoryHasSubcategories = (categoryName: string) => {
+    return getSubcategoriesForCategory(categoryName).length > 0;
+  };
+
+  const handleCategoryClick = (category: string) => {
+    if (category === 'all') {
+      setSelectedCategory('all');
+      setSelectedSubcategory('all');
+      setExpandedCategory(null);
+      return;
+    }
+
+    if (categoryHasSubcategories(category)) {
+      // Toggle expansion
+      if (expandedCategory === category) {
+        setExpandedCategory(null);
+      } else {
+        setExpandedCategory(category);
+      }
+      // Select the category but not a specific subcategory
+      setSelectedCategory(category);
+      setSelectedSubcategory('all');
+    } else {
+      // No subcategories, just select the category
+      setSelectedCategory(category);
+      setSelectedSubcategory('all');
+      setExpandedCategory(null);
+    }
+  };
+
+  const handleSubcategoryClick = (subcategoryId: string) => {
+    setSelectedSubcategory(subcategoryId);
+  };
+
   const filteredFiles = files.filter((file) => {
     const matchesSearch = file.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       file.category?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       file.description?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesCategory = selectedCategory === 'all' || file.category === selectedCategory;
-    return matchesSearch && matchesCategory;
+    const matchesSubcategory = selectedSubcategory === 'all' || file.subcategory_id === selectedSubcategory;
+    return matchesSearch && matchesCategory && matchesSubcategory;
   });
 
   const formatFileSize = (bytes: number | null) => {
@@ -323,26 +391,67 @@ const Downloads: React.FC = () => {
 
         {/* Category Buttons */}
         {categories.length > 0 && (
-          <div className="flex flex-wrap gap-2">
-            <Button
-              variant={selectedCategory === 'all' ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => setSelectedCategory('all')}
-              className="gap-2"
-            >
-              <FolderOpen className="w-4 h-4" />
-              Todas as Categorias
-            </Button>
-            {categories.map((category) => (
+          <div className="space-y-2">
+            <div className="flex flex-wrap gap-2">
               <Button
-                key={category}
-                variant={selectedCategory === category ? 'default' : 'outline'}
+                variant={selectedCategory === 'all' ? 'default' : 'outline'}
                 size="sm"
-                onClick={() => setSelectedCategory(category)}
+                onClick={() => handleCategoryClick('all')}
+                className="gap-2"
               >
-                {category}
+                <FolderOpen className="w-4 h-4" />
+                Todas as Categorias
               </Button>
-            ))}
+              {categories.map((category) => {
+                const hasSubcats = categoryHasSubcategories(category);
+                const isExpanded = expandedCategory === category;
+                const isSelected = selectedCategory === category;
+                
+                return (
+                  <Button
+                    key={category}
+                    variant={isSelected ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => handleCategoryClick(category)}
+                    className="gap-1"
+                  >
+                    {category}
+                    {hasSubcats && (
+                      isExpanded ? (
+                        <ChevronDown className="w-4 h-4 ml-1" />
+                      ) : (
+                        <ChevronRight className="w-4 h-4 ml-1" />
+                      )
+                    )}
+                  </Button>
+                );
+              })}
+            </div>
+            
+            {/* Subcategories Row */}
+            {expandedCategory && categoryHasSubcategories(expandedCategory) && (
+              <div className="flex flex-wrap gap-2 pl-4 animate-fade-in">
+                <Button
+                  variant={selectedSubcategory === 'all' ? 'secondary' : 'ghost'}
+                  size="sm"
+                  onClick={() => handleSubcategoryClick('all')}
+                  className="text-sm h-8"
+                >
+                  Todas
+                </Button>
+                {getSubcategoriesForCategory(expandedCategory).map((subcat: any) => (
+                  <Button
+                    key={subcat.id}
+                    variant={selectedSubcategory === subcat.id ? 'secondary' : 'ghost'}
+                    size="sm"
+                    onClick={() => handleSubcategoryClick(subcat.id)}
+                    className="text-sm h-8"
+                  >
+                    {subcat.name}
+                  </Button>
+                ))}
+              </div>
+            )}
           </div>
         )}
 
