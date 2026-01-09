@@ -138,6 +138,7 @@ export default function MeetingRoom() {
   const audioRefs = useRef<Record<string, HTMLAudioElement | null>>({});
   const chatScrollRef = useRef<HTMLDivElement>(null);
   const controlsChannelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
+  const userRef = useRef(user);
 
   const isHost = meeting?.host_user_id === user?.id;
 
@@ -365,19 +366,29 @@ export default function MeetingRoom() {
     });
   }, [participants]);
 
+  // Keep userRef updated
   useEffect(() => {
-    if (code && user && !hasInitializedRef.current) {
+    userRef.current = user;
+  }, [user]);
+
+  useEffect(() => {
+    // Only initialize once when we have code and user id
+    if (code && user?.id && !hasInitializedRef.current) {
       setUserInMeeting(true);
       hasInitializedRef.current = true;
       initializeMeeting();
     }
     
+    // Cleanup only when component actually unmounts (code changes)
+  }, [code, user?.id]);
+
+  // Separate cleanup effect that only runs on unmount
+  useEffect(() => {
     return () => {
       setUserInMeeting(false);
-      hasInitializedRef.current = false;
       cleanup();
     };
-  }, [code, user]);
+  }, []);
 
   // Update document title when tab is in background to show meeting is active
   useEffect(() => {
