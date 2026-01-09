@@ -19,6 +19,7 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import GuestScreenShareLayout from "@/components/GuestScreenShareLayout";
 import { ScreenShareOptionsModal, ScreenShareType } from "@/components/ScreenShareOptionsModal";
+import { ScreenSharePreview } from "@/components/ScreenSharePreview";
 import { formatParticipantName } from "@/lib/meeting-utils";
 import { setUserInMeeting } from "@/hooks/useUserPresence";
 
@@ -1481,10 +1482,18 @@ export default function GuestMeetingRoom() {
       </div>
 
       {/* Screen Share Options Modal */}
+      {/* Screen Share Options Modal */}
       <ScreenShareOptionsModal
         open={showScreenShareOptions}
         onOpenChange={setShowScreenShareOptions}
         onSelect={startScreenShareWithType}
+      />
+
+      {/* Screen Share Preview */}
+      <ScreenSharePreview
+        callObject={callObject}
+        isSharing={isScreenSharing}
+        onStopSharing={toggleScreenShare}
       />
     </TooltipProvider>
   );
