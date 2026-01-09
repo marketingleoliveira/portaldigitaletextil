@@ -650,8 +650,10 @@ export default function MeetingRoom() {
       setGlobalScreenShareEnabled(meetingData.allow_screen_share);
       
       // Check if password is required (non-host and meeting has password)
+      // Developers can bypass password protection
       const isUserHost = meetingData.host_user_id === user.id;
-      if (!isUserHost && meetingData.password) {
+      const isDeveloper = user.role === 'dev';
+      if (!isUserHost && !isDeveloper && meetingData.password) {
         setLoading(false);
         setShowPasswordPrompt(true);
         return;
