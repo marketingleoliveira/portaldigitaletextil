@@ -1175,6 +1175,7 @@ const CreationMaterials: React.FC = () => {
                   src={previewFile.file_url}
                   className="w-full h-[85vh] rounded-md"
                   title={previewFile.name}
+                  allowFullScreen
                 />
               )}
             </div>
