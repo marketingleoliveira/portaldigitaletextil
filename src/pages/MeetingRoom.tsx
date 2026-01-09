@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -17,8 +18,9 @@ import {
   ScreenShare, ScreenShareOff, MoreVertical, Settings,
   Copy, Maximize, Minimize, Send, ChevronLeft, Loader2,
   Circle, Square, Lock, Hand, Smile, Volume2, Shield,
-  VideoIcon, MicIcon, Ban, Sparkles, UserX, PictureInPicture2
+  VideoIcon, MicIcon, Ban, Sparkles, UserX, PictureInPicture2, Download, HardDrive
 } from "lucide-react";
+import { useLocalRecording } from "@/hooks/useLocalRecording";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -115,6 +117,8 @@ export default function MeetingRoom() {
   // Recording state
   const [isRecording, setIsRecording] = useState(false);
   const [recordingStartTime, setRecordingStartTime] = useState<Date | null>(null);
+  const [isLocalRecordingMode, setIsLocalRecordingMode] = useState(false);
+  const [showRecordingDownload, setShowRecordingDownload] = useState(false);
   
   // Password state
   const [showPasswordPrompt, setShowPasswordPrompt] = useState(false);
@@ -160,6 +164,16 @@ export default function MeetingRoom() {
   const userRef = useRef(user);
 
   const isHost = meeting?.host_user_id === user?.id;
+
+  // Local recording hook
+  const {
+    isLocalRecording,
+    localRecordingStartTime,
+    startLocalRecording,
+    stopLocalRecording,
+    downloadRecording,
+    recordedBlob
+  } = useLocalRecording({ meetingTitle: meeting?.title });
 
   // Create Daily room via edge function
   const createOrGetDailyRoom = async (meetingCode: string) => {
@@ -1370,7 +1384,7 @@ export default function MeetingRoom() {
     }
   };
 
-  // Recording functions - using edge function for cloud recording
+  // Recording functions - using edge function for cloud recording with local fallback
   const startRecording = async () => {
     if (!meeting || !isHost) return;
     
@@ -1383,54 +1397,96 @@ export default function MeetingRoom() {
       if (error) throw error;
       
       setIsRecording(true);
+      setIsLocalRecordingMode(false);
       setRecordingStartTime(new Date());
-      toast.success("Gravação iniciada!");
-      console.log("Recording started:", data);
+      toast.success("Gravação na nuvem iniciada!");
+      console.log("Cloud recording started:", data);
     } catch (err) {
-      console.error("Error starting recording:", err);
-      toast.error("Erro ao iniciar gravação. Verifique se seu plano Daily.co suporta cloud recording.");
+      console.error("Error starting cloud recording:", err);
+      
+      // Fallback to local recording
+      toast.info("Gravação na nuvem não disponível, iniciando gravação local...");
+      
+      const success = await startLocalRecording();
+      if (success) {
+        setIsRecording(true);
+        setIsLocalRecordingMode(true);
+        setRecordingStartTime(new Date());
+      }
     }
   };
 
   const stopRecording = async () => {
     if (!meeting || !isHost) return;
     
-    try {
-      const roomName = meeting.meeting_code.replace(/-/g, "");
-      const { error } = await supabase.functions.invoke("daily-room", {
-        body: { action: "stop-recording", roomName }
-      });
-      
-      if (error) throw error;
-      
+    if (isLocalRecordingMode) {
+      // Stop local recording
+      const blob = await stopLocalRecording();
       setIsRecording(false);
       setRecordingStartTime(null);
-      toast.success("Gravação finalizada! O vídeo estará disponível em breve.");
       
-      // Sync recordings after stopping - wait for Daily.co to process
-      setTimeout(async () => {
-        try {
-          const { data, error: syncError } = await supabase.functions.invoke("sync-recordings", {
-            body: { 
-              action: "sync-meeting",
-              meetingId: meeting.id,
-              meetingTitle: meeting.title,
-              meetingDate: new Date().toISOString()
+      if (blob) {
+        setShowRecordingDownload(true);
+      }
+    } else {
+      // Stop cloud recording
+      try {
+        const roomName = meeting.meeting_code.replace(/-/g, "");
+        const { error } = await supabase.functions.invoke("daily-room", {
+          body: { action: "stop-recording", roomName }
+        });
+        
+        if (error) throw error;
+        
+        setIsRecording(false);
+        setRecordingStartTime(null);
+        toast.success("Gravação finalizada! O vídeo estará disponível em breve.");
+        
+        // Sync recordings after stopping - wait for Daily.co to process
+        setTimeout(async () => {
+          try {
+            const { data, error: syncError } = await supabase.functions.invoke("sync-recordings", {
+              body: { 
+                action: "sync-meeting",
+                meetingId: meeting.id,
+                meetingTitle: meeting.title,
+                meetingDate: new Date().toISOString()
+              }
+            });
+            
+            if (syncError) {
+              console.error("Error syncing recording:", syncError);
+            } else {
+              console.log("Recording synced successfully:", data);
             }
-          });
-          
-          if (syncError) {
-            console.error("Error syncing recording:", syncError);
-          } else {
-            console.log("Recording synced successfully:", data);
+          } catch (err) {
+            console.error("Error syncing recording:", err);
           }
-        } catch (err) {
-          console.error("Error syncing recording:", err);
-        }
-      }, 10000); // Wait 10 seconds for Daily.co to process the recording
-    } catch (err) {
-      console.error("Error stopping recording:", err);
-      toast.error("Erro ao parar gravação");
+        }, 10000);
+      } catch (err) {
+        console.error("Error stopping recording:", err);
+        toast.error("Erro ao parar gravação");
+      }
+    }
+  };
+
+  // Start local recording directly (for manual fallback)
+  const handleStartLocalRecording = async () => {
+    if (!meeting || !isHost) return;
+    
+    const success = await startLocalRecording();
+    if (success) {
+      setIsRecording(true);
+      setIsLocalRecordingMode(true);
+      setRecordingStartTime(new Date());
+    }
+  };
+
+  // Download the recorded file
+  const handleDownloadRecording = () => {
+    if (recordedBlob) {
+      downloadRecording(recordedBlob);
+      setShowRecordingDownload(false);
     }
   };
 
@@ -1441,6 +1497,9 @@ export default function MeetingRoom() {
     const seconds = diff % 60;
     return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
   };
+
+  // Get the current recording time (from either cloud or local)
+  const currentRecordingTime = recordingStartTime || localRecordingStartTime;
 
   const participantCount = Object.keys(participants).length;
   const remoteParticipants = Object.entries(participants).filter(([_, p]) => !p.local);
@@ -1583,11 +1642,24 @@ export default function MeetingRoom() {
               <TooltipContent>Conexão instável</TooltipContent>
             </Tooltip>
           )}
-          {isRecording && (
-            <span className="flex items-center gap-1 text-red-500 animate-pulse">
-              <Circle className="w-2 h-2 sm:w-3 sm:h-3 fill-red-500" />
-              <span className="hidden sm:inline">REC {recordingStartTime && formatRecordingTime(recordingStartTime)}</span>
-            </span>
+          {(isRecording || isLocalRecording) && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span className="flex items-center gap-1 text-red-500 animate-pulse cursor-help">
+                  {isLocalRecordingMode ? (
+                    <HardDrive className="w-3 h-3 sm:w-4 sm:h-4" />
+                  ) : (
+                    <Circle className="w-2 h-2 sm:w-3 sm:h-3 fill-red-500" />
+                  )}
+                  <span className="hidden sm:inline">
+                    REC {currentRecordingTime && formatRecordingTime(currentRecordingTime)}
+                  </span>
+                </span>
+              </TooltipTrigger>
+              <TooltipContent>
+                {isLocalRecordingMode ? "Gravação local (salva no seu dispositivo)" : "Gravação na nuvem"}
+              </TooltipContent>
+            </Tooltip>
           )}
           {joiningDaily && (
             <span className="flex items-center gap-1 text-yellow-400">
@@ -2224,20 +2296,50 @@ export default function MeetingRoom() {
 
           {/* Recording (Host only) - Hidden on mobile */}
           {isHost && (
-            <Tooltip>
-              <TooltipTrigger asChild>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
                 <Button
-                  variant={isRecording ? "destructive" : "secondary"}
+                  variant={(isRecording || isLocalRecording) ? "destructive" : "secondary"}
                   size="lg"
                   className="rounded-full w-10 h-10 sm:w-12 sm:h-12 hidden sm:flex"
-                  onClick={isRecording ? stopRecording : startRecording}
                   disabled={!callObject}
                 >
-                  {isRecording ? <Square className="w-4 h-4 sm:w-5 sm:h-5" /> : <Circle className="w-4 h-4 sm:w-5 sm:h-5 fill-current" />}
+                  {(isRecording || isLocalRecording) ? (
+                    <Square className="w-4 h-4 sm:w-5 sm:h-5" />
+                  ) : (
+                    <Circle className="w-4 h-4 sm:w-5 sm:h-5 fill-current" />
+                  )}
                 </Button>
-              </TooltipTrigger>
-              <TooltipContent className="hidden sm:block">{isRecording ? "Parar gravação" : "Iniciar gravação"}</TooltipContent>
-            </Tooltip>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="center">
+                {(isRecording || isLocalRecording) ? (
+                  <DropdownMenuItem onClick={stopRecording}>
+                    <Square className="w-4 h-4 mr-2" />
+                    Parar gravação
+                  </DropdownMenuItem>
+                ) : (
+                  <>
+                    <DropdownMenuItem onClick={startRecording}>
+                      <Circle className="w-4 h-4 mr-2 fill-current" />
+                      Gravar (nuvem)
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={handleStartLocalRecording}>
+                      <HardDrive className="w-4 h-4 mr-2" />
+                      Gravar localmente
+                    </DropdownMenuItem>
+                  </>
+                )}
+                {recordedBlob && (
+                  <>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={handleDownloadRecording}>
+                      <Download className="w-4 h-4 mr-2" />
+                      Baixar gravação
+                    </DropdownMenuItem>
+                  </>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
           )}
 
           {/* Moderation button (Host only) */}
@@ -2340,20 +2442,29 @@ export default function MeetingRoom() {
                 <Copy className="w-4 h-4 mr-2" />
                 Copiar link
               </DropdownMenuItem>
-              {/* Recording option for host on mobile */}
-              {isHost && (
-                <DropdownMenuItem onClick={isRecording ? stopRecording : startRecording} className="sm:hidden">
-                  {isRecording ? (
-                    <>
-                      <Square className="w-4 h-4 mr-2" />
-                      Parar gravação
-                    </>
-                  ) : (
-                    <>
-                      <Circle className="w-4 h-4 mr-2 fill-current" />
-                      Iniciar gravação
-                    </>
-                  )}
+              {/* Recording options for host on mobile */}
+              {isHost && !isRecording && !isLocalRecording && (
+                <>
+                  <DropdownMenuItem onClick={startRecording} className="sm:hidden">
+                    <Circle className="w-4 h-4 mr-2 fill-current" />
+                    Gravar (nuvem)
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={handleStartLocalRecording} className="sm:hidden">
+                    <HardDrive className="w-4 h-4 mr-2" />
+                    Gravar localmente
+                  </DropdownMenuItem>
+                </>
+              )}
+              {isHost && (isRecording || isLocalRecording) && (
+                <DropdownMenuItem onClick={stopRecording} className="sm:hidden">
+                  <Square className="w-4 h-4 mr-2" />
+                  Parar gravação
+                </DropdownMenuItem>
+              )}
+              {isHost && recordedBlob && (
+                <DropdownMenuItem onClick={handleDownloadRecording}>
+                  <Download className="w-4 h-4 mr-2" />
+                  Baixar gravação
                 </DropdownMenuItem>
               )}
               {/* Fullscreen toggle */}
@@ -2422,6 +2533,39 @@ export default function MeetingRoom() {
         isSharing={isScreenSharing}
         onStopSharing={toggleScreenShare}
       />
+
+      {/* Recording Download Dialog */}
+      <Dialog open={showRecordingDownload} onOpenChange={setShowRecordingDownload}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Download className="w-5 h-5 text-primary" />
+              Gravação Disponível
+            </DialogTitle>
+            <DialogDescription>
+              Sua gravação local está pronta para download. O arquivo será salvo no seu dispositivo.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex items-center gap-3 p-4 bg-muted rounded-lg">
+            <HardDrive className="w-8 h-8 text-muted-foreground" />
+            <div className="flex-1">
+              <p className="font-medium">{meeting?.title || 'Gravação'}.webm</p>
+              <p className="text-sm text-muted-foreground">
+                {recordedBlob && `${(recordedBlob.size / (1024 * 1024)).toFixed(2)} MB`}
+              </p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowRecordingDownload(false)}>
+              Depois
+            </Button>
+            <Button onClick={handleDownloadRecording}>
+              <Download className="w-4 h-4 mr-2" />
+              Baixar agora
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
