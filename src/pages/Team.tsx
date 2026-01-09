@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
 import { AppRole, ROLE_LABELS } from '@/types/auth';
 import RoleBadge from '@/components/RoleBadge';
-import { Loader2, Users, Code, Shield, UserCog, User } from 'lucide-react';
+import { Loader2, Users, Code, Shield, UserCog, User, Palette } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 
 interface TeamMember {
@@ -71,6 +71,7 @@ const Team: React.FC = () => {
   // Group by role for org chart
   const admins = orgMembers.filter((m) => m.role === 'admin');
   const gerentes = orgMembers.filter((m) => m.role === 'gerente');
+  const criacao = orgMembers.filter((m) => m.role === 'criacao');
   const vendedores = orgMembers.filter((m) => m.role === 'vendedor');
 
   const MemberCard: React.FC<{ member: TeamMember; size?: 'sm' | 'md' | 'lg' }> = ({ 
@@ -186,7 +187,7 @@ const Team: React.FC = () => {
                 </div>
                 
                 {/* Connector Line */}
-                {(gerentes.length > 0 || vendedores.length > 0) && (
+                {(gerentes.length > 0 || criacao.length > 0 || vendedores.length > 0) && (
                   <div className="flex justify-center">
                     <div className="w-px h-8 bg-border" />
                   </div>
@@ -208,6 +209,29 @@ const Team: React.FC = () => {
                       <MemberCard key={member.id} member={member} />
                     ))}
                   </div>
+                </div>
+
+                {/* Connector Line */}
+                {(criacao.length > 0 || vendedores.length > 0) && (
+                  <div className="flex justify-center">
+                    <div className="w-px h-8 bg-border" />
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Criação - Above Vendedores */}
+            {criacao.length > 0 && (
+              <div className="space-y-4">
+                <div className="flex items-center gap-2">
+                  <Palette className="w-5 h-5 text-role-criacao" />
+                  <h3 className="font-semibold text-lg">Criação</h3>
+                  <Badge variant="secondary" className="ml-2">{criacao.length}</Badge>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+                  {criacao.map((member) => (
+                    <MemberCard key={member.id} member={member} size="sm" />
+                  ))}
                 </div>
 
                 {/* Connector Line */}
@@ -246,7 +270,7 @@ const Team: React.FC = () => {
         </Card>
 
         {/* Stats */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
           <Card>
             <CardContent className="pt-6 text-center">
               <p className="text-3xl font-bold text-primary">{members.length}</p>
@@ -263,6 +287,12 @@ const Team: React.FC = () => {
             <CardContent className="pt-6 text-center">
               <p className="text-3xl font-bold text-role-gerente">{gerentes.length}</p>
               <p className="text-sm text-muted-foreground">Gerentes</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="pt-6 text-center">
+              <p className="text-3xl font-bold text-role-criacao">{criacao.length}</p>
+              <p className="text-sm text-muted-foreground">Criação</p>
             </CardContent>
           </Card>
           <Card>
