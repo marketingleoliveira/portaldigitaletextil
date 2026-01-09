@@ -1635,7 +1635,15 @@ export default function MeetingRoom() {
     return participant.user_name || "Participante";
   };
   
+  // Check if screen sharer has audio
+  const screenShareHasAudio = (): boolean => {
+    if (!screenSharingParticipant) return false;
+    const [_, participant] = screenSharingParticipant;
+    return !!participant.tracks?.screenAudio?.track;
+  };
+  
   const screenSharerName = getScreenSharerName();
+  const hasScreenShareAudio = screenShareHasAudio();
 
   if (loading) {
     return (
@@ -1817,7 +1825,7 @@ export default function MeetingRoom() {
         {/* Screen Share Indicator - shows who is sharing */}
         {screenSharerName && (
           <div className="absolute top-2 left-1/2 -translate-x-1/2 z-40">
-            <ScreenShareIndicator sharerName={screenSharerName} />
+            <ScreenShareIndicator sharerName={screenSharerName} hasAudio={hasScreenShareAudio} />
           </div>
         )}
 
