@@ -1385,13 +1385,32 @@ export default function MeetingRoom() {
       .update({ allow_participants_audio: newEnabled })
       .eq("id", meeting.id);
     
-    // Broadcast to all participants using subscribed channel
+    // Create a new channel for broadcasting if the ref isn't ready
     const channel = controlsChannelRef.current || supabase.channel(`meeting-controls-${meeting.id}`);
-    await channel.send({
-      type: 'broadcast',
-      event: 'host_control',
-      payload: { action: 'toggle_all_audio', enabled: newEnabled }
-    });
+    
+    try {
+      // Subscribe first if needed
+      if (!controlsChannelRef.current) {
+        await new Promise<void>((resolve) => {
+          channel.subscribe((status) => {
+            if (status === 'SUBSCRIBED') {
+              controlsChannelRef.current = channel;
+              resolve();
+            }
+          });
+          // Timeout after 2 seconds
+          setTimeout(resolve, 2000);
+        });
+      }
+      
+      await channel.send({
+        type: 'broadcast',
+        event: 'host_control',
+        payload: { action: 'toggle_all_audio', enabled: newEnabled }
+      });
+    } catch (err) {
+      console.error('Error broadcasting toggle_all_audio:', err);
+    }
     
     toast.success(newEnabled ? "Microfones liberados" : "Todos os microfones desativados");
   };
@@ -1408,13 +1427,30 @@ export default function MeetingRoom() {
       .update({ allow_participants_video: newEnabled })
       .eq("id", meeting.id);
     
-    // Broadcast to all participants using subscribed channel
+    // Create a new channel for broadcasting if the ref isn't ready
     const channel = controlsChannelRef.current || supabase.channel(`meeting-controls-${meeting.id}`);
-    await channel.send({
-      type: 'broadcast',
-      event: 'host_control',
-      payload: { action: 'toggle_all_video', enabled: newEnabled }
-    });
+    
+    try {
+      if (!controlsChannelRef.current) {
+        await new Promise<void>((resolve) => {
+          channel.subscribe((status) => {
+            if (status === 'SUBSCRIBED') {
+              controlsChannelRef.current = channel;
+              resolve();
+            }
+          });
+          setTimeout(resolve, 2000);
+        });
+      }
+      
+      await channel.send({
+        type: 'broadcast',
+        event: 'host_control',
+        payload: { action: 'toggle_all_video', enabled: newEnabled }
+      });
+    } catch (err) {
+      console.error('Error broadcasting toggle_all_video:', err);
+    }
     
     toast.success(newEnabled ? "Câmeras liberadas" : "Todas as câmeras desativadas");
   };
@@ -1431,29 +1467,61 @@ export default function MeetingRoom() {
       .update({ allow_screen_share: newEnabled })
       .eq("id", meeting.id);
     
-    // Broadcast to all participants using subscribed channel
+    // Create a new channel for broadcasting if the ref isn't ready
     const channel = controlsChannelRef.current || supabase.channel(`meeting-controls-${meeting.id}`);
-    await channel.send({
-      type: 'broadcast',
-      event: 'host_control',
-      payload: { action: 'toggle_screen_share', enabled: newEnabled }
-    });
+    
+    try {
+      if (!controlsChannelRef.current) {
+        await new Promise<void>((resolve) => {
+          channel.subscribe((status) => {
+            if (status === 'SUBSCRIBED') {
+              controlsChannelRef.current = channel;
+              resolve();
+            }
+          });
+          setTimeout(resolve, 2000);
+        });
+      }
+      
+      await channel.send({
+        type: 'broadcast',
+        event: 'host_control',
+        payload: { action: 'toggle_screen_share', enabled: newEnabled }
+      });
+    } catch (err) {
+      console.error('Error broadcasting toggle_screen_share:', err);
+    }
     
     toast.success(newEnabled ? "Compartilhamento de tela liberado para todos" : "Somente o anfitrião pode compartilhar tela");
   };
 
   // Mute a specific participant
   const muteParticipant = async (sessionId: string, participantName: string) => {
-    if (!meeting || !isHost || !controlsChannelRef.current) {
-      console.error('Cannot mute: missing meeting, not host, or channel not ready');
-      toast.error("Canal de controle não está pronto. Tente novamente.");
+    if (!meeting || !isHost) {
+      console.error('Cannot mute: missing meeting or not host');
       return;
     }
     
     console.log('Sending mute command:', { sessionId, participantName });
     
     try {
-      await controlsChannelRef.current.send({
+      // Use existing channel or create new one
+      let channel = controlsChannelRef.current;
+      
+      if (!channel) {
+        channel = supabase.channel(`meeting-controls-${meeting.id}`);
+        await new Promise<void>((resolve) => {
+          channel!.subscribe((status) => {
+            if (status === 'SUBSCRIBED') {
+              controlsChannelRef.current = channel!;
+              resolve();
+            }
+          });
+          setTimeout(resolve, 2000);
+        });
+      }
+      
+      await channel.send({
         type: 'broadcast',
         event: 'host_control',
         payload: { action: 'mute_participant', targetSessionId: sessionId }
@@ -1467,16 +1535,30 @@ export default function MeetingRoom() {
 
   // Disable camera of a specific participant
   const disableParticipantCamera = async (sessionId: string, participantName: string) => {
-    if (!meeting || !isHost || !controlsChannelRef.current) {
-      console.error('Cannot disable camera: missing meeting, not host, or channel not ready');
-      toast.error("Canal de controle não está pronto. Tente novamente.");
+    if (!meeting || !isHost) {
+      console.error('Cannot disable camera: missing meeting or not host');
       return;
     }
     
     console.log('Sending disable camera command:', { sessionId, participantName });
     
     try {
-      await controlsChannelRef.current.send({
+      let channel = controlsChannelRef.current;
+      
+      if (!channel) {
+        channel = supabase.channel(`meeting-controls-${meeting.id}`);
+        await new Promise<void>((resolve) => {
+          channel!.subscribe((status) => {
+            if (status === 'SUBSCRIBED') {
+              controlsChannelRef.current = channel!;
+              resolve();
+            }
+          });
+          setTimeout(resolve, 2000);
+        });
+      }
+      
+      await channel.send({
         type: 'broadcast',
         event: 'host_control',
         payload: { action: 'disable_camera', targetSessionId: sessionId }
@@ -1490,16 +1572,30 @@ export default function MeetingRoom() {
 
   // Remove a participant from the meeting
   const removeParticipant = async (sessionId: string, participantName: string) => {
-    if (!meeting || !isHost || !controlsChannelRef.current) {
-      console.error('Cannot remove: missing meeting, not host, or channel not ready');
-      toast.error("Canal de controle não está pronto. Tente novamente.");
+    if (!meeting || !isHost) {
+      console.error('Cannot remove: missing meeting or not host');
       return;
     }
     
     console.log('Sending remove command:', { sessionId, participantName });
     
     try {
-      await controlsChannelRef.current.send({
+      let channel = controlsChannelRef.current;
+      
+      if (!channel) {
+        channel = supabase.channel(`meeting-controls-${meeting.id}`);
+        await new Promise<void>((resolve) => {
+          channel!.subscribe((status) => {
+            if (status === 'SUBSCRIBED') {
+              controlsChannelRef.current = channel!;
+              resolve();
+            }
+          });
+          setTimeout(resolve, 2000);
+        });
+      }
+      
+      await channel.send({
         type: 'broadcast',
         event: 'host_control',
         payload: { action: 'remove_participant', targetSessionId: sessionId }

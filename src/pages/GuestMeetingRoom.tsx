@@ -39,6 +39,7 @@ interface Meeting {
 interface ChatMessage {
   id: string;
   user_id: string | null;
+  guest_id: string | null;
   guest_name: string | null;
   message: string;
   created_at: string;
@@ -115,6 +116,7 @@ export default function GuestMeetingRoom() {
   
   // Chat notification state
   const [unreadMessages, setUnreadMessages] = useState(0);
+  const lastReadMessageRef = useRef<string | null>(null);
   
   // Host controls state
   const [globalAudioEnabled, setGlobalAudioEnabled] = useState(true);
@@ -717,6 +719,22 @@ export default function GuestMeetingRoom() {
     };
   }, [meeting]);
 
+  // Track unread messages
+  useEffect(() => {
+    if (!showChat && messages.length > 0) {
+      const lastMessage = messages[messages.length - 1];
+      const isOwnMessage = lastMessage.guest_id === guestInfo?.guestId;
+      if (lastReadMessageRef.current !== lastMessage.id && !isOwnMessage) {
+        setUnreadMessages(prev => prev + 1);
+      }
+    } else if (showChat) {
+      setUnreadMessages(0);
+      if (messages.length > 0) {
+        lastReadMessageRef.current = messages[messages.length - 1].id;
+      }
+    }
+  }, [messages, showChat, guestInfo?.guestId]);
+
   // Subscribe to meeting end events
   useEffect(() => {
     if (!meeting?.id) return;
@@ -1289,6 +1307,19 @@ export default function GuestMeetingRoom() {
         senderId: guestInfo.guestId
       }
     });
+    
+    // Also show locally immediately for the sender
+    const newReaction: FloatingReaction = {
+      id: `${guestInfo.guestId}-${Date.now()}-${reactionIdCounter.current++}`,
+      emoji,
+      x: Math.random() * 60 + 20,
+      userName: `${guestInfo.guestName} (Convidado)`
+    };
+    setFloatingReactions(prev => [...prev, newReaction]);
+    
+    setTimeout(() => {
+      setFloatingReactions(prev => prev.filter(r => r.id !== newReaction.id));
+    }, 3000);
   };
 
   // Picture-in-Picture toggle

@@ -31,24 +31,44 @@ export function ScreenSharePreview({
       const screenTrack = localParticipant?.tracks?.screenVideo?.track;
       
       if (screenTrack && videoRef.current) {
-        videoRef.current.srcObject = new MediaStream([screenTrack]);
+        const currentStream = videoRef.current.srcObject as MediaStream | null;
+        const currentTrackId = currentStream?.getVideoTracks()[0]?.id;
+        
+        // Only update if track is different
+        if (currentTrackId !== screenTrack.id) {
+          videoRef.current.srcObject = new MediaStream([screenTrack]);
+        }
       }
     };
 
     // Initial setup
     updateScreenTrack();
 
-    // Listen for track changes
+    // Listen for track changes - handle both screenVideo and screenAudio
     const handleTrackStarted = (event: any) => {
-      if (event?.participant?.local && event?.track?.kind === 'video') {
+      if (event?.participant?.local && 
+          (event?.track?.kind === 'video' || event?.track?.kind === 'audio')) {
+        setTimeout(updateScreenTrack, 100);
+      }
+    };
+
+    // Also listen for participant updates for more reliability
+    const handleParticipantUpdated = (event: any) => {
+      if (event?.participant?.local) {
         setTimeout(updateScreenTrack, 100);
       }
     };
 
     callObject.on("track-started", handleTrackStarted);
+    callObject.on("participant-updated", handleParticipantUpdated);
+
+    // Periodic sync to ensure track is attached
+    const interval = setInterval(updateScreenTrack, 2000);
 
     return () => {
       callObject.off("track-started", handleTrackStarted);
+      callObject.off("participant-updated", handleParticipantUpdated);
+      clearInterval(interval);
       if (videoRef.current) {
         videoRef.current.srcObject = null;
       }
