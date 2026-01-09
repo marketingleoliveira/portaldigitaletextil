@@ -17,12 +17,25 @@ import {
   ArrowRight,
   Link2,
   ExternalLink,
-  Palette
+  Palette,
+  Image,
+  Video,
+  FileSpreadsheet,
+  File
 } from 'lucide-react';
 import RoleBadge from '@/components/RoleBadge';
 import { Badge } from '@/components/ui/badge';
 import OnlineUsersCard from '@/components/OnlineUsersCard';
 import ActivityRankingCard from '@/components/ActivityRankingCard';
+
+interface FileTypeStats {
+  pdf: number;
+  word: number;
+  excel: number;
+  image: number;
+  video: number;
+  other: number;
+}
 
 interface DashboardStats {
   totalProducts: number;
@@ -33,6 +46,8 @@ interface DashboardStats {
   unreadNotifications: number;
   openTickets: number;
   totalCreationFiles: number;
+  filesBreakdown: FileTypeStats;
+  creationFilesBreakdown: FileTypeStats;
 }
 
 interface LinkFile {
@@ -41,6 +56,25 @@ interface LinkFile {
   file_url: string;
   description: string | null;
 }
+
+const getFileTypeFromName = (fileName: string): keyof FileTypeStats => {
+  const ext = fileName.split('.').pop()?.toLowerCase() || '';
+  if (ext === 'pdf') return 'pdf';
+  if (['doc', 'docx'].includes(ext)) return 'word';
+  if (['xls', 'xlsx', 'csv'].includes(ext)) return 'excel';
+  if (['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'].includes(ext)) return 'image';
+  if (['mp4', 'avi', 'mov', 'wmv', 'webm'].includes(ext)) return 'video';
+  return 'other';
+};
+
+const calculateFileBreakdown = (files: { name: string }[]): FileTypeStats => {
+  const breakdown: FileTypeStats = { pdf: 0, word: 0, excel: 0, image: 0, video: 0, other: 0 };
+  files.forEach(file => {
+    const type = getFileTypeFromName(file.name);
+    breakdown[type]++;
+  });
+  return breakdown;
+};
 
 const Dashboard: React.FC = () => {
   const { user } = useAuth();
@@ -53,6 +87,8 @@ const Dashboard: React.FC = () => {
     unreadNotifications: 0,
     openTickets: 0,
     totalCreationFiles: 0,
+    filesBreakdown: { pdf: 0, word: 0, excel: 0, image: 0, video: 0, other: 0 },
+    creationFilesBreakdown: { pdf: 0, word: 0, excel: 0, image: 0, video: 0, other: 0 },
   });
   const [linkFiles, setLinkFiles] = useState<LinkFile[]>([]);
   const [loading, setLoading] = useState(true);
@@ -70,10 +106,12 @@ const Dashboard: React.FC = () => {
           .from('categories')
           .select('*', { count: 'exact', head: true });
 
-        // Fetch files count
-        const { count: filesCount } = await supabase
+        // Fetch files with names for breakdown
+        const { data: filesData, count: filesCount } = await supabase
           .from('files')
-          .select('*', { count: 'exact', head: true });
+          .select('name', { count: 'exact' });
+        
+        const filesBreakdown = calculateFileBreakdown(filesData || []);
 
         // Fetch open tickets for the user
         const { count: ticketsCount } = await supabase
@@ -81,13 +119,15 @@ const Dashboard: React.FC = () => {
           .select('*', { count: 'exact', head: true })
           .eq('status', 'aberto');
 
-        // Fetch creation files count for criacao role
+        // Fetch creation files with names for breakdown (for criacao role)
         let creationFilesCount = 0;
+        let creationFilesBreakdown: FileTypeStats = { pdf: 0, word: 0, excel: 0, image: 0, video: 0, other: 0 };
         if (user?.role === 'criacao' || user?.role === 'dev') {
-          const { count: creationCount } = await supabase
+          const { data: creationData, count: creationCount } = await supabase
             .from('creation_files')
-            .select('*', { count: 'exact', head: true });
+            .select('name', { count: 'exact' });
           creationFilesCount = creationCount || 0;
+          creationFilesBreakdown = calculateFileBreakdown(creationData || []);
         }
 
         // Admin/Dev-only stats
@@ -125,6 +165,8 @@ const Dashboard: React.FC = () => {
           unreadNotifications: 0,
           openTickets: ticketsCount || 0,
           totalCreationFiles: creationFilesCount,
+          filesBreakdown,
+          creationFilesBreakdown,
         });
       } catch (error) {
         console.error('Error fetching stats:', error);
@@ -155,7 +197,7 @@ const Dashboard: React.FC = () => {
       roles: ['dev', 'admin', 'gerente'],
     },
     {
-      title: 'Arquivos',
+      title: 'Material Comercial',
       value: stats.totalFiles,
       icon: FileText,
       description: 'Materiais disponíveis',
@@ -163,9 +205,10 @@ const Dashboard: React.FC = () => {
       bgColor: 'bg-role-gerente/10',
       href: '/downloads',
       roles: ['dev', 'admin', 'gerente', 'vendedor'],
+      breakdown: stats.filesBreakdown,
     },
     {
-      title: 'Materiais de Criação',
+      title: 'Material Criação',
       value: stats.totalCreationFiles,
       icon: Palette,
       description: 'Recursos criativos',
@@ -173,6 +216,7 @@ const Dashboard: React.FC = () => {
       bgColor: 'bg-role-criacao/10',
       href: '/material-criacao',
       roles: ['dev', 'criacao'],
+      breakdown: stats.creationFilesBreakdown,
     },
     {
       title: 'Usuários',
@@ -277,12 +321,13 @@ const Dashboard: React.FC = () => {
           )}
           {filteredStats.map((stat) => {
             const Icon = stat.icon;
+            const hasBreakdown = 'breakdown' in stat && stat.breakdown;
             return (
               <Link key={stat.title} to={stat.href}>
                 <Card className="hover:shadow-md transition-all hover:border-primary/50 cursor-pointer h-full">
                   <CardContent className="pt-6">
                     <div className="flex items-center justify-between">
-                      <div>
+                      <div className="flex-1">
                         <p className="text-sm font-medium text-muted-foreground">
                           {stat.title}
                         </p>
@@ -297,6 +342,48 @@ const Dashboard: React.FC = () => {
                         <Icon className={`w-6 h-6 ${stat.color}`} />
                       </div>
                     </div>
+                    {hasBreakdown && !loading && (
+                      <div className="mt-4 pt-3 border-t border-border">
+                        <div className="grid grid-cols-3 gap-2 text-xs">
+                          {stat.breakdown.pdf > 0 && (
+                            <div className="flex items-center gap-1.5">
+                              <FileText className="w-3.5 h-3.5 text-red-500" />
+                              <span className="text-muted-foreground">{stat.breakdown.pdf} PDF</span>
+                            </div>
+                          )}
+                          {stat.breakdown.word > 0 && (
+                            <div className="flex items-center gap-1.5">
+                              <File className="w-3.5 h-3.5 text-blue-500" />
+                              <span className="text-muted-foreground">{stat.breakdown.word} Word</span>
+                            </div>
+                          )}
+                          {stat.breakdown.excel > 0 && (
+                            <div className="flex items-center gap-1.5">
+                              <FileSpreadsheet className="w-3.5 h-3.5 text-green-500" />
+                              <span className="text-muted-foreground">{stat.breakdown.excel} Excel</span>
+                            </div>
+                          )}
+                          {stat.breakdown.image > 0 && (
+                            <div className="flex items-center gap-1.5">
+                              <Image className="w-3.5 h-3.5 text-purple-500" />
+                              <span className="text-muted-foreground">{stat.breakdown.image} Img</span>
+                            </div>
+                          )}
+                          {stat.breakdown.video > 0 && (
+                            <div className="flex items-center gap-1.5">
+                              <Video className="w-3.5 h-3.5 text-orange-500" />
+                              <span className="text-muted-foreground">{stat.breakdown.video} Vídeo</span>
+                            </div>
+                          )}
+                          {stat.breakdown.other > 0 && (
+                            <div className="flex items-center gap-1.5">
+                              <File className="w-3.5 h-3.5 text-muted-foreground" />
+                              <span className="text-muted-foreground">{stat.breakdown.other} Outros</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
               </Link>
