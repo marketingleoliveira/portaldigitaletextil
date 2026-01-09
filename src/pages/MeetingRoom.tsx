@@ -22,6 +22,7 @@ import {
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import ScreenShareLayout from "@/components/ScreenShareLayout";
 
 interface Meeting {
   id: string;
@@ -1236,124 +1237,121 @@ export default function MeetingRoom() {
           ))}
         </div>
 
-        {/* Video grid */}
-        <div className="flex-1 p-2 sm:p-4 flex items-center justify-center overflow-auto">
-          <div className={cn(
-            "grid gap-2 sm:gap-4 w-full max-w-6xl",
-            // Mobile: stack vertically for 1-2 participants
-            participantCount <= 1 && "grid-cols-1",
-            participantCount === 2 && "grid-cols-1 sm:grid-cols-2",
-            participantCount <= 4 && participantCount > 2 && "grid-cols-2",
-            participantCount > 4 && "grid-cols-2 sm:grid-cols-3"
-          )}>
-            {/* Local video (self) */}
-            <div className={cn(
-              "relative bg-gray-800 rounded-lg sm:rounded-xl overflow-hidden aspect-video transition-all duration-300",
-              speakingParticipants.has(participants.local?.session_id || "") && "ring-4 ring-green-500"
-            )}>
-              <video
-                ref={localVideoRef}
-                autoPlay
-                muted
-                playsInline
-                className={cn(
-                  "w-full h-full object-cover mirror",
-                  !isVideoOn && "hidden"
-                )}
-                style={{ transform: "scaleX(-1)" }}
-              />
-              {!isVideoOn && (
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <Avatar className="w-16 h-16 sm:w-24 sm:h-24">
-                    <AvatarImage src={user?.profile?.avatar_url || undefined} />
-                    <AvatarFallback className="text-xl sm:text-3xl bg-primary">
-                      {user?.profile?.full_name?.charAt(0) || "U"}
-                    </AvatarFallback>
-                  </Avatar>
-                </div>
-              )}
-              <div className="absolute bottom-2 left-2 sm:bottom-3 sm:left-3 flex items-center gap-1 sm:gap-2">
-                <span className="px-1.5 sm:px-2 py-0.5 sm:py-1 bg-black/60 rounded text-white text-xs sm:text-sm truncate max-w-[120px] sm:max-w-none flex items-center gap-1">
-                  {speakingParticipants.has(participants.local?.session_id || "") && (
-                    <Volume2 className="w-3 h-3 text-green-500 animate-pulse" />
-                  )}
-                  {user?.profile?.full_name} (Você)
-                </span>
-                {isMuted && <MicOff className="w-3 h-3 sm:w-4 sm:h-4 text-red-500" />}
-                {handRaised && <Hand className="w-3 h-3 sm:w-4 sm:h-4 text-yellow-500 animate-bounce" />}
-              </div>
-            </div>
-
-            {/* Screen share view - show prominently when someone is sharing */}
-            {screenSharingParticipant && (
-              <div className="col-span-full relative bg-gray-800 rounded-lg sm:rounded-xl overflow-hidden aspect-video border-2 border-primary">
-                <video
-                  ref={el => { 
-                    if (el && screenSharingParticipant[1].tracks?.screenVideo?.track) {
-                      el.srcObject = new MediaStream([screenSharingParticipant[1].tracks.screenVideo.track]);
-                    }
-                  }}
-                  autoPlay
-                  playsInline
-                  className="w-full h-full object-contain bg-black"
-                />
-                <div className="absolute bottom-2 left-2 sm:bottom-3 sm:left-3 flex items-center gap-1 sm:gap-2">
-                  <span className="px-1.5 sm:px-2 py-0.5 sm:py-1 bg-primary rounded text-white text-xs sm:text-sm flex items-center gap-1">
-                    <ScreenShare className="w-3 h-3" />
-                    {screenSharingParticipant[1].local 
-                      ? "Você está compartilhando" 
-                      : `${screenSharingParticipant[1].user_name || "Participante"} está compartilhando`}
-                  </span>
-                </div>
-              </div>
-            )}
-
-            {/* Remote participants */}
-            {remoteParticipants.map(([sessionId, participant]) => {
-              const hasVideo = participant.video || participant.tracks?.video?.state === 'playable';
-              const isSpeaking = speakingParticipants.has(sessionId);
-              const hasHandRaised = raisedHands.has(sessionId);
-              
-              return (
-                <div
-                  key={sessionId}
-                  className={cn(
-                    "relative bg-gray-800 rounded-lg sm:rounded-xl overflow-hidden aspect-video transition-all duration-300",
-                    isSpeaking && "ring-4 ring-green-500"
-                  )}
-                >
+        {/* Video grid - different layout when screen sharing */}
+        <div className="flex-1 p-2 sm:p-4 flex overflow-hidden">
+          {screenSharingParticipant ? (
+            // Screen share layout: 2 columns - screen on left, cameras on right
+            <ScreenShareLayout
+              screenSharingParticipant={screenSharingParticipant}
+              localVideoRef={localVideoRef}
+              isVideoOn={isVideoOn}
+              user={user}
+              isMuted={isMuted}
+              handRaised={handRaised}
+              speakingParticipants={speakingParticipants}
+              participants={participants}
+              remoteParticipants={remoteParticipants}
+              participantRefs={participantRefs}
+              raisedHands={raisedHands}
+              isHost={isHost}
+              meeting={meeting}
+            />
+          ) : (
+            // Normal grid layout
+            <div className="flex-1 flex items-center justify-center overflow-auto">
+              <div className={cn(
+                "grid gap-2 sm:gap-4 w-full max-w-6xl",
+                participantCount <= 1 && "grid-cols-1",
+                participantCount === 2 && "grid-cols-1 sm:grid-cols-2",
+                participantCount <= 4 && participantCount > 2 && "grid-cols-2",
+                participantCount > 4 && "grid-cols-2 sm:grid-cols-3"
+              )}>
+                {/* Local video (self) */}
+                <div className={cn(
+                  "relative bg-gray-800 rounded-lg sm:rounded-xl overflow-hidden aspect-video transition-all duration-300",
+                  speakingParticipants.has(participants.local?.session_id || "") && "ring-4 ring-green-500"
+                )}>
                   <video
-                    ref={el => { participantRefs.current[sessionId] = el; }}
+                    ref={localVideoRef}
                     autoPlay
+                    muted
                     playsInline
                     className={cn(
-                      "w-full h-full object-cover",
-                      !hasVideo && "hidden"
+                      "w-full h-full object-cover mirror",
+                      !isVideoOn && "hidden"
                     )}
+                    style={{ transform: "scaleX(-1)" }}
                   />
-                  {!hasVideo && (
+                  {!isVideoOn && (
                     <div className="absolute inset-0 flex items-center justify-center">
-                      <Avatar className="w-14 h-14 sm:w-20 sm:h-20">
-                        <AvatarFallback className="text-lg sm:text-2xl bg-primary">
-                          {participant.user_name?.charAt(0) || "P"}
+                      <Avatar className="w-16 h-16 sm:w-24 sm:h-24">
+                        <AvatarImage src={user?.profile?.avatar_url || undefined} />
+                        <AvatarFallback className="text-xl sm:text-3xl bg-primary">
+                          {user?.profile?.full_name?.charAt(0) || "U"}
                         </AvatarFallback>
                       </Avatar>
                     </div>
                   )}
                   <div className="absolute bottom-2 left-2 sm:bottom-3 sm:left-3 flex items-center gap-1 sm:gap-2">
-                    <span className="px-1.5 sm:px-2 py-0.5 sm:py-1 bg-black/60 rounded text-white text-xs sm:text-sm truncate max-w-[100px] sm:max-w-none flex items-center gap-1">
-                      {isSpeaking && (
+                    <span className="px-1.5 sm:px-2 py-0.5 sm:py-1 bg-black/60 rounded text-white text-xs sm:text-sm truncate max-w-[120px] sm:max-w-none flex items-center gap-1">
+                      {speakingParticipants.has(participants.local?.session_id || "") && (
                         <Volume2 className="w-3 h-3 text-green-500 animate-pulse" />
                       )}
-                      {participant.user_name || "Participante"}
+                      {user?.profile?.full_name} (Você)
                     </span>
-                    {!participant.audio && <MicOff className="w-3 h-3 sm:w-4 sm:h-4 text-red-500" />}
-                    {hasHandRaised && <Hand className="w-3 h-3 sm:w-4 sm:h-4 text-yellow-500 animate-bounce" />}
+                    {isMuted && <MicOff className="w-3 h-3 sm:w-4 sm:h-4 text-red-500" />}
+                    {handRaised && <Hand className="w-3 h-3 sm:w-4 sm:h-4 text-yellow-500 animate-bounce" />}
                   </div>
                 </div>
-              );
-            })}
-          </div>
+
+                {/* Remote participants */}
+                {remoteParticipants.map(([sessionId, participant]) => {
+                  const hasVideo = participant.video || participant.tracks?.video?.state === 'playable';
+                  const isSpeaking = speakingParticipants.has(sessionId);
+                  const hasHandRaised = raisedHands.has(sessionId);
+                  
+                  return (
+                    <div
+                      key={sessionId}
+                      className={cn(
+                        "relative bg-gray-800 rounded-lg sm:rounded-xl overflow-hidden aspect-video transition-all duration-300",
+                        isSpeaking && "ring-4 ring-green-500"
+                      )}
+                    >
+                      <video
+                        ref={el => { participantRefs.current[sessionId] = el; }}
+                        autoPlay
+                        playsInline
+                        className={cn(
+                          "w-full h-full object-cover",
+                          !hasVideo && "hidden"
+                        )}
+                      />
+                      {!hasVideo && (
+                        <div className="absolute inset-0 flex items-center justify-center">
+                          <Avatar className="w-14 h-14 sm:w-20 sm:h-20">
+                            <AvatarFallback className="text-lg sm:text-2xl bg-primary">
+                              {participant.user_name?.charAt(0) || "P"}
+                            </AvatarFallback>
+                          </Avatar>
+                        </div>
+                      )}
+                      <div className="absolute bottom-2 left-2 sm:bottom-3 sm:left-3 flex items-center gap-1 sm:gap-2">
+                        <span className="px-1.5 sm:px-2 py-0.5 sm:py-1 bg-black/60 rounded text-white text-xs sm:text-sm truncate max-w-[100px] sm:max-w-none flex items-center gap-1">
+                          {isSpeaking && (
+                            <Volume2 className="w-3 h-3 text-green-500 animate-pulse" />
+                          )}
+                          {participant.user_name || "Participante"}
+                        </span>
+                        {!participant.audio && <MicOff className="w-3 h-3 sm:w-4 sm:h-4 text-red-500" />}
+                        {hasHandRaised && <Hand className="w-3 h-3 sm:w-4 sm:h-4 text-yellow-500 animate-bounce" />}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Chat sidebar */}

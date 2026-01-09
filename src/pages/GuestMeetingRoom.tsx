@@ -17,6 +17,7 @@ import {
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import GuestScreenShareLayout from "@/components/GuestScreenShareLayout";
 
 interface Meeting {
   id: string;
@@ -768,8 +769,13 @@ export default function GuestMeetingRoom() {
     );
   }
 
-  const remoteParticipants = Object.entries(participants).filter(([_, p]) => !p.local);
+  const remoteParticipants: [string, ParticipantWithExtras][] = Object.entries(participants).filter(([_, p]) => !p.local) as [string, ParticipantWithExtras][];
   const participantCount = Object.keys(participants).length;
+  
+  // Find who is sharing screen
+  const screenSharingParticipant = Object.entries(participants).find(
+    ([_, p]) => p.tracks?.screenVideo?.state === 'playable'
+  ) as [string, ParticipantWithExtras] | undefined;
 
   return (
     <TooltipProvider>
@@ -809,88 +815,108 @@ export default function GuestMeetingRoom() {
 
         {/* Main content */}
         <div className="flex-1 flex overflow-hidden">
-          {/* Video grid */}
-          <div className="flex-1 p-4 overflow-auto">
-            <div className={cn(
-              "grid gap-2 h-full",
-              participantCount <= 1 && "grid-cols-1",
-              participantCount === 2 && "grid-cols-2",
-              participantCount <= 4 && participantCount > 2 && "grid-cols-2 grid-rows-2",
-              participantCount <= 6 && participantCount > 4 && "grid-cols-3 grid-rows-2",
-              participantCount <= 9 && participantCount > 6 && "grid-cols-3 grid-rows-3",
-              participantCount > 9 && "grid-cols-4 auto-rows-fr"
-            )}>
-              {/* Local video */}
-              <div className={cn(
-                "relative bg-[#3c4043] rounded-lg overflow-hidden",
-                speakingParticipants.has(participants.local?.session_id || '') && "ring-2 ring-green-500"
-              )}>
-                <video
-                  ref={localVideoRef}
-                  autoPlay
-                  muted
-                  playsInline
-                  className={cn(
-                    "w-full h-full object-cover",
-                    !isVideoOn && "hidden"
-                  )}
-                />
-                {!isVideoOn && (
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <Avatar className="h-20 w-20">
-                      <AvatarFallback className="text-2xl bg-primary">
-                        {guestInfo.guestName.charAt(0).toUpperCase()}
-                      </AvatarFallback>
-                    </Avatar>
+          {/* Video grid - different layout when screen sharing */}
+          <div className="flex-1 p-2 sm:p-4 flex overflow-hidden">
+            {screenSharingParticipant ? (
+              // Screen share layout: 2 columns - screen on left, cameras on right
+              <GuestScreenShareLayout
+                screenSharingParticipant={screenSharingParticipant}
+                localVideoRef={localVideoRef}
+                isVideoOn={isVideoOn}
+                guestName={guestInfo.guestName}
+                isMuted={isMuted}
+                handRaised={handRaised}
+                speakingParticipants={speakingParticipants}
+                participants={participants}
+                remoteParticipants={remoteParticipants}
+                participantRefs={participantRefs}
+                raisedHands={raisedHands}
+              />
+            ) : (
+              // Normal grid layout
+              <div className="flex-1 overflow-auto">
+                <div className={cn(
+                  "grid gap-2 h-full",
+                  participantCount <= 1 && "grid-cols-1",
+                  participantCount === 2 && "grid-cols-2",
+                  participantCount <= 4 && participantCount > 2 && "grid-cols-2 grid-rows-2",
+                  participantCount <= 6 && participantCount > 4 && "grid-cols-3 grid-rows-2",
+                  participantCount <= 9 && participantCount > 6 && "grid-cols-3 grid-rows-3",
+                  participantCount > 9 && "grid-cols-4 auto-rows-fr"
+                )}>
+                  {/* Local video */}
+                  <div className={cn(
+                    "relative bg-[#3c4043] rounded-lg overflow-hidden",
+                    speakingParticipants.has(participants.local?.session_id || '') && "ring-2 ring-green-500"
+                  )}>
+                    <video
+                      ref={localVideoRef}
+                      autoPlay
+                      muted
+                      playsInline
+                      className={cn(
+                        "w-full h-full object-cover",
+                        !isVideoOn && "hidden"
+                      )}
+                    />
+                    {!isVideoOn && (
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <Avatar className="h-20 w-20">
+                          <AvatarFallback className="text-2xl bg-primary">
+                            {guestInfo.guestName.charAt(0).toUpperCase()}
+                          </AvatarFallback>
+                        </Avatar>
+                      </div>
+                    )}
+                    <div className="absolute bottom-2 left-2 flex items-center gap-2">
+                      <span className="text-white text-sm bg-black/50 px-2 py-1 rounded">
+                        Você (Convidado)
+                      </span>
+                      {isMuted && <MicOff className="h-4 w-4 text-red-500" />}
+                      {handRaised && <span className="text-lg">✋</span>}
+                    </div>
                   </div>
-                )}
-                <div className="absolute bottom-2 left-2 flex items-center gap-2">
-                  <span className="text-white text-sm bg-black/50 px-2 py-1 rounded">
-                    Você (Convidado)
-                  </span>
-                  {isMuted && <MicOff className="h-4 w-4 text-red-500" />}
-                  {handRaised && <span className="text-lg">✋</span>}
+
+                  {/* Remote participants */}
+                  {remoteParticipants.map(([sessionId, participant]) => (
+                    <div
+                      key={sessionId}
+                      className={cn(
+                        "relative bg-[#3c4043] rounded-lg overflow-hidden",
+                        speakingParticipants.has(sessionId) && "ring-2 ring-green-500",
+                        raisedHands.has(sessionId) && "ring-2 ring-yellow-500"
+                      )}
+                    >
+                      <video
+                        ref={(el) => { participantRefs.current[sessionId] = el; }}
+                        autoPlay
+                        playsInline
+                        className={cn(
+                          "w-full h-full object-cover",
+                          !participant.video && "hidden"
+                        )}
+                      />
+                      {!participant.video && (
+                        <div className="absolute inset-0 flex items-center justify-center">
+                          <Avatar className="h-20 w-20">
+                            <AvatarFallback className="text-2xl bg-blue-600">
+                              {(participant.user_name || "P").charAt(0).toUpperCase()}
+                            </AvatarFallback>
+                          </Avatar>
+                        </div>
+                      )}
+                      <div className="absolute bottom-2 left-2 flex items-center gap-2">
+                        <span className="text-white text-sm bg-black/50 px-2 py-1 rounded">
+                          {participant.user_name || "Participante"}
+                        </span>
+                        {!participant.audio && <MicOff className="h-4 w-4 text-red-500" />}
+                        {raisedHands.has(sessionId) && <span className="text-lg">✋</span>}
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
-
-              {/* Remote participants */}
-              {remoteParticipants.map(([sessionId, participant]) => (
-                <div
-                  key={sessionId}
-                  className={cn(
-                    "relative bg-[#3c4043] rounded-lg overflow-hidden",
-                    speakingParticipants.has(sessionId) && "ring-2 ring-green-500",
-                    raisedHands.has(sessionId) && "ring-2 ring-yellow-500"
-                  )}
-                >
-                  <video
-                    ref={(el) => { participantRefs.current[sessionId] = el; }}
-                    autoPlay
-                    playsInline
-                    className={cn(
-                      "w-full h-full object-cover",
-                      !participant.video && "hidden"
-                    )}
-                  />
-                  {!participant.video && (
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <Avatar className="h-20 w-20">
-                        <AvatarFallback className="text-2xl bg-blue-600">
-                          {(participant.user_name || "P").charAt(0).toUpperCase()}
-                        </AvatarFallback>
-                      </Avatar>
-                    </div>
-                  )}
-                  <div className="absolute bottom-2 left-2 flex items-center gap-2">
-                    <span className="text-white text-sm bg-black/50 px-2 py-1 rounded">
-                      {participant.user_name || "Participante"}
-                    </span>
-                    {!participant.audio && <MicOff className="h-4 w-4 text-red-500" />}
-                    {raisedHands.has(sessionId) && <span className="text-lg">✋</span>}
-                  </div>
-                </div>
-              ))}
-            </div>
+            )}
           </div>
 
           {/* Chat sidebar */}
