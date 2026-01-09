@@ -1,7 +1,7 @@
 import React from 'react';
 import { Badge } from '@/components/ui/badge';
 import { AppRole, ROLE_LABELS } from '@/types/auth';
-import { Shield, UserCog, User, Code } from 'lucide-react';
+import { Shield, UserCog, User, Code, Palette } from 'lucide-react';
 
 interface RoleBadgeProps {
   role: AppRole;
@@ -16,9 +16,19 @@ const RoleBadge: React.FC<RoleBadgeProps> = ({ role, region, showIcon = true, si
     admin: Shield,
     gerente: UserCog,
     vendedor: User,
+    criacao: Palette,
   };
 
   const Icon = icons[role];
+  
+  // Map roles to badge variants (criacao uses secondary as fallback)
+  const roleToVariant: Record<AppRole, "dev" | "admin" | "gerente" | "vendedor" | "criacao"> = {
+    dev: "dev",
+    admin: "admin",
+    gerente: "gerente",
+    vendedor: "vendedor",
+    criacao: "criacao",
+  };
 
   // For vendedor with region, show "Vendedor SP" format
   // Special case for INTERNO region - display as "Vendedor Interno"
@@ -31,7 +41,7 @@ const RoleBadge: React.FC<RoleBadgeProps> = ({ role, region, showIcon = true, si
   const displayLabel = getDisplayLabel();
 
   return (
-    <Badge variant={role} className={size === 'sm' ? 'text-xs px-2 py-0.5' : ''}>
+    <Badge variant={roleToVariant[role]} className={size === 'sm' ? 'text-xs px-2 py-0.5' : ''}>
       {showIcon && Icon && <Icon className={`${size === 'sm' ? 'w-3 h-3' : 'w-3.5 h-3.5'} mr-1`} />}
       {displayLabel}
     </Badge>

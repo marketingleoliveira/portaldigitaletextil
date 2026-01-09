@@ -17,6 +17,7 @@ const badgeVariants = cva(
         admin: "border-transparent bg-role-admin text-white hover:bg-role-admin/80",
         gerente: "border-transparent bg-role-gerente text-white hover:bg-role-gerente/80",
         vendedor: "border-transparent bg-role-vendedor text-white hover:bg-role-vendedor/80",
+        criacao: "border-transparent bg-role-criacao text-white hover:bg-role-criacao/80",
       },
     },
     defaultVariants: {
