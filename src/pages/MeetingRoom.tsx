@@ -160,6 +160,7 @@ export default function MeetingRoom() {
   const localVideoRef = useRef<HTMLVideoElement>(null);
   const participantRefs = useRef<Record<string, HTMLVideoElement | null>>({});
   const audioRefs = useRef<Record<string, HTMLAudioElement | null>>({});
+  const screenAudioRefs = useRef<Record<string, HTMLAudioElement | null>>({});
   const chatScrollRef = useRef<HTMLDivElement>(null);
   const controlsChannelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const messagesChannelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
@@ -472,6 +473,28 @@ export default function MeetingRoom() {
           }
           audioEl.srcObject = new MediaStream([audioTrack]);
         }
+        
+        // Handle screen audio - create separate audio element for screen share audio
+        const screenAudioTrack = participant.tracks?.screenAudio?.track;
+        if (screenAudioTrack) {
+          let screenAudioEl = screenAudioRefs.current[sessionId];
+          if (!screenAudioEl) {
+            screenAudioEl = document.createElement('audio');
+            screenAudioEl.autoplay = true;
+            screenAudioEl.id = `screen-audio-${sessionId}`;
+            document.body.appendChild(screenAudioEl);
+            screenAudioRefs.current[sessionId] = screenAudioEl;
+          }
+          screenAudioEl.srcObject = new MediaStream([screenAudioTrack]);
+        } else {
+          // Clean up screen audio if no longer sharing
+          const existingScreenAudio = screenAudioRefs.current[sessionId];
+          if (existingScreenAudio) {
+            existingScreenAudio.srcObject = null;
+            existingScreenAudio.remove();
+            delete screenAudioRefs.current[sessionId];
+          }
+        }
       }
     });
     
@@ -483,6 +506,18 @@ export default function MeetingRoom() {
           audioEl.srcObject = null;
           audioEl.remove();
           delete audioRefs.current[sessionId];
+        }
+      }
+    });
+    
+    // Clean up screen audio elements for participants who left
+    Object.keys(screenAudioRefs.current).forEach(sessionId => {
+      if (!participants[sessionId]) {
+        const screenAudioEl = screenAudioRefs.current[sessionId];
+        if (screenAudioEl) {
+          screenAudioEl.srcObject = null;
+          screenAudioEl.remove();
+          delete screenAudioRefs.current[sessionId];
         }
       }
     });
@@ -813,6 +848,16 @@ export default function MeetingRoom() {
       }
     });
     audioRefs.current = {};
+    
+    // Clean up screen audio elements
+    Object.keys(screenAudioRefs.current).forEach(sessionId => {
+      const screenAudioEl = screenAudioRefs.current[sessionId];
+      if (screenAudioEl) {
+        screenAudioEl.srcObject = null;
+        screenAudioEl.remove();
+      }
+    });
+    screenAudioRefs.current = {};
     
     if (callObjectRef.current) {
       try {
