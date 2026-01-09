@@ -1,6 +1,6 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useContext } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/contexts/AuthContext';
+import { AuthUser } from '@/types/auth';
 
 interface NewNotification {
   id: string;
@@ -18,8 +18,7 @@ interface UnreadCount {
   total: number;
 }
 
-export const useRealtimeNotifications = () => {
-  const { user } = useAuth();
+export const useRealtimeNotifications = (user: AuthUser | null) => {
   const [unreadCount, setUnreadCount] = useState<UnreadCount>({
     groupNotifications: 0,
     userNotifications: 0,

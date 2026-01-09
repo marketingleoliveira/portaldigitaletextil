@@ -1,5 +1,6 @@
 import React, { createContext, useContext, ReactNode, useState, useCallback } from 'react';
 import { useRealtimeNotifications } from '@/hooks/useRealtimeNotifications';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface NotificationContextType {
   unreadCount: {
@@ -28,6 +29,7 @@ interface NotificationContextType {
 const NotificationContext = createContext<NotificationContextType | undefined>(undefined);
 
 export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+  const { user } = useAuth();
   const {
     unreadCount,
     newAlerts,
@@ -36,7 +38,7 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
     dismissAlert,
     dismissAllAlerts,
     refetch,
-  } = useRealtimeNotifications();
+  } = useRealtimeNotifications(user);
 
   const [showBanner, setShowBanner] = useState(true);
 
