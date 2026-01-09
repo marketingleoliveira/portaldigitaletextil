@@ -23,6 +23,7 @@ import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import ScreenShareLayout from "@/components/ScreenShareLayout";
+import { ScreenShareOptionsModal, ScreenShareType } from "@/components/ScreenShareOptionsModal";
 import { ROLE_LABELS } from "@/types/auth";
 import { ROLE_TEXT_COLORS, formatParticipantName } from "@/lib/meeting-utils";
 import { setUserInMeeting } from "@/hooks/useUserPresence";
@@ -141,6 +142,9 @@ export default function MeetingRoom() {
   // Picture-in-Picture state
   const [isPiPActive, setIsPiPActive] = useState(false);
   const pipVideoRef = useRef<HTMLVideoElement | null>(null);
+  
+  // Screen share options modal
+  const [showScreenShareOptions, setShowScreenShareOptions] = useState(false);
   
   const localVideoRef = useRef<HTMLVideoElement>(null);
   const participantRefs = useRef<Record<string, HTMLVideoElement | null>>({});
@@ -896,28 +900,66 @@ export default function MeetingRoom() {
       return;
     }
 
-    try {
-      // Get current screen share state directly from Daily
-      const localParticipant = callObject.participants().local;
-      const isCurrentlySharing = localParticipant?.screen;
-      
-      if (isCurrentlySharing || isScreenSharing) {
+    // Get current screen share state directly from Daily
+    const localParticipant = callObject.participants().local;
+    const isCurrentlySharing = localParticipant?.screen;
+    
+    if (isCurrentlySharing || isScreenSharing) {
+      try {
         console.log("Stopping screen share...");
         await callObject.stopScreenShare();
         setIsScreenSharing(false);
         toast.info("Compartilhamento de tela encerrado");
-      } else {
-        console.log("Starting screen share...");
-        // Start screen share with optimal settings for background operation
-        await callObject.startScreenShare({
-          screenVideoSendSettings: {
-            maxQuality: 'high',
-          }
-        });
-        // State will be updated by the event listener
+      } catch (err) {
+        console.error("Error stopping screen share:", err);
+        setIsScreenSharing(false);
       }
+    } else {
+      // Show options modal instead of starting directly
+      setShowScreenShareOptions(true);
+    }
+  }, [callObject, isScreenSharing, isHost, globalScreenShareEnabled]);
+
+  const startScreenShareWithType = useCallback(async (type: ScreenShareType) => {
+    if (!callObject) return;
+
+    try {
+      console.log("Starting screen share with type:", type);
+      
+      // Configure display media constraints based on selection
+      // Note: The actual selection happens in the browser's native picker,
+      // but we can provide hints via mediaStream preferences
+      const displayMediaOptions: any = {
+        screenVideoSendSettings: {
+          maxQuality: 'high',
+        }
+      };
+
+      // For browser tabs, we can hint at preferCurrentTab
+      if (type === 'tab') {
+        displayMediaOptions.displayMediaOptions = {
+          preferCurrentTab: false,
+          selfBrowserSurface: 'include',
+          surfaceSwitching: 'include',
+          monitorTypeSurfaces: 'exclude',
+        };
+      } else if (type === 'window') {
+        displayMediaOptions.displayMediaOptions = {
+          monitorTypeSurfaces: 'exclude',
+          surfaceSwitching: 'include',
+        };
+      } else {
+        // Full screen
+        displayMediaOptions.displayMediaOptions = {
+          monitorTypeSurfaces: 'include',
+          surfaceSwitching: 'include',
+        };
+      }
+
+      await callObject.startScreenShare(displayMediaOptions);
+      // State will be updated by the event listener
     } catch (err: any) {
-      console.error("Error toggling screen share:", err);
+      console.error("Error starting screen share:", err);
       
       // Handle user cancellation gracefully
       if (err?.message?.includes("NotAllowedError") || 
@@ -940,7 +982,7 @@ export default function MeetingRoom() {
       toast.error("Erro ao compartilhar tela. Verifique as permissões do navegador.");
       setIsScreenSharing(false);
     }
-  }, [callObject, isScreenSharing, isHost, globalScreenShareEnabled]);
+  }, [callObject]);
 
   const toggleHandRaise = async () => {
     if (!meeting || !callObject) return;
@@ -2262,6 +2304,13 @@ export default function MeetingRoom() {
           )}
         </TooltipProvider>
       </div>
+
+      {/* Screen Share Options Modal */}
+      <ScreenShareOptionsModal
+        open={showScreenShareOptions}
+        onOpenChange={setShowScreenShareOptions}
+        onSelect={startScreenShareWithType}
+      />
     </div>
   );
 }
