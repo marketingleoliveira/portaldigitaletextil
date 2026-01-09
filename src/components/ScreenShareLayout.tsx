@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -48,10 +48,57 @@ export default function ScreenShareLayout({
   meeting,
 }: ScreenShareLayoutProps) {
   const [currentPage, setCurrentPage] = useState(0);
+  const screenVideoRef = useRef<HTMLVideoElement>(null);
+  const screenAudioRef = useRef<HTMLAudioElement>(null);
   
   // Get role label and color for display
   const roleLabel = userRole ? ROLE_LABELS[userRole] : '';
   const roleColorClass = userRole ? ROLE_TEXT_COLORS[userRole] : '';
+
+  // Handle screen share video and audio tracks
+  useEffect(() => {
+    const participant = screenSharingParticipant[1];
+    
+    // Set up video track
+    if (screenVideoRef.current && participant.tracks?.screenVideo?.track) {
+      const currentStream = screenVideoRef.current.srcObject as MediaStream | null;
+      const currentTrackId = currentStream?.getVideoTracks()[0]?.id;
+      if (currentTrackId !== participant.tracks.screenVideo.track.id) {
+        screenVideoRef.current.srcObject = new MediaStream([participant.tracks.screenVideo.track]);
+      }
+    }
+    
+    // Set up audio track for screen share (system audio)
+    // This is CRITICAL for hearing system audio from shared screens
+    if (participant.tracks?.screenAudio?.track && !participant.local) {
+      if (!screenAudioRef.current) {
+        const audioEl = document.createElement('audio');
+        audioEl.autoplay = true;
+        audioEl.volume = 1.0;
+        audioEl.id = 'screen-share-layout-audio';
+        document.body.appendChild(audioEl);
+        (screenAudioRef as any).current = audioEl;
+      }
+      
+      if (screenAudioRef.current) {
+        const currentStream = screenAudioRef.current.srcObject as MediaStream | null;
+        const currentTrackId = currentStream?.getAudioTracks()[0]?.id;
+        if (currentTrackId !== participant.tracks.screenAudio.track.id) {
+          screenAudioRef.current.srcObject = new MediaStream([participant.tracks.screenAudio.track]);
+          screenAudioRef.current.play().catch(err => console.warn('Screen audio play failed:', err));
+        }
+      }
+    }
+    
+    // Cleanup audio element on unmount
+    return () => {
+      if (screenAudioRef.current) {
+        screenAudioRef.current.srcObject = null;
+        screenAudioRef.current.remove();
+        (screenAudioRef as any).current = null;
+      }
+    };
+  }, [screenSharingParticipant]);
 
   // Sort participants: host first, then by name
   const sortedParticipants = [...remoteParticipants].sort((a, b) => {
@@ -107,17 +154,15 @@ export default function ScreenShareLayout({
     setCurrentPage(prev => Math.min(totalPages - 1, prev + 1));
   };
 
+  const hasScreenAudio = !!screenSharingParticipant[1].tracks?.screenAudio?.track;
+
   return (
     <div className="flex-1 flex gap-2 sm:gap-4 h-full">
       {/* Left side - Screen share (larger) */}
       <div className="flex-1 flex items-center justify-center min-w-0">
         <div className="relative bg-gray-800 rounded-lg sm:rounded-xl overflow-hidden w-full h-full max-h-full border-2 border-primary">
           <video
-            ref={el => { 
-              if (el && screenSharingParticipant[1].tracks?.screenVideo?.track) {
-                el.srcObject = new MediaStream([screenSharingParticipant[1].tracks.screenVideo.track]);
-              }
-            }}
+            ref={screenVideoRef}
             autoPlay
             playsInline
             className="w-full h-full object-contain bg-black"
@@ -129,6 +174,12 @@ export default function ScreenShareLayout({
                 ? "Você está compartilhando" 
                 : `${screenSharingParticipant[1].user_name || "Participante"} está compartilhando`}
             </span>
+            {hasScreenAudio && !screenSharingParticipant[1].local && (
+              <span className="px-1.5 py-0.5 bg-green-600/90 rounded text-white text-xs flex items-center gap-1">
+                <Volume2 className="w-3 h-3" />
+                Áudio
+              </span>
+            )}
           </div>
         </div>
       </div>

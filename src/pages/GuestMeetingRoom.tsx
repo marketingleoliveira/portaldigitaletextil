@@ -409,6 +409,7 @@ export default function GuestMeetingRoom() {
   }, [guestInfo]);
 
   // Update remote video and audio elements
+  // CRITICAL: This handles screen share audio for all participants
   useEffect(() => {
     Object.entries(participants).forEach(([sessionId, participant]) => {
       if (!participant.local) {
@@ -420,40 +421,80 @@ export default function GuestMeetingRoom() {
           const trackToUse = screenTrack || videoTrack;
           
           if (trackToUse) {
-            videoEl.srcObject = new MediaStream([trackToUse]);
+            const currentStream = videoEl.srcObject as MediaStream | null;
+            const currentTrackId = currentStream?.getVideoTracks()[0]?.id;
+            if (currentTrackId !== trackToUse.id) {
+              videoEl.srcObject = new MediaStream([trackToUse]);
+            }
           }
         }
         
-        // Handle audio - create audio element if needed
+        // Handle participant audio - create audio element if needed
         const audioTrack = participant.tracks?.audio?.track;
         if (audioTrack) {
           let audioEl = audioRefs.current[sessionId];
           if (!audioEl) {
             audioEl = document.createElement('audio');
             audioEl.autoplay = true;
+            audioEl.volume = 1.0;
             audioEl.id = `audio-${sessionId}`;
             document.body.appendChild(audioEl);
             audioRefs.current[sessionId] = audioEl;
           }
-          audioEl.srcObject = new MediaStream([audioTrack]);
+          
+          // Check if we need to update the stream
+          const currentStream = audioEl.srcObject as MediaStream | null;
+          const currentTrackId = currentStream?.getAudioTracks()[0]?.id;
+          if (currentTrackId !== audioTrack.id) {
+            audioEl.srcObject = new MediaStream([audioTrack]);
+            audioEl.play().catch(err => console.warn('Audio play failed:', err));
+          }
         }
         
-        // Handle screen audio - create separate audio element for screen share audio
+        // CRITICAL: Handle screen share audio separately - this enables 
+        // system audio from screen shares to be heard by all participants
         const screenAudioTrack = participant.tracks?.screenAudio?.track;
         if (screenAudioTrack) {
           let screenAudioEl = screenAudioRefs.current[sessionId];
           if (!screenAudioEl) {
             screenAudioEl = document.createElement('audio');
             screenAudioEl.autoplay = true;
+            screenAudioEl.volume = 1.0; // Full volume for screen share audio
             screenAudioEl.id = `screen-audio-${sessionId}`;
             document.body.appendChild(screenAudioEl);
             screenAudioRefs.current[sessionId] = screenAudioEl;
+            console.log('Created screen audio element for:', participant.user_name);
           }
-          screenAudioEl.srcObject = new MediaStream([screenAudioTrack]);
+          
+          // Check if we need to update the stream
+          const currentStream = screenAudioEl.srcObject as MediaStream | null;
+          const currentTrackId = currentStream?.getAudioTracks()[0]?.id;
+          if (currentTrackId !== screenAudioTrack.id) {
+            console.log('Setting screen audio track for:', participant.user_name);
+            screenAudioEl.srcObject = new MediaStream([screenAudioTrack]);
+            // Force play with retry for autoplay policy
+            const playAudio = async () => {
+              try {
+                await screenAudioEl!.play();
+                console.log('Screen audio playing for:', participant.user_name);
+              } catch (err) {
+                console.warn('Screen audio play failed, retrying:', err);
+                setTimeout(async () => {
+                  try {
+                    await screenAudioEl!.play();
+                  } catch (e) {
+                    console.error('Screen audio retry failed:', e);
+                  }
+                }, 500);
+              }
+            };
+            playAudio();
+          }
         } else {
           // Clean up screen audio if no longer sharing
           const existingScreenAudio = screenAudioRefs.current[sessionId];
           if (existingScreenAudio) {
+            console.log('Removing screen audio element for:', participant.user_name);
             existingScreenAudio.srcObject = null;
             existingScreenAudio.remove();
             delete screenAudioRefs.current[sessionId];
@@ -487,11 +528,12 @@ export default function GuestMeetingRoom() {
     });
   }, [participants]);
 
-  // Periodic sync to ensure video tracks are always attached
+  // Periodic sync to ensure video and audio tracks are always attached
+  // Also syncs screen share audio for proper system sound playback
   useEffect(() => {
     if (!callObject) return;
     
-    const syncVideoTracks = () => {
+    const syncAllTracks = () => {
       const currentParticipants = callObject.participants();
       
       // Sync local video
@@ -508,20 +550,58 @@ export default function GuestMeetingRoom() {
         }
       }
       
-      // Sync remote videos
+      // Sync remote videos and screen share audio
       Object.entries(currentParticipants).forEach(([sessionId, participant]) => {
         if (!participant.local) {
+          // Sync video
           const videoEl = participantRefs.current[sessionId];
           if (videoEl) {
+            const screenTrack = participant.tracks?.screenVideo?.track;
             const videoTrack = participant.tracks?.video?.track;
-            if (videoTrack) {
+            const trackToUse = screenTrack || videoTrack;
+            
+            if (trackToUse) {
               const currentStream = videoEl.srcObject as MediaStream | null;
               const currentTrack = currentStream?.getVideoTracks()[0];
-              if (!currentTrack || currentTrack.id !== videoTrack.id) {
-                console.log("Syncing remote video track for", participant.user_name);
-                videoEl.srcObject = new MediaStream([videoTrack]);
+              if (!currentTrack || currentTrack.id !== trackToUse.id) {
+                console.log("Syncing video track for", participant.user_name);
+                videoEl.srcObject = new MediaStream([trackToUse]);
               }
             }
+          }
+          
+          // CRITICAL: Ensure screen audio elements exist and are playing
+          const screenAudioTrack = participant.tracks?.screenAudio?.track;
+          if (screenAudioTrack) {
+            let screenAudioEl = screenAudioRefs.current[sessionId];
+            if (!screenAudioEl) {
+              screenAudioEl = document.createElement('audio');
+              screenAudioEl.autoplay = true;
+              screenAudioEl.volume = 1.0;
+              screenAudioEl.id = `screen-audio-sync-${sessionId}`;
+              document.body.appendChild(screenAudioEl);
+              screenAudioRefs.current[sessionId] = screenAudioEl;
+              console.log('Sync: Created screen audio element for:', participant.user_name);
+            }
+            
+            const currentStream = screenAudioEl.srcObject as MediaStream | null;
+            const currentTrackId = currentStream?.getAudioTracks()[0]?.id;
+            if (currentTrackId !== screenAudioTrack.id) {
+              console.log('Sync: Updating screen audio track for:', participant.user_name);
+              screenAudioEl.srcObject = new MediaStream([screenAudioTrack]);
+              screenAudioEl.play().catch(err => console.warn('Sync screen audio play failed:', err));
+            }
+            
+            // Ensure audio is not paused
+            if (screenAudioEl.paused && screenAudioEl.srcObject) {
+              screenAudioEl.play().catch(() => {});
+            }
+          }
+          
+          // Ensure regular audio is not paused
+          const audioEl = audioRefs.current[sessionId];
+          if (audioEl && audioEl.paused && audioEl.srcObject) {
+            audioEl.play().catch(() => {});
           }
         }
       });
@@ -541,9 +621,9 @@ export default function GuestMeetingRoom() {
       });
     };
     
-    // Sync immediately and then every 2 seconds
-    syncVideoTracks();
-    const interval = setInterval(syncVideoTracks, 2000);
+    // Sync immediately and then every 1.5 seconds (faster for better audio responsiveness)
+    syncAllTracks();
+    const interval = setInterval(syncAllTracks, 1500);
     
     return () => clearInterval(interval);
   }, [callObject]);
