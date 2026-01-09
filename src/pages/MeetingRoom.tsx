@@ -386,12 +386,28 @@ export default function MeetingRoom() {
       }
     };
 
+    // Prevent page refresh/navigation while in meeting
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = 'Você está em uma reunião. Tem certeza que deseja sair?';
+      return e.returnValue;
+    };
+
+    // Handle fullscreen changes without affecting meeting state
+    const handleFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+    };
+
     // Set initial title
     document.title = meeting.title || "Reunião";
     document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
 
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      document.removeEventListener('fullscreenchange', handleFullscreenChange);
       document.title = originalTitle;
     };
   }, [meeting]);
@@ -1045,13 +1061,15 @@ export default function MeetingRoom() {
     toast.success("Link copiado!");
   };
 
-  const toggleFullscreen = () => {
-    if (!document.fullscreenElement) {
-      document.documentElement.requestFullscreen();
-      setIsFullscreen(true);
-    } else {
-      document.exitFullscreen();
-      setIsFullscreen(false);
+  const toggleFullscreen = async () => {
+    try {
+      if (!document.fullscreenElement) {
+        await document.documentElement.requestFullscreen();
+      } else {
+        await document.exitFullscreen();
+      }
+    } catch (err) {
+      console.log("Fullscreen toggle error (ignored):", err);
     }
   };
 

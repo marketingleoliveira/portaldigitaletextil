@@ -364,12 +364,21 @@ export default function GuestMeetingRoom() {
       }
     };
 
+    // Prevent page refresh/navigation while in meeting
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = 'Você está em uma reunião. Tem certeza que deseja sair?';
+      return e.returnValue;
+    };
+
     // Set initial title
     document.title = meeting.title || "Reunião";
     document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('beforeunload', handleBeforeUnload);
 
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('beforeunload', handleBeforeUnload);
       document.title = originalTitle;
     };
   }, [meeting]);
