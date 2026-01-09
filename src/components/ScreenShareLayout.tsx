@@ -134,7 +134,7 @@ export default function ScreenShareLayout({
       </div>
 
       {/* Right side - Camera list with pagination */}
-      <div className="w-48 sm:w-56 md:w-64 flex flex-col gap-2 h-full shrink-0">
+      <div className="w-[320px] flex flex-col gap-2 h-full shrink-0">
         {/* Pagination controls - top */}
         {totalPages > 1 && (
           <div className="flex items-center justify-between px-2 py-1 bg-gray-800/50 rounded-lg">
@@ -171,9 +171,10 @@ export default function ScreenShareLayout({
                 <div
                   key="local"
                   className={cn(
-                    "relative bg-gray-800 rounded-lg overflow-hidden aspect-video transition-all duration-300 shrink-0",
+                    "relative bg-gray-800 rounded-lg overflow-hidden transition-all duration-300 shrink-0",
                     speakingParticipants.has(participants.local?.session_id || "") && "ring-2 ring-green-500"
                   )}
+                  style={{ width: '300px', height: '250px' }}
                 >
                   <video
                     ref={localVideoRef}
@@ -224,9 +225,10 @@ export default function ScreenShareLayout({
                 <div
                   key={sessionId}
                   className={cn(
-                    "relative bg-gray-800 rounded-lg overflow-hidden aspect-video transition-all duration-300 shrink-0",
+                    "relative bg-gray-800 rounded-lg overflow-hidden transition-all duration-300 shrink-0",
                     isSpeaking && "ring-2 ring-green-500"
                   )}
+                  style={{ width: '300px', height: '250px' }}
                 >
                   <video
                     ref={el => { participantRefs.current[sessionId] = el; }}
