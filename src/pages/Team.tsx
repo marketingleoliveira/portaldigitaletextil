@@ -140,7 +140,27 @@ const Team: React.FC = () => {
           <p className="text-muted-foreground text-sm line-clamp-1 mb-2">
             {member.email}
           </p>
-          {member.role && <RoleBadge role={member.role} region={member.region} size="sm" />}
+          <div className="flex items-center gap-2 mb-2">
+            {member.role && <RoleBadge role={member.role} region={member.region} size="sm" />}
+            {member.linkedin && (
+              <Button
+                size="icon"
+                variant="ghost"
+                className="h-6 w-6 text-[#0A66C2] hover:text-[#004182] hover:bg-blue-100"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  let url = member.linkedin!;
+                  if (!url.startsWith('http')) {
+                    url = `https://linkedin.com/in/${url}`;
+                  }
+                  window.open(url, '_blank');
+                }}
+                title="Abrir perfil no LinkedIn"
+              >
+                <Linkedin className="w-3.5 h-3.5" />
+              </Button>
+            )}
+          </div>
         </CardContent>
       </Card>
     );
