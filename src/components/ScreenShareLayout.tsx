@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils";
 import { MicOff, Hand, Volume2, ScreenShare, ChevronLeft, ChevronRight } from "lucide-react";
 import { DailyParticipant } from "@daily-co/daily-js";
 import { ROLE_LABELS, AppRole } from "@/types/auth";
+import { ROLE_TEXT_COLORS, formatParticipantName } from "@/lib/meeting-utils";
 
 interface ParticipantWithExtras extends DailyParticipant {
   isSpeaking?: boolean;
@@ -48,8 +49,9 @@ export default function ScreenShareLayout({
 }: ScreenShareLayoutProps) {
   const [currentPage, setCurrentPage] = useState(0);
   
-  // Get role label for display
+  // Get role label and color for display
   const roleLabel = userRole ? ROLE_LABELS[userRole] : '';
+  const roleColorClass = userRole ? ROLE_TEXT_COLORS[userRole] : '';
 
   // Sort participants: host first, then by name
   const sortedParticipants = [...remoteParticipants].sort((a, b) => {
@@ -200,7 +202,7 @@ export default function ScreenShareLayout({
                         <Volume2 className="w-2 h-2 text-green-500 animate-pulse" />
                       )}
                       {camera.isHostCamera && <span className="text-primary font-medium">★</span>}
-                      Você {roleLabel && <span className="text-gray-300">({roleLabel})</span>}
+                      Você {roleLabel && <span className={cn("font-medium", roleColorClass)}>({roleLabel})</span>}
                     </span>
                     <div className="flex items-center gap-0.5">
                       {isMuted && <MicOff className="w-2.5 h-2.5 text-red-500" />}
@@ -216,6 +218,7 @@ export default function ScreenShareLayout({
               const hasVideo = participant.video || participant.tracks?.video?.state === 'playable';
               const isSpeaking = speakingParticipants.has(sessionId);
               const hasHandRaised = raisedHands.has(sessionId);
+              const { displayName, roleLabel: participantRole, roleColorClass: participantRoleColor } = formatParticipantName(participant.user_name || "Participante");
 
               return (
                 <div
@@ -238,18 +241,18 @@ export default function ScreenShareLayout({
                     <div className="absolute inset-0 flex items-center justify-center">
                       <Avatar className="w-10 h-10 sm:w-12 sm:h-12">
                         <AvatarFallback className="text-sm sm:text-base bg-primary">
-                          {participant.user_name?.charAt(0) || "P"}
+                          {displayName.charAt(0) || "P"}
                         </AvatarFallback>
                       </Avatar>
                     </div>
                   )}
                   <div className="absolute bottom-1 left-1 right-1 flex items-center justify-between">
-                    <span className="px-1 py-0.5 bg-black/60 rounded text-white text-[10px] sm:text-xs truncate max-w-[70%] flex items-center gap-0.5">
+                    <span className="px-1 py-0.5 bg-black/60 rounded text-white text-[10px] sm:text-xs truncate max-w-[85%] flex items-center gap-0.5">
                       {isSpeaking && (
                         <Volume2 className="w-2 h-2 text-green-500 animate-pulse" />
                       )}
                       {camera.isHostCamera && <span className="text-primary font-medium">★</span>}
-                      {participant.user_name || "Participante"}
+                      {displayName} {participantRole && <span className={cn("font-medium", participantRoleColor)}>({participantRole})</span>}
                     </span>
                     <div className="flex items-center gap-0.5">
                       {!participant.audio && <MicOff className="w-2.5 h-2.5 text-red-500" />}

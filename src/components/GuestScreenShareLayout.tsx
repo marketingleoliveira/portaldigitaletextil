@@ -2,8 +2,9 @@ import { useState } from "react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { MicOff, Hand, ScreenShare, ChevronLeft, ChevronRight } from "lucide-react";
+import { MicOff, Hand, ScreenShare, ChevronLeft, ChevronRight, Volume2 } from "lucide-react";
 import { DailyParticipant } from "@daily-co/daily-js";
+import { formatParticipantName } from "@/lib/meeting-utils";
 
 interface ParticipantWithExtras extends DailyParticipant {
   isSpeaking?: boolean;
@@ -200,6 +201,7 @@ export default function GuestScreenShareLayout({
               const hasVideo = participant.video || participant.tracks?.video?.state === 'playable';
               const isSpeaking = speakingParticipants.has(sessionId);
               const hasHandRaised = raisedHands.has(sessionId);
+              const { displayName, roleLabel, roleColorClass } = formatParticipantName(participant.user_name || "Participante");
 
               return (
                 <div
@@ -222,15 +224,16 @@ export default function GuestScreenShareLayout({
                     <div className="absolute inset-0 flex items-center justify-center">
                       <Avatar className="w-10 h-10 sm:w-12 sm:h-12">
                         <AvatarFallback className="text-sm sm:text-base bg-blue-600">
-                          {(participant.user_name || "P").charAt(0).toUpperCase()}
+                          {displayName.charAt(0).toUpperCase()}
                         </AvatarFallback>
                       </Avatar>
                     </div>
                   )}
                   <div className="absolute bottom-1 left-1 right-1 flex items-center justify-between">
-                    <span className="px-1 py-0.5 bg-black/60 rounded text-white text-[10px] sm:text-xs truncate max-w-[70%] flex items-center gap-0.5">
+                    <span className="px-1 py-0.5 bg-black/60 rounded text-white text-[10px] sm:text-xs truncate max-w-[85%] flex items-center gap-0.5">
+                      {isSpeaking && <Volume2 className="w-2 h-2 text-green-500 animate-pulse" />}
                       {camera.isHostCamera && <span className="text-primary font-medium">★</span>}
-                      {participant.user_name || "Participante"}
+                      {displayName} {roleLabel && <span className={cn("font-medium", roleColorClass)}>({roleLabel})</span>}
                     </span>
                     <div className="flex items-center gap-0.5">
                       {!participant.audio && <MicOff className="w-2.5 h-2.5 text-red-500" />}
