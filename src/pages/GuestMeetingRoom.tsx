@@ -66,6 +66,9 @@ interface GuestInfo {
 const EMOTES = ["👍", "👎", "❤️", "😂", "😮", "😢", "🎉", "🔥", "👏", "🤔", "💯", "✅"];
 const REACTIONS = ["👍", "❤️", "😂", "👏", "🎉", "🔥", "😮", "💯"];
 
+// Track initialized meetings globally to prevent re-initialization on tab switch
+const initializedGuestMeetings = new Map<string, boolean>();
+
 export default function GuestMeetingRoom() {
   const { code } = useParams<{ code: string }>();
   const navigate = useNavigate();
@@ -343,23 +346,36 @@ export default function GuestMeetingRoom() {
 
   // Initialize meeting
   useEffect(() => {
+    const meetingKey = `${code}-${guestInfo?.guestId}`;
+    
     // Only initialize once when we have code and guestInfo
-    if (code && guestInfo && !hasInitializedRef.current) {
+    // Check both the ref AND the global map to handle re-mounts
+    if (code && guestInfo && !hasInitializedRef.current && !initializedGuestMeetings.get(meetingKey)) {
+      console.log('Guest: Initializing meeting for first time:', meetingKey);
       setUserInMeeting(true);
       hasInitializedRef.current = true;
+      initializedGuestMeetings.set(meetingKey, true);
       initializeMeeting();
+    } else if (code && guestInfo && initializedGuestMeetings.get(meetingKey)) {
+      // Meeting was already initialized, just restore state
+      console.log('Guest: Meeting already initialized, skipping:', meetingKey);
+      setUserInMeeting(true);
+      hasInitializedRef.current = true;
+      // Don't show loading if we already have meeting data
+      if (meeting) {
+        setLoading(false);
+      }
     }
-    
-    // Cleanup only when code changes, not on guestInfo reference changes
   }, [code, guestInfo?.guestId]);
 
   // Separate cleanup effect that only runs on unmount
   useEffect(() => {
+    const meetingKey = `${code}-${guestInfo?.guestId}`;
+    
     return () => {
-      setUserInMeeting(false);
-      cleanup();
+      console.log('Guest: Cleanup effect running for:', meetingKey);
     };
-  }, []);
+  }, [code, guestInfo?.guestId]);
 
   // Update document title when tab is in background to show meeting is active
   useEffect(() => {
@@ -833,6 +849,10 @@ export default function GuestMeetingRoom() {
   };
 
   const leaveMeeting = async () => {
+    // Clear the global initialized state when actually leaving
+    const meetingKey = `${code}-${guestInfo?.guestId}`;
+    initializedGuestMeetings.delete(meetingKey);
+    setUserInMeeting(false);
     await cleanup();
     sessionStorage.removeItem(`guest_${code}`);
     navigate("/");

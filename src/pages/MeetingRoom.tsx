@@ -71,6 +71,9 @@ const EMOTES = ["👍", "👎", "❤️", "😂", "😮", "😢", "🎉", "🔥"
 // Reactions for floating animation
 const REACTIONS = ["👍", "❤️", "😂", "👏", "🎉", "🔥", "😮", "💯"];
 
+// Track initialized meetings globally to prevent re-initialization on tab switch
+const initializedMeetings = new Map<string, boolean>();
+
 export default function MeetingRoom() {
   const { code } = useParams<{ code: string }>();
   const navigate = useNavigate();
@@ -372,23 +375,39 @@ export default function MeetingRoom() {
   }, [user]);
 
   useEffect(() => {
+    const meetingKey = `${code}-${user?.id}`;
+    
     // Only initialize once when we have code and user id
-    if (code && user?.id && !hasInitializedRef.current) {
+    // Check both the ref AND the global map to handle re-mounts
+    if (code && user?.id && !hasInitializedRef.current && !initializedMeetings.get(meetingKey)) {
+      console.log('Initializing meeting for first time:', meetingKey);
       setUserInMeeting(true);
       hasInitializedRef.current = true;
+      initializedMeetings.set(meetingKey, true);
       initializeMeeting();
+    } else if (code && user?.id && initializedMeetings.get(meetingKey)) {
+      // Meeting was already initialized, just restore state
+      console.log('Meeting already initialized, skipping:', meetingKey);
+      setUserInMeeting(true);
+      hasInitializedRef.current = true;
+      // Don't show loading if we already have meeting data
+      if (meeting) {
+        setLoading(false);
+      }
     }
-    
-    // Cleanup only when component actually unmounts (code changes)
   }, [code, user?.id]);
 
   // Separate cleanup effect that only runs on unmount
   useEffect(() => {
+    const meetingKey = `${code}-${user?.id}`;
+    
     return () => {
-      setUserInMeeting(false);
-      cleanup();
+      // Only cleanup when actually leaving the meeting (navigating away)
+      // Not on re-mounts due to tab switching
+      console.log('Cleanup effect running for:', meetingKey);
+      // We'll handle actual cleanup in leaveMeeting function instead
     };
-  }, []);
+  }, [code, user?.id]);
 
   // Update document title when tab is in background to show meeting is active
   useEffect(() => {
@@ -1051,6 +1070,10 @@ export default function MeetingRoom() {
   };
 
   const leaveMeeting = async () => {
+    // Clear the global initialized state when actually leaving
+    const meetingKey = `${code}-${user?.id}`;
+    initializedMeetings.delete(meetingKey);
+    setUserInMeeting(false);
     await cleanup();
     navigate("/reunioes");
   };
