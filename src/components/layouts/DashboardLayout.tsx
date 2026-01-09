@@ -4,6 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useNotificationContext } from "@/contexts/NotificationContext";
 import { useUserPresence } from "@/hooks/useUserPresence";
 import { useNewUpdates } from "@/hooks/useNewUpdates";
+import { useActiveMeetings } from "@/hooks/useActiveMeetings";
 import Logo from "@/components/Logo";
 import RoleBadge from "@/components/RoleBadge";
 import InactivityWarningModal from "@/components/InactivityWarningModal";
@@ -109,6 +110,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
   const { unreadCount, newAlerts, showBanner, setShowBanner, dismissAlert, dismissAllAlerts } =
     useNotificationContext();
   const { hasNewUpdates, markAsViewed } = useNewUpdates();
+  const { hasActiveMeetings } = useActiveMeetings();
 
   // Show loading spinner only during initial load, not indefinitely
   const isUserDataLoading = loading;
@@ -175,6 +177,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
                   const isActive = location.pathname === item.href || location.pathname.startsWith(item.href + "/");
                   const isNotificationsItem = item.href === "/notificacoes";
                   const isUpdatesItem = item.href === "/atualizacoes";
+                  const isMeetingsItem = item.href === "/reunioes";
 
                   const handleClick = () => {
                     setSidebarOpen(false);
@@ -200,9 +203,18 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
                       <Icon className={cn(
                         "w-5 h-5", 
                         item.highlight && !isActive && "text-amber-400",
-                        isUpdatesItem && hasNewUpdates && !isActive && "text-destructive animate-pulse"
+                        isUpdatesItem && hasNewUpdates && !isActive && "text-destructive animate-pulse",
+                        isMeetingsItem && hasActiveMeetings && "text-red-500"
                       )} />
                       <span className="font-medium">{item.label}</span>
+
+                      {/* Live indicator for active meetings */}
+                      {isMeetingsItem && hasActiveMeetings && (
+                        <span className="ml-auto flex items-center gap-1 px-1.5 py-0.5 bg-red-500/20 text-red-400 text-[10px] font-bold rounded animate-pulse">
+                          <span className="w-1.5 h-1.5 bg-red-500 rounded-full animate-pulse" />
+                          AO VIVO
+                        </span>
+                      )}
 
                       {/* Badge for notifications */}
                       {isNotificationsItem && unreadCount.total > 0 && (
