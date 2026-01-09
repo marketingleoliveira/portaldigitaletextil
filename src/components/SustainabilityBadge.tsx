@@ -24,13 +24,15 @@ const SustainabilityBadge: React.FC = () => {
             )}
           >
             {isCollapsed ? (
-              <div className="flex items-center justify-center w-8 h-8 rounded-full bg-emerald-500/20 border border-emerald-500/30 animate-fade-in hover:bg-emerald-500/30 hover:border-emerald-400/50 transition-colors">
-                <Globe className="w-4 h-4 text-emerald-400 group-hover:text-emerald-300" />
+              <div className="relative flex items-center justify-center w-8 h-8 rounded-full bg-emerald-500/20 border border-emerald-500/30 animate-fade-in hover:bg-emerald-500/30 hover:border-emerald-400/50 transition-colors">
+                <div className="absolute inset-0 rounded-full bg-emerald-500/20 animate-[pulse_2s_ease-in-out_infinite]" />
+                <Globe className="w-4 h-4 text-emerald-400 relative z-10" />
               </div>
             ) : (
-              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/15 border border-emerald-500/30 animate-fade-in hover:bg-emerald-500/25 hover:border-emerald-400/50 transition-colors">
-                <Leaf className="w-3.5 h-3.5 text-emerald-400" />
-                <span className="text-xs font-medium text-emerald-400 whitespace-nowrap">
+              <div className="relative flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/15 border border-emerald-500/30 animate-fade-in hover:bg-emerald-500/25 hover:border-emerald-400/50 transition-colors">
+                <div className="absolute inset-0 rounded-full bg-emerald-500/10 animate-[pulse_2s_ease-in-out_infinite]" />
+                <Leaf className="w-3.5 h-3.5 text-emerald-400 relative z-10" />
+                <span className="text-xs font-medium text-emerald-400 whitespace-nowrap relative z-10">
                   #Sustentabilidade
                 </span>
               </div>
