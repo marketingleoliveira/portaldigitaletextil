@@ -24,6 +24,14 @@ export const useUserPresence = () => {
   const inactivityCheckRef = useRef<NodeJS.Timeout | null>(null);
   const [showInactivityWarning, setShowInactivityWarning] = useState(false);
   const [inactivityCountdown, setInactivityCountdown] = useState(300); // 5 minutes in seconds
+  
+  // Refs for function callbacks to avoid effect re-runs - declare at top level
+  const startSessionRef = useRef<() => Promise<void>>();
+  const endSessionRef = useRef<() => Promise<void>>();
+  const updatePresenceRef = useRef<(isOnline: boolean) => Promise<void>>();
+  const updateSessionDurationRef = useRef<() => Promise<void>>();
+  const resetActivityRef = useRef<() => void>();
+  const checkInactivityRef = useRef<() => Promise<void>>();
 
   // Reset activity timer on user interaction
   const resetActivity = useCallback(() => {
@@ -181,14 +189,7 @@ export const useUserPresence = () => {
     }
   }, [endSession, signOut]);
 
-  // Use refs for functions to avoid re-running effect
-  const startSessionRef = useRef(startSession);
-  const endSessionRef = useRef(endSession);
-  const updatePresenceRef = useRef(updatePresence);
-  const updateSessionDurationRef = useRef(updateSessionDuration);
-  const resetActivityRef = useRef(resetActivity);
-  const checkInactivityRef = useRef(checkInactivity);
-
+  // Update refs when callbacks change
   useEffect(() => {
     startSessionRef.current = startSession;
     endSessionRef.current = endSession;
