@@ -372,6 +372,30 @@ export default function MeetingRoom() {
     };
   }, [code, user]);
 
+  // Update document title when tab is in background to show meeting is active
+  useEffect(() => {
+    if (!meeting) return;
+    
+    const originalTitle = document.title;
+    
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        document.title = `🔴 Reunião ativa - ${meeting.title}`;
+      } else {
+        document.title = meeting.title || "Reunião";
+      }
+    };
+
+    // Set initial title
+    document.title = meeting.title || "Reunião";
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      document.title = originalTitle;
+    };
+  }, [meeting]);
+
   // Track unread messages
   useEffect(() => {
     if (!showChat && messages.length > 0) {
