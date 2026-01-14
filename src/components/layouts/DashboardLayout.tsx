@@ -8,7 +8,6 @@ import { useActiveMeetings } from "@/hooks/useActiveMeetings";
 import Logo from "@/components/Logo";
 import SustainabilityBadge from "@/components/SustainabilityBadge";
 import RoleBadge from "@/components/RoleBadge";
-import InactivityWarningModal from "@/components/InactivityWarningModal";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -105,8 +104,8 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
   // Location tracking for all users
   useLocationTracking();
 
-  // User presence and inactivity tracking
-  const { showInactivityWarning, inactivityCountdown, dismissWarning } = useUserPresence();
+  // User presence tracking
+  useUserPresence();
 
   const { unreadCount, newAlerts, showBanner, setShowBanner, dismissAlert, dismissAllAlerts } =
     useNotificationContext();
@@ -128,13 +127,6 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      {/* Inactivity Warning Modal */}
-      <InactivityWarningModal
-        isOpen={showInactivityWarning}
-        countdown={inactivityCountdown}
-        onDismiss={dismissWarning}
-      />
-
       {/* Notification Banner */}
       {showBanner && (
         <NotificationBanner
