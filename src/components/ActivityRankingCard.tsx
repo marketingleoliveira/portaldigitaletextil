@@ -86,6 +86,9 @@ const ActivityRankingCard: React.FC = () => {
       const thirtyDaysAgo = new Date();
       thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
+      // Consider users online only if last_seen is within the last 30 seconds
+      const thirtySecondsAgo = new Date(Date.now() - 30 * 1000).toISOString();
+
       const [profilesRes, rolesRes, sessionsRes, presenceRes] = await Promise.all([
         supabase
           .from('profiles')
@@ -100,11 +103,12 @@ const ActivityRankingCard: React.FC = () => {
           .gte('session_start', thirtyDaysAgo.toISOString()),
         supabase
           .from('user_presence')
-          .select('user_id, is_online')
-          .eq('is_online', true),
+          .select('user_id, is_online, last_seen')
+          .eq('is_online', true)
+          .gte('last_seen', thirtySecondsAgo),
       ]);
 
-      // Filter only vendedores (exclude admin, dev, gerente)
+      // Filter only vendedores (exclude admin, dev, gerente, criacao)
       const vendedorUserIds = new Set(
         (rolesRes.data || [])
           .filter(r => r.role === 'vendedor')
@@ -142,19 +146,25 @@ const ActivityRankingCard: React.FC = () => {
     const userDurations = new Map<string, number>();
 
     sessionsRef.current.forEach(session => {
+      // Only count sessions from users in our vendedor profiles list
+      if (!profilesRef.current.some(p => p.id === session.user_id)) {
+        return;
+      }
+
       let duration: number;
 
       if (!session.session_end) {
-        // Active session - only count if user is ONLINE
+        // Active session (no end time)
         if (onlineUsersRef.current.has(session.user_id)) {
+          // User is online - calculate real-time duration from session start
           const sessionStart = new Date(session.session_start).getTime();
           duration = Math.floor((now - sessionStart) / 1000);
         } else {
-          // User is offline, use stored duration_seconds
+          // User is offline but session wasn't closed properly - use stored duration
           duration = session.duration_seconds || 0;
         }
       } else {
-        // Completed session
+        // Completed session - use stored duration
         duration = session.duration_seconds || 0;
       }
 
@@ -167,6 +177,7 @@ const ActivityRankingCard: React.FC = () => {
         user_id: profile.id,
         full_name: profile.full_name,
         avatar_url: profile.avatar_url,
+        region: profile.region,
         total_duration: userDurations.get(profile.id) || 0,
       }))
       .filter(u => u.total_duration > 0)
