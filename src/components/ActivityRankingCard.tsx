@@ -30,6 +30,13 @@ const ActivityRankingCard: React.FC = () => {
 
   useEffect(() => {
     fetchData();
+    
+    // Refetch data every 30 seconds to get fresh session data
+    const refetchInterval = setInterval(() => {
+      fetchData();
+    }, 30000);
+
+    return () => clearInterval(refetchInterval);
   }, []);
 
   // Real-time subscription for sessions and presence
@@ -39,12 +46,21 @@ const ActivityRankingCard: React.FC = () => {
       .on(
         'postgres_changes',
         {
-          event: 'INSERT',
+          event: '*', // Listen for INSERT, UPDATE, DELETE
           schema: 'public',
           table: 'user_activity_sessions',
         },
         (payload) => {
-          sessionsRef.current = [...sessionsRef.current, payload.new];
+          if (payload.eventType === 'INSERT') {
+            sessionsRef.current = [...sessionsRef.current, payload.new];
+          } else if (payload.eventType === 'UPDATE') {
+            // Update existing session with new data
+            sessionsRef.current = sessionsRef.current.map(s => 
+              s.id === payload.new.id ? payload.new : s
+            );
+          } else if (payload.eventType === 'DELETE') {
+            sessionsRef.current = sessionsRef.current.filter(s => s.id !== payload.old.id);
+          }
         }
       )
       .on(
@@ -57,7 +73,14 @@ const ActivityRankingCard: React.FC = () => {
         (payload: any) => {
           const newData = payload.new;
           if (newData?.is_online) {
-            onlineUsersRef.current.add(newData.user_id);
+            // Check if last_seen is within 30 seconds
+            const lastSeen = new Date(newData.last_seen).getTime();
+            const now = Date.now();
+            if (now - lastSeen < 30000) {
+              onlineUsersRef.current.add(newData.user_id);
+            } else {
+              onlineUsersRef.current.delete(newData.user_id);
+            }
           } else if (newData?.user_id) {
             onlineUsersRef.current.delete(newData.user_id);
           }
@@ -70,7 +93,7 @@ const ActivityRankingCard: React.FC = () => {
     };
   }, []);
 
-  // Update ranking every second
+  // Update ranking every second for real-time display
   useEffect(() => {
     const interval = setInterval(() => {
       if (profilesRef.current.length > 0) {
