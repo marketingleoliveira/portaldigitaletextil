@@ -2,8 +2,8 @@ import { useEffect, useRef, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 
-const HEARTBEAT_INTERVAL = 10 * 1000; // 10 seconds for more precision
-const DURATION_UPDATE_INTERVAL = 1000; // Update duration every second
+const HEARTBEAT_INTERVAL = 10 * 1000; // 10 seconds
+const DURATION_UPDATE_INTERVAL = 1000; // 1 second
 
 // Global flag to check if user is in a meeting (set by MeetingRoom)
 let isUserInMeeting = false;
