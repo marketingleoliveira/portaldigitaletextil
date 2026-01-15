@@ -29,6 +29,10 @@ export function useLocalRecording({ meetingTitle, autoDownload = true }: UseLoca
   const callObjectRef = useRef<DailyCall | null>(null);
   const trackSyncIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const isStoppingRef = useRef<boolean>(false);
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const canvasStreamRef = useRef<MediaStream | null>(null);
+  const animationFrameRef = useRef<number | null>(null);
+  const videoElementRef = useRef<HTMLVideoElement | null>(null);
 
   // Keep meetingTitle ref updated
   meetingTitleRef.current = meetingTitle;
@@ -51,9 +55,84 @@ export function useLocalRecording({ meetingTitle, autoDownload = true }: UseLoca
     toast.success('Gravação baixada com sucesso!');
   }, []);
 
+  // Cleanup canvas and animation frame
+  const cleanupCanvas = useCallback(() => {
+    if (animationFrameRef.current) {
+      cancelAnimationFrame(animationFrameRef.current);
+      animationFrameRef.current = null;
+    }
+    if (canvasStreamRef.current) {
+      canvasStreamRef.current.getTracks().forEach(track => track.stop());
+      canvasStreamRef.current = null;
+    }
+    if (canvasRef.current) {
+      canvasRef.current.remove();
+      canvasRef.current = null;
+    }
+    if (videoElementRef.current) {
+      videoElementRef.current.pause();
+      videoElementRef.current.srcObject = null;
+      videoElementRef.current.remove();
+      videoElementRef.current = null;
+    }
+  }, []);
+
+  // Function to create a canvas-based capture that won't stop when switching tabs
+  const createPersistentVideoCapture = useCallback(async (sourceStream: MediaStream): Promise<MediaStream> => {
+    // Create a hidden canvas element
+    const canvas = document.createElement('canvas');
+    canvas.width = 1920;
+    canvas.height = 1080;
+    canvas.style.display = 'none';
+    document.body.appendChild(canvas);
+    canvasRef.current = canvas;
+
+    const ctx = canvas.getContext('2d')!;
+    
+    // Create a hidden video element to play the source stream
+    const video = document.createElement('video');
+    video.srcObject = sourceStream;
+    video.muted = true;
+    video.playsInline = true;
+    video.style.display = 'none';
+    document.body.appendChild(video);
+    videoElementRef.current = video;
+    
+    await video.play();
+
+    // Continuously draw the video to the canvas
+    let lastFrameTime = 0;
+    const drawFrame = (timestamp: number) => {
+      if (isStoppingRef.current) return;
+      
+      // Draw even if the video is paused or the track ended - draw last frame
+      if (video.readyState >= 2) {
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      } else {
+        // Draw a black frame with text if video is not available
+        ctx.fillStyle = '#1a1a1a';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = '#666';
+        ctx.font = '24px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillText('Gravação em andamento...', canvas.width / 2, canvas.height / 2);
+      }
+      
+      animationFrameRef.current = requestAnimationFrame(drawFrame);
+    };
+    
+    animationFrameRef.current = requestAnimationFrame(drawFrame);
+
+    // Capture the canvas as a stream - this won't stop when switching tabs
+    const canvasStream = canvas.captureStream(30);
+    canvasStreamRef.current = canvasStream;
+    
+    return canvasStream;
+  }, []);
+
   // Function to sync tracks from Daily.co call to the recording stream
   const syncTracksFromCall = useCallback(() => {
-    if (!callObjectRef.current || !streamRef.current || !audioContextRef.current) return;
+    if (!callObjectRef.current || !audioContextRef.current) return;
     
     const participants = callObjectRef.current.participants();
     const audioContext = audioContextRef.current;
@@ -93,36 +172,20 @@ export function useLocalRecording({ meetingTitle, autoDownload = true }: UseLoca
   const startLocalRecording = useCallback(async (callObject?: DailyCall): Promise<boolean> => {
     try {
       isStoppingRef.current = false;
-      let stream: MediaStream;
       const tracks: MediaStreamTrack[] = [];
       
       // Store callObject reference for track syncing
       callObjectRef.current = callObject || null;
       
+      // Create audio context to mix all audio sources
+      const audioContext = new AudioContext();
+      audioContextRef.current = audioContext;
+      const destination = audioContext.createMediaStreamDestination();
+      
       // If we have a Daily call object, capture directly from the meeting
       if (callObject) {
         const participants = callObject.participants();
-        
-        // Get local participant tracks
         const localParticipant = participants.local;
-        if (localParticipant) {
-          // Get local video track
-          const localVideoTrack = localParticipant.tracks?.video?.track;
-          if (localVideoTrack && localVideoTrack.readyState === 'live') {
-            tracks.push(localVideoTrack.clone()); // Clone to prevent track from being stopped
-          }
-          
-          // Get local screen share track if sharing
-          const localScreenTrack = localParticipant.tracks?.screenVideo?.track;
-          if (localScreenTrack && localScreenTrack.readyState === 'live') {
-            tracks.push(localScreenTrack.clone());
-          }
-        }
-        
-        // Create audio context to mix all audio sources
-        const audioContext = new AudioContext();
-        audioContextRef.current = audioContext;
-        const destination = audioContext.createMediaStreamDestination();
         
         // Add local audio
         const localAudioTrack = localParticipant?.tracks?.audio?.track;
@@ -164,85 +227,58 @@ export function useLocalRecording({ meetingTitle, autoDownload = true }: UseLoca
             }
           }
         });
-        
-        // Add mixed audio to tracks
-        destination.stream.getAudioTracks().forEach(track => tracks.push(track));
-        
-        // If no video tracks from meeting, capture the viewport using monitor mode (more stable)
-        if (!tracks.some(t => t.kind === 'video')) {
-          try {
-            // Use monitor displaySurface for more stability - doesn't stop when switching tabs
-            const displayStream = await navigator.mediaDevices.getDisplayMedia({
-              video: {
-                displaySurface: 'monitor', // Use monitor instead of browser for stability
-                width: { ideal: 1920 },
-                height: { ideal: 1080 },
-                frameRate: { ideal: 30 }
-              },
-              audio: {
-                echoCancellation: false,
-                noiseSuppression: false,
-                sampleRate: 44100
-              }
-            });
-            
-            // Add video tracks (cloned for stability)
-            displayStream.getVideoTracks().forEach(track => {
-              tracks.push(track);
-            });
-            
-            // Add system audio if available
-            displayStream.getAudioTracks().forEach(track => {
-              try {
-                const systemAudioSource = audioContext.createMediaStreamSource(new MediaStream([track]));
-                systemAudioSource.connect(destination);
-              } catch (err) {
-                console.warn('Could not add system audio:', err);
-              }
-            });
-          } catch (displayErr) {
-            console.error('Could not capture display:', displayErr);
-            toast.error('Não foi possível capturar a tela da reunião');
-            return false;
-          }
-        }
-        
-        stream = new MediaStream(tracks);
-        
-        // Set up periodic track sync to keep recording alive
-        trackSyncIntervalRef.current = setInterval(() => {
-          if (!isStoppingRef.current) {
-            syncTracksFromCall();
-          }
-        }, 2000);
-        
-      } else {
-        // Fallback: capture the current screen (monitor mode for stability)
-        try {
-          const displayStream = await navigator.mediaDevices.getDisplayMedia({
-            video: {
-              displaySurface: 'monitor', // Use monitor for stability
-              width: { ideal: 1920 },
-              height: { ideal: 1080 },
-              frameRate: { ideal: 30 }
-            },
-            audio: {
-              echoCancellation: false,
-              noiseSuppression: false,
-              sampleRate: 44100
-            }
-          });
-          
-          stream = displayStream;
-        } catch (displayErr) {
-          console.error('Could not capture display:', displayErr);
-          toast.error('Não foi possível iniciar a gravação');
-          return false;
-        }
       }
 
-      streamRef.current = stream;
+      // Capture display/screen - user selects what to capture
+      let displayStream: MediaStream;
+      try {
+        displayStream = await navigator.mediaDevices.getDisplayMedia({
+          video: {
+            width: { ideal: 1920, max: 1920 },
+            height: { ideal: 1080, max: 1080 },
+            frameRate: { ideal: 30, max: 30 }
+          },
+          audio: {
+            echoCancellation: false,
+            noiseSuppression: false,
+            sampleRate: 44100
+          }
+        });
+      } catch (displayErr) {
+        console.error('Could not capture display:', displayErr);
+        toast.error('Não foi possível capturar a tela');
+        audioContext.close();
+        audioContextRef.current = null;
+        return false;
+      }
+
+      // Add system audio from display capture if available
+      displayStream.getAudioTracks().forEach(track => {
+        try {
+          const systemAudioSource = audioContext.createMediaStreamSource(new MediaStream([track]));
+          systemAudioSource.connect(destination);
+        } catch (err) {
+          console.warn('Could not add system audio:', err);
+        }
+      });
+
+      // Create persistent canvas-based capture that won't stop when switching tabs
+      const persistentVideoStream = await createPersistentVideoCapture(displayStream);
+      
+      // Combine persistent video with mixed audio
+      persistentVideoStream.getVideoTracks().forEach(track => tracks.push(track));
+      destination.stream.getAudioTracks().forEach(track => tracks.push(track));
+
+      const finalStream = new MediaStream(tracks);
+      streamRef.current = finalStream;
       chunksRef.current = [];
+
+      // Set up periodic track sync to keep audio updated
+      trackSyncIntervalRef.current = setInterval(() => {
+        if (!isStoppingRef.current) {
+          syncTracksFromCall();
+        }
+      }, 2000);
 
       // Determine the best available codec
       const mimeTypes = [
@@ -264,7 +300,7 @@ export function useLocalRecording({ meetingTitle, autoDownload = true }: UseLoca
         throw new Error('No supported video format found');
       }
 
-      const mediaRecorder = new MediaRecorder(stream, {
+      const mediaRecorder = new MediaRecorder(finalStream, {
         mimeType,
         videoBitsPerSecond: 3000000 // 3 Mbps
       });
@@ -272,6 +308,7 @@ export function useLocalRecording({ meetingTitle, autoDownload = true }: UseLoca
       mediaRecorder.ondataavailable = (event) => {
         if (event.data.size > 0) {
           chunksRef.current.push(event.data);
+          console.log('Recording chunk added, total chunks:', chunksRef.current.length);
         }
       };
 
@@ -284,16 +321,25 @@ export function useLocalRecording({ meetingTitle, autoDownload = true }: UseLoca
       };
 
       mediaRecorder.onstop = () => {
+        console.log('MediaRecorder stopped, processing chunks...');
+        
         // Clear track sync interval
         if (trackSyncIntervalRef.current) {
           clearInterval(trackSyncIntervalRef.current);
           trackSyncIntervalRef.current = null;
         }
         
+        // Cleanup canvas capture
+        cleanupCanvas();
+        
         const blob = new Blob(chunksRef.current, { type: mimeType });
+        console.log('Recording blob created, size:', blob.size);
         setRecordedBlob(blob);
         
-        // Stop all tracks
+        // Stop all tracks from the display stream
+        displayStream.getTracks().forEach(track => track.stop());
+        
+        // Stop final stream tracks
         if (streamRef.current) {
           streamRef.current.getTracks().forEach(track => track.stop());
         }
@@ -327,17 +373,16 @@ export function useLocalRecording({ meetingTitle, autoDownload = true }: UseLoca
         }
       };
 
-      // IMPORTANT: We intentionally DO NOT add an 'ended' event listener to the video track
-      // This prevents the recording from stopping when switching tabs or when the display
-      // capture ends unexpectedly. The recording will only stop when manually called.
-      
-      // However, we do want to warn the user if the track ends unexpectedly
-      const videoTrack = stream.getVideoTracks()[0];
-      if (videoTrack) {
-        videoTrack.addEventListener('ended', () => {
-          // Only show warning, don't stop recording
+      // Listen for the original display stream track ending
+      // When user stops sharing, we keep recording the last frame via canvas
+      const originalVideoTrack = displayStream.getVideoTracks()[0];
+      if (originalVideoTrack) {
+        originalVideoTrack.addEventListener('ended', () => {
+          // Don't stop the recording! The canvas will continue drawing the last frame
+          // or a placeholder message
+          console.log('Display capture track ended, but recording continues via canvas');
           if (!isStoppingRef.current && mediaRecorderRef.current?.state === 'recording') {
-            toast.warning('A captura de vídeo foi interrompida, mas a gravação continua. Áudio ainda está sendo gravado.');
+            toast.info('Captura de tela interrompida. A gravação continua - volte para a aba da reunião para retomar a captura visual.');
           }
         });
       }
@@ -347,11 +392,12 @@ export function useLocalRecording({ meetingTitle, autoDownload = true }: UseLoca
       
       setIsLocalRecording(true);
       setLocalRecordingStartTime(new Date());
-      toast.success('Gravação local iniciada! A gravação continuará mesmo ao trocar de aba.');
+      toast.success('Gravação iniciada! Não pare a gravação ao trocar de aba - ela continuará automaticamente.');
       
       return true;
     } catch (error: any) {
       console.error('Error starting local recording:', error);
+      cleanupCanvas();
       
       if (error.name === 'NotAllowedError') {
         toast.error('Permissão de captura negada');
@@ -363,10 +409,11 @@ export function useLocalRecording({ meetingTitle, autoDownload = true }: UseLoca
       
       return false;
     }
-  }, [autoDownload, syncTracksFromCall]);
+  }, [autoDownload, syncTracksFromCall, createPersistentVideoCapture, cleanupCanvas]);
 
   const stopLocalRecording = useCallback(async (): Promise<Blob | null> => {
     return new Promise((resolve) => {
+      console.log('Stopping local recording...');
       isStoppingRef.current = true;
       
       // Clear track sync interval
@@ -376,6 +423,7 @@ export function useLocalRecording({ meetingTitle, autoDownload = true }: UseLoca
       }
       
       if (!mediaRecorderRef.current || mediaRecorderRef.current.state === 'inactive') {
+        cleanupCanvas();
         setIsLocalRecording(false);
         setLocalRecordingStartTime(null);
         resolve(null);
@@ -386,9 +434,13 @@ export function useLocalRecording({ meetingTitle, autoDownload = true }: UseLoca
       
       mediaRecorderRef.current.onstop = () => {
         const blob = new Blob(chunksRef.current, { type: currentMimeType });
+        console.log('Final recording blob size:', blob.size);
         setRecordedBlob(blob);
         setIsLocalRecording(false);
         setLocalRecordingStartTime(null);
+        
+        // Cleanup canvas
+        cleanupCanvas();
         
         // Stop all tracks
         if (streamRef.current) {
@@ -430,7 +482,7 @@ export function useLocalRecording({ meetingTitle, autoDownload = true }: UseLoca
 
       mediaRecorderRef.current.stop();
     });
-  }, [autoDownload]);
+  }, [autoDownload, cleanupCanvas]);
 
   // Cleanup on unmount - but don't stop recording!
   useEffect(() => {
