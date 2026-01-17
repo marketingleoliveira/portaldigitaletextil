@@ -1707,6 +1707,15 @@ export default function MeetingRoom() {
         }
       });
       
+      // Send a chat message to show who received the paper ball
+      await supabase
+        .from("meeting_messages")
+        .insert({
+          meeting_id: meeting.id,
+          user_id: user?.id,
+          message: `🗞️ ${user?.profile?.full_name || "Moderador"} jogou uma bolinha de papel em ${participantName}!`
+        });
+      
       toast.success(`📄 Bolinha de papel jogada em ${participantName}!`, { icon: "🗞️" });
       
       // Cleanup channel
