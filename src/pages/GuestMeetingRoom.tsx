@@ -848,14 +848,14 @@ export default function GuestMeetingRoom() {
             if (!enabled && callObject) {
               callObject.setLocalAudio(false);
               setIsMuted(true);
-              toast.info("O anfitrião desativou todos os microfones");
+              toast.info("O moderador desativou todos os microfones");
             }
             setGlobalAudioEnabled(enabled);
           } else if (action === 'toggle_all_video') {
             if (!enabled && callObject) {
               callObject.setLocalVideo(false);
               setIsVideoOn(false);
-              toast.info("O anfitrião desativou todas as câmeras");
+              toast.info("O moderador desativou todas as câmeras");
             }
             setGlobalVideoEnabled(enabled);
           } else if (action === 'toggle_screen_share') {
@@ -865,7 +865,7 @@ export default function GuestMeetingRoom() {
             }
             setGlobalScreenShareEnabled(enabled);
             if (!enabled) {
-              toast.info("O anfitrião desativou o compartilhamento de tela");
+              toast.info("O moderador desativou o compartilhamento de tela");
             }
           }
           // Individual commands - check if targeted at this participant
@@ -875,13 +875,13 @@ export default function GuestMeetingRoom() {
             if (action === 'mute_participant' && callObject) {
               callObject.setLocalAudio(false);
               setIsMuted(true);
-              toast.info("O anfitrião desativou seu microfone");
+              toast.info("O moderador desativou seu microfone");
             } else if (action === 'disable_camera' && callObject) {
               callObject.setLocalVideo(false);
               setIsVideoOn(false);
-              toast.info("O anfitrião desativou sua câmera");
+              toast.info("O moderador desativou sua câmera");
             } else if (action === 'remove_participant') {
-              toast.error("Você foi removido da reunião pelo anfitrião");
+              toast.error("Você foi removido da reunião pelo moderador");
               setTimeout(async () => {
                 await cleanup();
                 navigate(`/entrar/${code}`);
@@ -1083,7 +1083,7 @@ export default function GuestMeetingRoom() {
     if (!callObject) return;
     
     if (!globalAudioEnabled && isMuted) {
-      toast.error("O anfitrião desativou os microfones");
+      toast.error("O moderador desativou os microfones");
       return;
     }
     
@@ -1104,7 +1104,7 @@ export default function GuestMeetingRoom() {
     if (!callObject) return;
     
     if (!globalVideoEnabled && !isVideoOn) {
-      toast.error("O anfitrião desativou as câmeras");
+      toast.error("O moderador desativou as câmeras");
       return;
     }
     
@@ -1129,7 +1129,7 @@ export default function GuestMeetingRoom() {
 
     // Check if global screen share is disabled
     if (!globalScreenShareEnabled) {
-      toast.error("O anfitrião desativou o compartilhamento de tela");
+      toast.error("O moderador desativou o compartilhamento de tela");
       return;
     }
 
