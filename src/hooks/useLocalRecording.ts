@@ -1,10 +1,12 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { toast } from 'sonner';
 import DailyIframe, { DailyCall } from '@daily-co/daily-js';
+import { supabase } from '@/integrations/supabase/client';
 
 interface UseLocalRecordingOptions {
   meetingTitle?: string;
   autoDownload?: boolean;
+  meetingId?: string;
 }
 
 interface UseLocalRecordingReturn {
@@ -14,28 +16,55 @@ interface UseLocalRecordingReturn {
   stopLocalRecording: () => Promise<Blob | null>;
   downloadRecording: (blob: Blob, filename?: string) => void;
   recordedBlob: Blob | null;
+  isSaving: boolean;
 }
 
-export function useLocalRecording({ meetingTitle, autoDownload = true }: UseLocalRecordingOptions = {}): UseLocalRecordingReturn {
-  const [isLocalRecording, setIsLocalRecording] = useState(false);
-  const [localRecordingStartTime, setLocalRecordingStartTime] = useState<Date | null>(null);
-  const [recordedBlob, setRecordedBlob] = useState<Blob | null>(null);
-  
-  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-  const chunksRef = useRef<Blob[]>([]);
-  const streamRef = useRef<MediaStream | null>(null);
-  const audioContextRef = useRef<AudioContext | null>(null);
-  const meetingTitleRef = useRef<string | undefined>(meetingTitle);
-  const callObjectRef = useRef<DailyCall | null>(null);
-  const trackSyncIntervalRef = useRef<NodeJS.Timeout | null>(null);
-  const isStoppingRef = useRef<boolean>(false);
-  const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const canvasStreamRef = useRef<MediaStream | null>(null);
-  const animationFrameRef = useRef<number | null>(null);
-  const videoElementRef = useRef<HTMLVideoElement | null>(null);
+// Global recording state that persists across component remounts
+interface GlobalRecordingState {
+  mediaRecorder: MediaRecorder | null;
+  stream: MediaStream | null;
+  chunks: Blob[];
+  startTime: Date | null;
+  isRecording: boolean;
+  meetingTitle: string;
+  meetingId: string | null;
+  audioContext: AudioContext | null;
+  callObject: DailyCall | null;
+  trackSyncInterval: NodeJS.Timeout | null;
+}
 
-  // Keep meetingTitle ref updated
+const globalRecordingState: GlobalRecordingState = {
+  mediaRecorder: null,
+  stream: null,
+  chunks: [],
+  startTime: null,
+  isRecording: false,
+  meetingTitle: '',
+  meetingId: null,
+  audioContext: null,
+  callObject: null,
+  trackSyncInterval: null,
+};
+
+export function useLocalRecording({ meetingTitle, autoDownload = true, meetingId }: UseLocalRecordingOptions = {}): UseLocalRecordingReturn {
+  const [isLocalRecording, setIsLocalRecording] = useState(globalRecordingState.isRecording);
+  const [localRecordingStartTime, setLocalRecordingStartTime] = useState<Date | null>(globalRecordingState.startTime);
+  const [recordedBlob, setRecordedBlob] = useState<Blob | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+  
+  const isStoppingRef = useRef<boolean>(false);
+  const meetingTitleRef = useRef<string | undefined>(meetingTitle);
+  const meetingIdRef = useRef<string | undefined>(meetingId);
+
+  // Keep refs updated
   meetingTitleRef.current = meetingTitle;
+  meetingIdRef.current = meetingId;
+
+  // Sync local state with global state on mount
+  useEffect(() => {
+    setIsLocalRecording(globalRecordingState.isRecording);
+    setLocalRecordingStartTime(globalRecordingState.startTime);
+  }, []);
 
   const downloadRecording = useCallback((blob: Blob, filename?: string) => {
     const url = URL.createObjectURL(blob);
@@ -55,181 +84,148 @@ export function useLocalRecording({ meetingTitle, autoDownload = true }: UseLoca
     toast.success('Gravação baixada com sucesso!');
   }, []);
 
-  // Cleanup canvas and animation frame
-  const cleanupCanvas = useCallback(() => {
-    if (animationFrameRef.current) {
-      cancelAnimationFrame(animationFrameRef.current);
-      animationFrameRef.current = null;
-    }
-    if (canvasStreamRef.current) {
-      canvasStreamRef.current.getTracks().forEach(track => track.stop());
-      canvasStreamRef.current = null;
-    }
-    if (canvasRef.current) {
-      canvasRef.current.remove();
-      canvasRef.current = null;
-    }
-    if (videoElementRef.current) {
-      videoElementRef.current.pause();
-      videoElementRef.current.srcObject = null;
-      videoElementRef.current.remove();
-      videoElementRef.current = null;
-    }
-  }, []);
-
-  // Function to create a canvas-based capture that won't stop when switching tabs
-  const createPersistentVideoCapture = useCallback(async (sourceStream: MediaStream): Promise<MediaStream> => {
-    // Create a hidden canvas element
-    const canvas = document.createElement('canvas');
-    canvas.width = 1920;
-    canvas.height = 1080;
-    canvas.style.display = 'none';
-    document.body.appendChild(canvas);
-    canvasRef.current = canvas;
-
-    const ctx = canvas.getContext('2d')!;
+  // Save recording to Supabase storage and database
+  const saveRecordingToCloud = useCallback(async (blob: Blob, title: string, mId: string | null, startTime: Date) => {
+    setIsSaving(true);
     
-    // Create a hidden video element to play the source stream
-    const video = document.createElement('video');
-    video.srcObject = sourceStream;
-    video.muted = true;
-    video.playsInline = true;
-    video.style.display = 'none';
-    document.body.appendChild(video);
-    videoElementRef.current = video;
-    
-    await video.play();
-
-    // Continuously draw the video to the canvas
-    let lastFrameTime = 0;
-    const drawFrame = (timestamp: number) => {
-      if (isStoppingRef.current) return;
+    try {
+      const date = new Date().toISOString().split('T')[0];
+      const time = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }).replace(':', '-');
+      const safeName = title?.replace(/[^a-zA-Z0-9]/g, '_') || 'reuniao';
+      const fileName = `${safeName}_${date}_${time}_${Date.now()}.webm`;
       
-      // Draw even if the video is paused or the track ended - draw last frame
-      if (video.readyState >= 2) {
-        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      // Upload to storage
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('meeting-recordings')
+        .upload(fileName, blob, {
+          contentType: 'video/webm',
+          cacheControl: '3600',
+        });
+
+      if (uploadError) {
+        console.error('Error uploading recording:', uploadError);
+        toast.error('Erro ao salvar gravação na nuvem. Baixando localmente...');
+        downloadRecording(blob);
+        return;
+      }
+
+      // Get public URL
+      const { data: urlData } = supabase.storage
+        .from('meeting-recordings')
+        .getPublicUrl(fileName);
+
+      const durationSeconds = Math.floor((new Date().getTime() - startTime.getTime()) / 1000);
+
+      // Save to database
+      const { error: dbError } = await supabase
+        .from('meeting_recordings')
+        .insert({
+          meeting_id: mId || null,
+          meeting_title: title || 'Reunião',
+          meeting_date: startTime.toISOString(),
+          recording_id: `local_${Date.now()}`,
+          download_url: urlData.publicUrl,
+          duration_seconds: durationSeconds,
+        });
+
+      if (dbError) {
+        console.error('Error saving recording to database:', dbError);
+        toast.warning('Gravação salva no storage, mas erro ao registrar no banco');
       } else {
-        // Draw a black frame with text if video is not available
-        ctx.fillStyle = '#1a1a1a';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-        ctx.fillStyle = '#666';
-        ctx.font = '24px Arial';
-        ctx.textAlign = 'center';
-        ctx.fillText('Gravação em andamento...', canvas.width / 2, canvas.height / 2);
+        toast.success('Gravação salva na nuvem com sucesso!');
+      }
+    } catch (error) {
+      console.error('Error saving recording:', error);
+      toast.error('Erro ao salvar gravação. Baixando localmente...');
+      downloadRecording(blob);
+    } finally {
+      setIsSaving(false);
+    }
+  }, [downloadRecording]);
+
+  // Function to create audio stream from Daily.co participants
+  const createAudioStreamFromCall = useCallback((callObject: DailyCall, audioContext: AudioContext): MediaStreamAudioDestinationNode => {
+    const destination = audioContext.createMediaStreamDestination();
+    const participants = callObject.participants();
+    
+    Object.entries(participants).forEach(([sessionId, participant]) => {
+      // Add audio track
+      const audioTrack = participant.tracks?.audio?.track;
+      if (audioTrack && audioTrack.readyState === 'live') {
+        try {
+          const audioSource = audioContext.createMediaStreamSource(new MediaStream([audioTrack]));
+          audioSource.connect(destination);
+        } catch (err) {
+          console.warn('Could not add audio track:', err);
+        }
       }
       
-      animationFrameRef.current = requestAnimationFrame(drawFrame);
-    };
-    
-    animationFrameRef.current = requestAnimationFrame(drawFrame);
-
-    // Capture the canvas as a stream - this won't stop when switching tabs
-    const canvasStream = canvas.captureStream(30);
-    canvasStreamRef.current = canvasStream;
-    
-    return canvasStream;
-  }, []);
-
-  // Function to sync tracks from Daily.co call to the recording stream
-  const syncTracksFromCall = useCallback(() => {
-    if (!callObjectRef.current || !audioContextRef.current) return;
-    
-    const participants = callObjectRef.current.participants();
-    const audioContext = audioContextRef.current;
-    
-    // Recreate audio mixing destination
-    try {
-      const destination = audioContext.createMediaStreamDestination();
-      
-      // Add all participant audio tracks
-      Object.entries(participants).forEach(([sessionId, participant]) => {
-        const audioTrack = participant.tracks?.audio?.track;
-        if (audioTrack && audioTrack.readyState === 'live') {
-          try {
-            const audioSource = audioContext.createMediaStreamSource(new MediaStream([audioTrack]));
-            audioSource.connect(destination);
-          } catch (err) {
-            // Track might already be connected, ignore
-          }
+      // Add screen share audio if available
+      const screenAudioTrack = participant.tracks?.screenAudio?.track;
+      if (screenAudioTrack && screenAudioTrack.readyState === 'live') {
+        try {
+          const screenAudioSource = audioContext.createMediaStreamSource(new MediaStream([screenAudioTrack]));
+          screenAudioSource.connect(destination);
+        } catch (err) {
+          console.warn('Could not add screen audio track:', err);
         }
-        
-        // Also capture screen share audio if available
-        const screenAudioTrack = participant.tracks?.screenAudio?.track;
-        if (screenAudioTrack && screenAudioTrack.readyState === 'live') {
-          try {
-            const screenAudioSource = audioContext.createMediaStreamSource(new MediaStream([screenAudioTrack]));
-            screenAudioSource.connect(destination);
-          } catch (err) {
-            // Track might already be connected, ignore
-          }
-        }
-      });
-    } catch (err) {
-      console.warn('Error syncing audio tracks:', err);
-    }
+      }
+    });
+    
+    return destination;
   }, []);
 
   const startLocalRecording = useCallback(async (callObject?: DailyCall): Promise<boolean> => {
+    // If already recording globally, just sync state
+    if (globalRecordingState.isRecording) {
+      setIsLocalRecording(true);
+      setLocalRecordingStartTime(globalRecordingState.startTime);
+      toast.info('Gravação já está em andamento');
+      return true;
+    }
+
     try {
       isStoppingRef.current = false;
       const tracks: MediaStreamTrack[] = [];
       
-      // Store callObject reference for track syncing
-      callObjectRef.current = callObject || null;
+      // Store callObject reference globally
+      globalRecordingState.callObject = callObject || null;
+      globalRecordingState.meetingTitle = meetingTitleRef.current || 'Reunião';
+      globalRecordingState.meetingId = meetingIdRef.current || null;
       
       // Create audio context to mix all audio sources
       const audioContext = new AudioContext();
-      audioContextRef.current = audioContext;
-      const destination = audioContext.createMediaStreamDestination();
+      globalRecordingState.audioContext = audioContext;
       
-      // If we have a Daily call object, capture directly from the meeting
+      let audioDestination: MediaStreamAudioDestinationNode;
+      
+      // If we have a Daily call object, capture audio from the meeting
       if (callObject) {
-        const participants = callObject.participants();
-        const localParticipant = participants.local;
+        audioDestination = createAudioStreamFromCall(callObject, audioContext);
         
-        // Add local audio
-        const localAudioTrack = localParticipant?.tracks?.audio?.track;
-        if (localAudioTrack && localAudioTrack.readyState === 'live') {
-          try {
-            const localAudioSource = audioContext.createMediaStreamSource(new MediaStream([localAudioTrack]));
-            localAudioSource.connect(destination);
-          } catch (err) {
-            console.warn('Could not add local audio to recording:', err);
-          }
-        }
-        
-        // Add remote participants' audio
-        Object.entries(participants).forEach(([sessionId, participant]) => {
-          if (sessionId !== 'local') {
-            const audioTrack = participant.tracks?.audio?.track;
-            if (audioTrack && audioTrack.readyState === 'live') {
-              try {
-                const remoteAudioSource = audioContext.createMediaStreamSource(
-                  new MediaStream([audioTrack])
-                );
-                remoteAudioSource.connect(destination);
-              } catch (err) {
-                console.warn('Could not add remote audio to recording:', err);
+        // Set up periodic audio track sync to capture new participants
+        globalRecordingState.trackSyncInterval = setInterval(() => {
+          if (!isStoppingRef.current && globalRecordingState.callObject) {
+            // Reconnect audio tracks periodically to capture new participants
+            const participants = globalRecordingState.callObject.participants();
+            Object.entries(participants).forEach(([sessionId, participant]) => {
+              const audioTrack = participant.tracks?.audio?.track;
+              if (audioTrack && audioTrack.readyState === 'live') {
+                try {
+                  const audioSource = audioContext.createMediaStreamSource(new MediaStream([audioTrack]));
+                  audioSource.connect(audioDestination);
+                } catch (err) {
+                  // Track might already be connected, ignore
+                }
               }
-            }
-            
-            // Add screen share audio from remote participants
-            const screenAudioTrack = participant.tracks?.screenAudio?.track;
-            if (screenAudioTrack && screenAudioTrack.readyState === 'live') {
-              try {
-                const screenAudioSource = audioContext.createMediaStreamSource(
-                  new MediaStream([screenAudioTrack])
-                );
-                screenAudioSource.connect(destination);
-              } catch (err) {
-                console.warn('Could not add remote screen audio to recording:', err);
-              }
-            }
+            });
           }
-        });
+        }, 3000);
+      } else {
+        audioDestination = audioContext.createMediaStreamDestination();
       }
 
-      // Capture display/screen - user selects what to capture
+      // Capture display/screen - this is required for video
       let displayStream: MediaStream;
       try {
         displayStream = await navigator.mediaDevices.getDisplayMedia({
@@ -248,7 +244,7 @@ export function useLocalRecording({ meetingTitle, autoDownload = true }: UseLoca
         console.error('Could not capture display:', displayErr);
         toast.error('Não foi possível capturar a tela');
         audioContext.close();
-        audioContextRef.current = null;
+        globalRecordingState.audioContext = null;
         return false;
       }
 
@@ -256,29 +252,33 @@ export function useLocalRecording({ meetingTitle, autoDownload = true }: UseLoca
       displayStream.getAudioTracks().forEach(track => {
         try {
           const systemAudioSource = audioContext.createMediaStreamSource(new MediaStream([track]));
-          systemAudioSource.connect(destination);
+          systemAudioSource.connect(audioDestination);
         } catch (err) {
           console.warn('Could not add system audio:', err);
         }
       });
 
-      // Create persistent canvas-based capture that won't stop when switching tabs
-      const persistentVideoStream = await createPersistentVideoCapture(displayStream);
-      
-      // Combine persistent video with mixed audio
-      persistentVideoStream.getVideoTracks().forEach(track => tracks.push(track));
-      destination.stream.getAudioTracks().forEach(track => tracks.push(track));
+      // Get video track from display
+      const videoTrack = displayStream.getVideoTracks()[0];
+      if (videoTrack) {
+        tracks.push(videoTrack);
+        
+        // CRITICAL: When video track ends (user clicks stop sharing or switches tabs),
+        // we DON'T stop the recording - just continue with audio only
+        videoTrack.addEventListener('ended', () => {
+          console.log('Video track ended, but recording continues with audio');
+          if (!isStoppingRef.current && globalRecordingState.isRecording) {
+            toast.info('Captura de vídeo interrompida. Gravação de áudio continua. Clique em Parar Gravação para finalizar.');
+          }
+        });
+      }
+
+      // Add mixed audio to tracks
+      audioDestination.stream.getAudioTracks().forEach(track => tracks.push(track));
 
       const finalStream = new MediaStream(tracks);
-      streamRef.current = finalStream;
-      chunksRef.current = [];
-
-      // Set up periodic track sync to keep audio updated
-      trackSyncIntervalRef.current = setInterval(() => {
-        if (!isStoppingRef.current) {
-          syncTracksFromCall();
-        }
-      }, 2000);
+      globalRecordingState.stream = finalStream;
+      globalRecordingState.chunks = [];
 
       // Determine the best available codec
       const mimeTypes = [
@@ -307,8 +307,8 @@ export function useLocalRecording({ meetingTitle, autoDownload = true }: UseLoca
 
       mediaRecorder.ondataavailable = (event) => {
         if (event.data.size > 0) {
-          chunksRef.current.push(event.data);
-          console.log('Recording chunk added, total chunks:', chunksRef.current.length);
+          globalRecordingState.chunks.push(event.data);
+          console.log('Recording chunk added, total chunks:', globalRecordingState.chunks.length);
         }
       };
 
@@ -320,84 +320,75 @@ export function useLocalRecording({ meetingTitle, autoDownload = true }: UseLoca
         }
       };
 
-      mediaRecorder.onstop = () => {
+      mediaRecorder.onstop = async () => {
         console.log('MediaRecorder stopped, processing chunks...');
         
         // Clear track sync interval
-        if (trackSyncIntervalRef.current) {
-          clearInterval(trackSyncIntervalRef.current);
-          trackSyncIntervalRef.current = null;
+        if (globalRecordingState.trackSyncInterval) {
+          clearInterval(globalRecordingState.trackSyncInterval);
+          globalRecordingState.trackSyncInterval = null;
         }
         
-        // Cleanup canvas capture
-        cleanupCanvas();
-        
-        const blob = new Blob(chunksRef.current, { type: mimeType });
+        const recordingChunks = [...globalRecordingState.chunks];
+        const blob = new Blob(recordingChunks, { type: mimeType });
         console.log('Recording blob created, size:', blob.size);
         setRecordedBlob(blob);
         
-        // Stop all tracks from the display stream
+        // Stop all tracks
         displayStream.getTracks().forEach(track => track.stop());
-        
-        // Stop final stream tracks
-        if (streamRef.current) {
-          streamRef.current.getTracks().forEach(track => track.stop());
+        if (globalRecordingState.stream) {
+          globalRecordingState.stream.getTracks().forEach(track => track.stop());
         }
         
         // Close audio context
-        if (audioContextRef.current) {
-          audioContextRef.current.close();
-          audioContextRef.current = null;
+        if (globalRecordingState.audioContext) {
+          globalRecordingState.audioContext.close();
+          globalRecordingState.audioContext = null;
         }
         
-        // Clear call object reference
-        callObjectRef.current = null;
+        // Reset global state
+        const savedTitle = globalRecordingState.meetingTitle;
+        const savedMeetingId = globalRecordingState.meetingId;
+        const savedStartTime = globalRecordingState.startTime;
         
-        // Auto download if enabled and recording was stopped manually
-        if (autoDownload && blob.size > 0 && isStoppingRef.current) {
-          const url = URL.createObjectURL(blob);
-          const a = document.createElement('a');
-          a.href = url;
+        globalRecordingState.mediaRecorder = null;
+        globalRecordingState.stream = null;
+        globalRecordingState.chunks = [];
+        globalRecordingState.startTime = null;
+        globalRecordingState.isRecording = false;
+        globalRecordingState.callObject = null;
+        
+        // Save to cloud if stopped manually
+        if (isStoppingRef.current && blob.size > 0 && savedStartTime) {
+          await saveRecordingToCloud(blob, savedTitle, savedMeetingId, savedStartTime);
           
-          const date = new Date().toISOString().split('T')[0];
-          const time = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }).replace(':', '-');
-          const safeName = meetingTitleRef.current?.replace(/[^a-zA-Z0-9]/g, '_') || 'reuniao';
-          
-          a.download = `${safeName}_${date}_${time}.webm`;
-          document.body.appendChild(a);
-          a.click();
-          document.body.removeChild(a);
-          URL.revokeObjectURL(url);
-          
-          toast.success('Gravação baixada com sucesso!');
+          // Also download locally as backup
+          if (autoDownload) {
+            downloadRecording(blob);
+          }
         }
       };
 
-      // Listen for the original display stream track ending
-      // When user stops sharing, we keep recording the last frame via canvas
-      const originalVideoTrack = displayStream.getVideoTracks()[0];
-      if (originalVideoTrack) {
-        originalVideoTrack.addEventListener('ended', () => {
-          // Don't stop the recording! The canvas will continue drawing the last frame
-          // or a placeholder message
-          console.log('Display capture track ended, but recording continues via canvas');
-          if (!isStoppingRef.current && mediaRecorderRef.current?.state === 'recording') {
-            toast.info('Captura de tela interrompida. A gravação continua - volte para a aba da reunião para retomar a captura visual.');
-          }
-        });
-      }
-
-      mediaRecorderRef.current = mediaRecorder;
+      globalRecordingState.mediaRecorder = mediaRecorder;
       mediaRecorder.start(1000); // Collect data every second
       
+      const startTime = new Date();
+      globalRecordingState.startTime = startTime;
+      globalRecordingState.isRecording = true;
+      
       setIsLocalRecording(true);
-      setLocalRecordingStartTime(new Date());
-      toast.success('Gravação iniciada! Não pare a gravação ao trocar de aba - ela continuará automaticamente.');
+      setLocalRecordingStartTime(startTime);
+      toast.success('Gravação iniciada! A gravação continuará mesmo ao trocar de aba.');
       
       return true;
     } catch (error: any) {
       console.error('Error starting local recording:', error);
-      cleanupCanvas();
+      
+      // Clear track sync interval on error
+      if (globalRecordingState.trackSyncInterval) {
+        clearInterval(globalRecordingState.trackSyncInterval);
+        globalRecordingState.trackSyncInterval = null;
+      }
       
       if (error.name === 'NotAllowedError') {
         toast.error('Permissão de captura negada');
@@ -409,7 +400,7 @@ export function useLocalRecording({ meetingTitle, autoDownload = true }: UseLoca
       
       return false;
     }
-  }, [autoDownload, syncTracksFromCall, createPersistentVideoCapture, cleanupCanvas]);
+  }, [autoDownload, createAudioStreamFromCall, saveRecordingToCloud, downloadRecording]);
 
   const stopLocalRecording = useCallback(async (): Promise<Blob | null> => {
     return new Promise((resolve) => {
@@ -417,81 +408,77 @@ export function useLocalRecording({ meetingTitle, autoDownload = true }: UseLoca
       isStoppingRef.current = true;
       
       // Clear track sync interval
-      if (trackSyncIntervalRef.current) {
-        clearInterval(trackSyncIntervalRef.current);
-        trackSyncIntervalRef.current = null;
+      if (globalRecordingState.trackSyncInterval) {
+        clearInterval(globalRecordingState.trackSyncInterval);
+        globalRecordingState.trackSyncInterval = null;
       }
       
-      if (!mediaRecorderRef.current || mediaRecorderRef.current.state === 'inactive') {
-        cleanupCanvas();
+      if (!globalRecordingState.mediaRecorder || globalRecordingState.mediaRecorder.state === 'inactive') {
+        globalRecordingState.isRecording = false;
+        globalRecordingState.startTime = null;
         setIsLocalRecording(false);
         setLocalRecordingStartTime(null);
         resolve(null);
         return;
       }
 
-      const currentMimeType = mediaRecorderRef.current.mimeType || 'video/webm';
+      const currentMimeType = globalRecordingState.mediaRecorder.mimeType || 'video/webm';
       
-      mediaRecorderRef.current.onstop = () => {
-        const blob = new Blob(chunksRef.current, { type: currentMimeType });
+      globalRecordingState.mediaRecorder.onstop = async () => {
+        const blob = new Blob(globalRecordingState.chunks, { type: currentMimeType });
         console.log('Final recording blob size:', blob.size);
         setRecordedBlob(blob);
         setIsLocalRecording(false);
         setLocalRecordingStartTime(null);
         
-        // Cleanup canvas
-        cleanupCanvas();
-        
         // Stop all tracks
-        if (streamRef.current) {
-          streamRef.current.getTracks().forEach(track => track.stop());
+        if (globalRecordingState.stream) {
+          globalRecordingState.stream.getTracks().forEach(track => track.stop());
         }
         
         // Close audio context
-        if (audioContextRef.current) {
-          audioContextRef.current.close();
-          audioContextRef.current = null;
+        if (globalRecordingState.audioContext) {
+          globalRecordingState.audioContext.close();
+          globalRecordingState.audioContext = null;
         }
         
-        // Clear call object reference
-        callObjectRef.current = null;
+        // Save to cloud
+        const savedTitle = globalRecordingState.meetingTitle;
+        const savedMeetingId = globalRecordingState.meetingId;
+        const savedStartTime = globalRecordingState.startTime;
+        
+        // Reset global state
+        globalRecordingState.mediaRecorder = null;
+        globalRecordingState.stream = null;
+        globalRecordingState.chunks = [];
+        globalRecordingState.startTime = null;
+        globalRecordingState.isRecording = false;
+        globalRecordingState.callObject = null;
         
         toast.success('Gravação local finalizada!');
         
-        // Auto download if enabled
-        if (autoDownload && blob.size > 0) {
-          const url = URL.createObjectURL(blob);
-          const a = document.createElement('a');
-          a.href = url;
+        // Save to cloud
+        if (blob.size > 0 && savedStartTime) {
+          await saveRecordingToCloud(blob, savedTitle, savedMeetingId, savedStartTime);
           
-          const date = new Date().toISOString().split('T')[0];
-          const time = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }).replace(':', '-');
-          const safeName = meetingTitleRef.current?.replace(/[^a-zA-Z0-9]/g, '_') || 'reuniao';
-          
-          a.download = `${safeName}_${date}_${time}.webm`;
-          document.body.appendChild(a);
-          a.click();
-          document.body.removeChild(a);
-          URL.revokeObjectURL(url);
-          
-          toast.success('Gravação baixada com sucesso!');
+          // Also download locally as backup
+          if (autoDownload) {
+            downloadRecording(blob);
+          }
         }
         
         resolve(blob);
       };
 
-      mediaRecorderRef.current.stop();
+      globalRecordingState.mediaRecorder.stop();
     });
-  }, [autoDownload, cleanupCanvas]);
+  }, [autoDownload, saveRecordingToCloud, downloadRecording]);
 
   // Cleanup on unmount - but don't stop recording!
   useEffect(() => {
     return () => {
-      if (trackSyncIntervalRef.current) {
-        clearInterval(trackSyncIntervalRef.current);
-      }
       // Note: We intentionally don't stop the recording on unmount
-      // The user might be navigating away temporarily
+      // The global state will persist and the recording will continue
     };
   }, []);
 
@@ -501,6 +488,7 @@ export function useLocalRecording({ meetingTitle, autoDownload = true }: UseLoca
     startLocalRecording,
     stopLocalRecording,
     downloadRecording,
-    recordedBlob
+    recordedBlob,
+    isSaving
   };
 }

@@ -175,8 +175,9 @@ export default function MeetingRoom() {
     startLocalRecording,
     stopLocalRecording,
     downloadRecording,
-    recordedBlob
-  } = useLocalRecording({ meetingTitle: meeting?.title });
+    recordedBlob,
+    isSaving
+  } = useLocalRecording({ meetingTitle: meeting?.title, meetingId: meeting?.id });
 
   // Create Daily room via edge function
   const createOrGetDailyRoom = async (meetingCode: string) => {

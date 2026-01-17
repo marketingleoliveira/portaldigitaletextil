@@ -53,8 +53,8 @@ const Recordings = () => {
   const [endDate, setEndDate] = useState(format(new Date(), "yyyy-MM-dd"));
   const [searchTerm, setSearchTerm] = useState("");
 
-  // Only devs can access this page
-  if (user?.role !== "dev") {
+  // Only devs and admins can access this page
+  if (user?.role !== "dev" && user?.role !== "admin") {
     return <Navigate to="/dashboard" replace />;
   }
 
