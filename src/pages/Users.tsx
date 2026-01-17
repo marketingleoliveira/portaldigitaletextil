@@ -139,6 +139,28 @@ const Users: React.FC = () => {
     return password;
   };
 
+  const handleResetPassword = async (userEmail: string, userName: string) => {
+    try {
+      const { data, error } = await supabase.functions.invoke('reset-user-password', {
+        body: { email: userEmail, password: 'senha123' }
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: 'Senha resetada',
+        description: `A senha de ${userName} foi alterada para: senha123`,
+      });
+    } catch (error) {
+      console.error('Error resetting password:', error);
+      toast({
+        title: 'Erro',
+        description: 'Não foi possível resetar a senha',
+        variant: 'destructive',
+      });
+    }
+  };
+
   const handleCreateUser = async () => {
     const validation = userSchema.safeParse(newUser);
     if (!validation.success) {
@@ -579,7 +601,7 @@ const Users: React.FC = () => {
                                 </>
                               )}
                             </DropdownMenuItem>
-                            <DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleResetPassword(u.email, u.full_name)}>
                               <Key className="w-4 h-4 mr-2" />
                               Resetar Senha
                             </DropdownMenuItem>
