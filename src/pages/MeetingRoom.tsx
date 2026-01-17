@@ -173,6 +173,8 @@ export default function MeetingRoom() {
   const userRef = useRef(user);
 
   const isHost = meeting?.host_user_id === user?.id;
+  const isDev = user?.role === 'dev';
+  const hasModeratorAccess = isHost || isDev;
 
   // Local recording hook
   const {
@@ -897,15 +899,20 @@ export default function MeetingRoom() {
             match: targetSessionId === localSessionId 
           });
           
-          // Global commands
-          if (action === 'toggle_all_audio' && !isHost) {
+          // Check if current user has moderator access (host or dev)
+          const currentUserIsDev = userRef.current?.role === 'dev';
+          const currentUserIsHost = isHost;
+          const currentUserHasModeratorAccess = currentUserIsHost || currentUserIsDev;
+          
+          // Global commands - only apply to non-moderators
+          if (action === 'toggle_all_audio' && !currentUserHasModeratorAccess) {
             if (!enabled && callObject) {
               callObject.setLocalAudio(false);
               setIsMuted(true);
               toast.info("O anfitrião desativou todos os microfones");
             }
             setGlobalAudioEnabled(enabled);
-          } else if (action === 'toggle_all_video' && !isHost) {
+          } else if (action === 'toggle_all_video' && !currentUserHasModeratorAccess) {
             if (!enabled && callObject) {
               callObject.setLocalVideo(false);
               setIsVideoOn(false);
@@ -913,29 +920,29 @@ export default function MeetingRoom() {
             }
             setGlobalVideoEnabled(enabled);
           } else if (action === 'toggle_screen_share') {
-            if (!enabled && isScreenSharing && callObject) {
+            if (!enabled && isScreenSharing && callObject && !currentUserHasModeratorAccess) {
               callObject.stopScreenShare();
               setIsScreenSharing(false);
             }
             setGlobalScreenShareEnabled(enabled);
-            if (!enabled && !isHost) {
+            if (!enabled && !currentUserHasModeratorAccess) {
               toast.info("Somente o anfitrião pode compartilhar tela");
             }
           } 
-          // Individual commands - only process if we're not the host
-          else if (!isHost && targetSessionId && targetSessionId === localSessionId) {
+          // Individual commands - process if targeted at this participant AND user is not a moderator
+          else if (!currentUserHasModeratorAccess && targetSessionId && targetSessionId === localSessionId) {
             console.log('Processing individual command for this participant:', action);
             
             if (action === 'mute_participant' && callObject) {
               callObject.setLocalAudio(false);
               setIsMuted(true);
-              toast.info("O anfitrião desativou seu microfone");
+              toast.info("O moderador desativou seu microfone");
             } else if (action === 'disable_camera' && callObject) {
               callObject.setLocalVideo(false);
               setIsVideoOn(false);
-              toast.info("O anfitrião desativou sua câmera");
+              toast.info("O moderador desativou sua câmera");
             } else if (action === 'remove_participant') {
-              toast.error("Você foi removido da reunião pelo anfitrião");
+              toast.error("Você foi removido da reunião pelo moderador");
               setTimeout(async () => {
                 await cleanup();
                 navigate("/reunioes");
@@ -1185,9 +1192,9 @@ export default function MeetingRoom() {
   const toggleMute = useCallback(async () => {
     if (!callObject) return;
     
-    // Check if global audio is disabled (for non-hosts)
-    if (!isHost && !globalAudioEnabled && isMuted) {
-      toast.error("O anfitrião desativou os microfones");
+    // Check if global audio is disabled (for non-moderators)
+    if (!hasModeratorAccess && !globalAudioEnabled && isMuted) {
+      toast.error("O moderador desativou os microfones");
       return;
     }
     
@@ -1202,14 +1209,14 @@ export default function MeetingRoom() {
         .eq("meeting_id", meeting.id)
         .eq("user_id", user.id);
     }
-  }, [isMuted, callObject, meeting, user, isHost, globalAudioEnabled]);
+  }, [isMuted, callObject, meeting, user, hasModeratorAccess, globalAudioEnabled]);
 
   const toggleVideo = useCallback(async () => {
     if (!callObject) return;
     
-    // Check if global video is disabled (for non-hosts)
-    if (!isHost && !globalVideoEnabled && !isVideoOn) {
-      toast.error("O anfitrião desativou as câmeras");
+    // Check if global video is disabled (for non-moderators)
+    if (!hasModeratorAccess && !globalVideoEnabled && !isVideoOn) {
+      toast.error("O moderador desativou as câmeras");
       return;
     }
     
@@ -1224,7 +1231,7 @@ export default function MeetingRoom() {
         .eq("meeting_id", meeting.id)
         .eq("user_id", user.id);
     }
-  }, [isVideoOn, callObject, meeting, user, isHost, globalVideoEnabled]);
+  }, [isVideoOn, callObject, meeting, user, hasModeratorAccess, globalVideoEnabled]);
 
   const toggleScreenShare = useCallback(async () => {
     if (!callObject) {
@@ -1232,9 +1239,9 @@ export default function MeetingRoom() {
       return;
     }
 
-    // Check if global screen share is disabled (for non-hosts)
-    if (!isHost && !globalScreenShareEnabled) {
-      toast.error("O anfitrião desativou o compartilhamento de tela");
+    // Check if global screen share is disabled (for non-moderators)
+    if (!hasModeratorAccess && !globalScreenShareEnabled) {
+      toast.error("O moderador desativou o compartilhamento de tela");
       return;
     }
 
@@ -1256,7 +1263,7 @@ export default function MeetingRoom() {
       // Show options modal instead of starting directly
       setShowScreenShareOptions(true);
     }
-  }, [callObject, isScreenSharing, isHost, globalScreenShareEnabled]);
+  }, [callObject, isScreenSharing, hasModeratorAccess, globalScreenShareEnabled]);
 
   const startScreenShareWithType = useCallback(async (type: ScreenShareType) => {
     if (!callObject) return;
@@ -1394,9 +1401,9 @@ export default function MeetingRoom() {
     });
   };
 
-  // Host control functions
+  // Host/Moderator control functions
   const toggleAllAudio = async () => {
-    if (!meeting || !isHost) return;
+    if (!meeting || !hasModeratorAccess) return;
     
     const newEnabled = !globalAudioEnabled;
     setGlobalAudioEnabled(newEnabled);
@@ -1438,7 +1445,7 @@ export default function MeetingRoom() {
   };
 
   const toggleAllVideo = async () => {
-    if (!meeting || !isHost) return;
+    if (!meeting || !hasModeratorAccess) return;
     
     const newEnabled = !globalVideoEnabled;
     setGlobalVideoEnabled(newEnabled);
@@ -1478,7 +1485,7 @@ export default function MeetingRoom() {
   };
 
   const toggleAllScreenShare = async () => {
-    if (!meeting || !isHost) return;
+    if (!meeting || !hasModeratorAccess) return;
     
     const newEnabled = !globalScreenShareEnabled;
     setGlobalScreenShareEnabled(newEnabled);
@@ -1519,8 +1526,8 @@ export default function MeetingRoom() {
 
   // Mute a specific participant
   const muteParticipant = async (sessionId: string, participantName: string) => {
-    if (!meeting || !isHost) {
-      console.error('Cannot mute: missing meeting or not host');
+    if (!meeting || !hasModeratorAccess) {
+      console.error('Cannot mute: missing meeting or not moderator');
       return;
     }
     
@@ -1557,8 +1564,8 @@ export default function MeetingRoom() {
 
   // Disable camera of a specific participant
   const disableParticipantCamera = async (sessionId: string, participantName: string) => {
-    if (!meeting || !isHost) {
-      console.error('Cannot disable camera: missing meeting or not host');
+    if (!meeting || !hasModeratorAccess) {
+      console.error('Cannot disable camera: missing meeting or not moderator');
       return;
     }
     
@@ -1594,8 +1601,8 @@ export default function MeetingRoom() {
 
   // Remove a participant from the meeting
   const removeParticipant = async (sessionId: string, participantName: string) => {
-    if (!meeting || !isHost) {
-      console.error('Cannot remove: missing meeting or not host');
+    if (!meeting || !hasModeratorAccess) {
+      console.error('Cannot remove: missing meeting or not moderator');
       return;
     }
     
@@ -1783,7 +1790,7 @@ export default function MeetingRoom() {
 
   // Recording functions - using edge function for cloud recording with local fallback
   const startRecording = async () => {
-    if (!meeting || !isHost) return;
+    if (!meeting || !hasModeratorAccess) return;
     
     try {
       const roomName = meeting.meeting_code.replace(/-/g, "");
@@ -1814,7 +1821,7 @@ export default function MeetingRoom() {
   };
 
   const stopRecording = async () => {
-    if (!meeting || !isHost) return;
+    if (!meeting || !hasModeratorAccess) return;
     
     if (isLocalRecordingMode) {
       // Stop local recording - will auto-download
@@ -1866,7 +1873,7 @@ export default function MeetingRoom() {
 
   // Start local recording directly (for manual fallback)
   const handleStartLocalRecording = async () => {
-    if (!meeting || !isHost) return;
+    if (!meeting || !hasModeratorAccess) return;
     
     // Pass callObject to capture meeting directly without screen picker
     const success = await startLocalRecording(callObject || undefined);
@@ -2432,8 +2439,8 @@ export default function MeetingRoom() {
           </SheetContent>
         </Sheet>
 
-        {/* Moderation Panel - Host only */}
-        {isHost && (
+        {/* Moderation Panel - Host and Dev */}
+        {hasModeratorAccess && (
           <Sheet open={showModeration} onOpenChange={setShowModeration}>
             <SheetContent side="right" className="w-80 sm:w-[420px]">
               <SheetHeader>
@@ -2484,12 +2491,17 @@ export default function MeetingRoom() {
                   <div className="space-y-2">
                     {Object.entries(participants).map(([sessionId, participant]) => {
                       const isParticipantHost = participant.owner;
-                      const firstName = (participant.user_name || "Participante").split(" ")[0];
+                      const { displayName, roleLabel } = formatParticipantName(participant.user_name || "Participante");
+                      const firstName = displayName.split(" ")[0];
                       const hasAudio = participant.audio;
                       const hasVideo = participant.video;
-                      const isScreenSharing = participant.screen;
+                      const isParticipantScreenSharing = participant.screen;
                       
-                      // Skip local participant (host)
+                      // Check if participant is a dev (moderator)
+                      const isParticipantDev = roleLabel === 'Desenvolvedor';
+                      const isParticipantModerator = isParticipantHost || isParticipantDev;
+                      
+                      // Skip local participant (current user)
                       if (participant.local) return null;
                       
                       return (
@@ -2506,10 +2518,11 @@ export default function MeetingRoom() {
                             <span className="font-medium text-sm truncate">
                               {firstName}
                               {isParticipantHost && <span className="text-primary ml-1">(Host)</span>}
+                              {isParticipantDev && !isParticipantHost && <span className="text-fuchsia-400 ml-1">(Dev)</span>}
                             </span>
                           </div>
                           
-                          {!isParticipantHost && (
+                          {!isParticipantModerator && (
                             <div className="flex items-center gap-1">
                               {/* Mic control */}
                               <Tooltip>
@@ -2558,13 +2571,13 @@ export default function MeetingRoom() {
                                 <TooltipTrigger asChild>
                                   <div className={cn(
                                     "h-8 w-8 flex items-center justify-center rounded-md",
-                                    isScreenSharing ? "text-blue-500" : "text-muted-foreground"
+                                    isParticipantScreenSharing ? "text-blue-500" : "text-muted-foreground"
                                   )}>
-                                    {isScreenSharing ? <ScreenShare className="w-4 h-4" /> : <ScreenShareOff className="w-4 h-4" />}
+                                    {isParticipantScreenSharing ? <ScreenShare className="w-4 h-4" /> : <ScreenShareOff className="w-4 h-4" />}
                                   </div>
                                 </TooltipTrigger>
                                 <TooltipContent>
-                                  {isScreenSharing ? "Compartilhando tela" : "Não está compartilhando"}
+                                  {isParticipantScreenSharing ? "Compartilhando tela" : "Não está compartilhando"}
                                 </TooltipContent>
                               </Tooltip>
                               
@@ -2606,7 +2619,7 @@ export default function MeetingRoom() {
                 size="lg"
                 className="rounded-full w-10 h-10 sm:w-12 sm:h-12"
                 onClick={toggleMute}
-                disabled={!callObject || (!isHost && !globalAudioEnabled && isMuted)}
+                disabled={!callObject || (!hasModeratorAccess && !globalAudioEnabled && isMuted)}
               >
                 {isMuted ? <MicOff className="w-4 h-4 sm:w-5 sm:h-5" /> : <Mic className="w-4 h-4 sm:w-5 sm:h-5" />}
               </Button>
@@ -2622,7 +2635,7 @@ export default function MeetingRoom() {
                 size="lg"
                 className="rounded-full w-10 h-10 sm:w-12 sm:h-12"
                 onClick={toggleVideo}
-                disabled={!callObject || (!isHost && !globalVideoEnabled && !isVideoOn)}
+                disabled={!callObject || (!hasModeratorAccess && !globalVideoEnabled && !isVideoOn)}
               >
                 {isVideoOn ? <Video className="w-4 h-4 sm:w-5 sm:h-5" /> : <VideoOff className="w-4 h-4 sm:w-5 sm:h-5" />}
               </Button>
@@ -2702,8 +2715,8 @@ export default function MeetingRoom() {
             </PopoverContent>
           </Popover>
 
-          {/* Recording (Host only) - Hidden on mobile */}
-          {isHost && (
+          {/* Recording (Host and Dev) - Hidden on mobile */}
+          {hasModeratorAccess && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button
@@ -2741,8 +2754,8 @@ export default function MeetingRoom() {
             </DropdownMenu>
           )}
 
-          {/* Moderation button (Host only) */}
-          {isHost && (
+          {/* Moderation button (Host and Dev) */}
+          {hasModeratorAccess && (
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
