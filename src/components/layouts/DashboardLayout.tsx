@@ -75,7 +75,6 @@ const navItems: NavItem[] = [
   { label: "Tabelas de Preços", href: "/precos", icon: DollarSign, roles: ["dev", "admin", "gerente", "vendedor"] },
   { label: "Materiais Comerciais", href: "/downloads", icon: FileText, roles: ["dev", "admin", "gerente", "vendedor", "criacao"] },
   { label: "Material Criação", href: "/material-criacao", icon: Package, roles: ["dev", "criacao"] },
-  { label: "Gravações de Reuniões", href: "/gravacoes", icon: Film, roles: ["dev"] },
   { label: "Notificações", href: "/notificacoes", icon: Bell, roles: ["dev", "admin", "gerente", "vendedor", "criacao"] },
   {
     label: "Solicitar Ajuda",

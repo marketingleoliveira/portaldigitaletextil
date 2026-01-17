@@ -1,7 +1,6 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { toast } from 'sonner';
-import DailyIframe, { DailyCall } from '@daily-co/daily-js';
-import { supabase } from '@/integrations/supabase/client';
+import { DailyCall } from '@daily-co/daily-js';
 
 interface UseLocalRecordingOptions {
   meetingTitle?: string;
@@ -16,7 +15,6 @@ interface UseLocalRecordingReturn {
   stopLocalRecording: () => Promise<Blob | null>;
   downloadRecording: (blob: Blob, filename?: string) => void;
   recordedBlob: Blob | null;
-  isSaving: boolean;
 }
 
 // Global recording state that persists across component remounts
@@ -50,7 +48,6 @@ export function useLocalRecording({ meetingTitle, autoDownload = true, meetingId
   const [isLocalRecording, setIsLocalRecording] = useState(globalRecordingState.isRecording);
   const [localRecordingStartTime, setLocalRecordingStartTime] = useState<Date | null>(globalRecordingState.startTime);
   const [recordedBlob, setRecordedBlob] = useState<Blob | null>(null);
-  const [isSaving, setIsSaving] = useState(false);
   
   const isStoppingRef = useRef<boolean>(false);
   const meetingTitleRef = useRef<string | undefined>(meetingTitle);
@@ -83,65 +80,6 @@ export function useLocalRecording({ meetingTitle, autoDownload = true, meetingId
     
     toast.success('Gravação baixada com sucesso!');
   }, []);
-
-  // Save recording to Supabase storage and database
-  const saveRecordingToCloud = useCallback(async (blob: Blob, title: string, mId: string | null, startTime: Date) => {
-    setIsSaving(true);
-    
-    try {
-      const date = new Date().toISOString().split('T')[0];
-      const time = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }).replace(':', '-');
-      const safeName = title?.replace(/[^a-zA-Z0-9]/g, '_') || 'reuniao';
-      const fileName = `${safeName}_${date}_${time}_${Date.now()}.webm`;
-      
-      // Upload to storage
-      const { data: uploadData, error: uploadError } = await supabase.storage
-        .from('meeting-recordings')
-        .upload(fileName, blob, {
-          contentType: 'video/webm',
-          cacheControl: '3600',
-        });
-
-      if (uploadError) {
-        console.error('Error uploading recording:', uploadError);
-        toast.error('Erro ao salvar gravação na nuvem. Baixando localmente...');
-        downloadRecording(blob);
-        return;
-      }
-
-      // Get public URL
-      const { data: urlData } = supabase.storage
-        .from('meeting-recordings')
-        .getPublicUrl(fileName);
-
-      const durationSeconds = Math.floor((new Date().getTime() - startTime.getTime()) / 1000);
-
-      // Save to database
-      const { error: dbError } = await supabase
-        .from('meeting_recordings')
-        .insert({
-          meeting_id: mId || null,
-          meeting_title: title || 'Reunião',
-          meeting_date: startTime.toISOString(),
-          recording_id: `local_${Date.now()}`,
-          download_url: urlData.publicUrl,
-          duration_seconds: durationSeconds,
-        });
-
-      if (dbError) {
-        console.error('Error saving recording to database:', dbError);
-        toast.warning('Gravação salva no storage, mas erro ao registrar no banco');
-      } else {
-        toast.success('Gravação salva na nuvem com sucesso!');
-      }
-    } catch (error) {
-      console.error('Error saving recording:', error);
-      toast.error('Erro ao salvar gravação. Baixando localmente...');
-      downloadRecording(blob);
-    } finally {
-      setIsSaving(false);
-    }
-  }, [downloadRecording]);
 
   // Function to create audio stream from Daily.co participants
   const createAudioStreamFromCall = useCallback((callObject: DailyCall, audioContext: AudioContext): MediaStreamAudioDestinationNode => {
@@ -358,14 +296,9 @@ export function useLocalRecording({ meetingTitle, autoDownload = true, meetingId
         globalRecordingState.isRecording = false;
         globalRecordingState.callObject = null;
         
-        // Save to cloud if stopped manually
-        if (isStoppingRef.current && blob.size > 0 && savedStartTime) {
-          await saveRecordingToCloud(blob, savedTitle, savedMeetingId, savedStartTime);
-          
-          // Also download locally as backup
-          if (autoDownload) {
-            downloadRecording(blob);
-          }
+        // Download locally when stopped manually
+        if (isStoppingRef.current && blob.size > 0 && autoDownload) {
+          downloadRecording(blob);
         }
       };
 
@@ -400,7 +333,7 @@ export function useLocalRecording({ meetingTitle, autoDownload = true, meetingId
       
       return false;
     }
-  }, [autoDownload, createAudioStreamFromCall, saveRecordingToCloud, downloadRecording]);
+  }, [autoDownload, createAudioStreamFromCall, downloadRecording]);
 
   const stopLocalRecording = useCallback(async (): Promise<Blob | null> => {
     return new Promise((resolve) => {
@@ -457,14 +390,9 @@ export function useLocalRecording({ meetingTitle, autoDownload = true, meetingId
         
         toast.success('Gravação local finalizada!');
         
-        // Save to cloud
-        if (blob.size > 0 && savedStartTime) {
-          await saveRecordingToCloud(blob, savedTitle, savedMeetingId, savedStartTime);
-          
-          // Also download locally as backup
-          if (autoDownload) {
-            downloadRecording(blob);
-          }
+        // Download locally
+        if (blob.size > 0 && autoDownload) {
+          downloadRecording(blob);
         }
         
         resolve(blob);
@@ -472,7 +400,7 @@ export function useLocalRecording({ meetingTitle, autoDownload = true, meetingId
 
       globalRecordingState.mediaRecorder.stop();
     });
-  }, [autoDownload, saveRecordingToCloud, downloadRecording]);
+  }, [autoDownload, downloadRecording]);
 
   // Cleanup on unmount - but don't stop recording!
   useEffect(() => {
@@ -488,7 +416,6 @@ export function useLocalRecording({ meetingTitle, autoDownload = true, meetingId
     startLocalRecording,
     stopLocalRecording,
     downloadRecording,
-    recordedBlob,
-    isSaving
+    recordedBlob
   };
 }

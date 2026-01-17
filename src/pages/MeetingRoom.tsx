@@ -188,8 +188,7 @@ export default function MeetingRoom() {
     startLocalRecording,
     stopLocalRecording,
     downloadRecording,
-    recordedBlob,
-    isSaving
+    recordedBlob
   } = useLocalRecording({ meetingTitle: meeting?.title, meetingId: meeting?.id });
 
   // Create Daily room via edge function
@@ -2136,20 +2135,7 @@ export default function MeetingRoom() {
               <TooltipContent>Conexão instável</TooltipContent>
             </Tooltip>
           )}
-          {isSaving && (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <span className="flex items-center gap-1 text-blue-400">
-                  <Loader2 className="w-3 h-3 sm:w-4 sm:h-4 animate-spin" />
-                  <span className="hidden sm:inline">Salvando gravação...</span>
-                </span>
-              </TooltipTrigger>
-              <TooltipContent>
-                Enviando gravação para a nuvem
-              </TooltipContent>
-            </Tooltip>
-          )}
-          {(isRecording || isLocalRecording) && !isSaving && (
+          {(isRecording || isLocalRecording) && (
             <Tooltip>
               <TooltipTrigger asChild>
                 <span className="flex items-center gap-1 text-red-500 animate-pulse cursor-help">
