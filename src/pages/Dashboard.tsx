@@ -219,7 +219,7 @@ const Dashboard: React.FC = () => {
       color: 'text-role-gerente',
       bgColor: 'bg-role-gerente/10',
       href: '/downloads',
-      roles: ['dev', 'admin', 'gerente', 'vendedor'],
+      roles: ['dev', 'admin', 'gerente', 'vendedor', 'criacao'],
       breakdown: stats.filesBreakdown,
     },
     {
@@ -267,7 +267,7 @@ const Dashboard: React.FC = () => {
       color: 'text-primary',
       bgColor: 'bg-primary/10',
       href: '/downloads',
-      roles: ['dev', 'admin', 'gerente', 'vendedor'],
+      roles: ['dev', 'admin', 'gerente', 'vendedor', 'criacao'],
     },
     {
       title: 'Materiais de Criação',
