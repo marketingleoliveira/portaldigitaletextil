@@ -2016,7 +2016,20 @@ export default function MeetingRoom() {
               <TooltipContent>Conexão instável</TooltipContent>
             </Tooltip>
           )}
-          {(isRecording || isLocalRecording) && (
+          {isSaving && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span className="flex items-center gap-1 text-blue-400">
+                  <Loader2 className="w-3 h-3 sm:w-4 sm:h-4 animate-spin" />
+                  <span className="hidden sm:inline">Salvando gravação...</span>
+                </span>
+              </TooltipTrigger>
+              <TooltipContent>
+                Enviando gravação para a nuvem
+              </TooltipContent>
+            </Tooltip>
+          )}
+          {(isRecording || isLocalRecording) && !isSaving && (
             <Tooltip>
               <TooltipTrigger asChild>
                 <span className="flex items-center gap-1 text-red-500 animate-pulse cursor-help">
@@ -2031,7 +2044,7 @@ export default function MeetingRoom() {
                 </span>
               </TooltipTrigger>
               <TooltipContent>
-                {isLocalRecordingMode ? "Gravação local (salva no seu dispositivo)" : "Gravação na nuvem"}
+                {isLocalRecordingMode ? "Gravação local (será salva na nuvem ao finalizar)" : "Gravação na nuvem"}
               </TooltipContent>
             </Tooltip>
           )}
