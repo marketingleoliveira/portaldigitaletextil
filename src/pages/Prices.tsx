@@ -22,7 +22,8 @@ import {
   Plus,
   Loader2,
   Search,
-  Filter
+  Filter,
+  ArrowUpDown
 } from 'lucide-react';
 import SpreadsheetPreview from '@/components/SpreadsheetPreview';
 import SpreadsheetMiniPreview from '@/components/SpreadsheetMiniPreview';
@@ -53,9 +54,10 @@ const Prices: React.FC = () => {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [selectedFile, setSelectedFile] = useState<PriceFile | null>(null);
   
-  // Search and filter state
+  // Search, filter and sort state
   const [searchTerm, setSearchTerm] = useState('');
   const [filterRegion, setFilterRegion] = useState<string>('all');
+  const [sortBy, setSortBy] = useState<'name' | 'date' | 'region'>('date');
   
   // Form state
   const [uploadFile, setUploadFile] = useState<File | null>(null);
@@ -84,7 +86,7 @@ const Prices: React.FC = () => {
     }
   });
 
-  // Filter files by region for non-admin users and apply search/filter
+  // Filter files by region for non-admin users and apply search/filter/sort
   const filteredFiles = useMemo(() => {
     let files = canSeeAllRegions 
       ? priceFiles 
@@ -104,8 +106,23 @@ const Prices: React.FC = () => {
       files = files.filter(f => f.region === filterRegion || (!f.region && filterRegion === 'todas'));
     }
     
+    // Apply sorting
+    files = [...files].sort((a, b) => {
+      switch (sortBy) {
+        case 'name':
+          return a.name.localeCompare(b.name, 'pt-BR');
+        case 'region':
+          const regionA = a.region || 'ZZZ'; // Put "Todas" at the end
+          const regionB = b.region || 'ZZZ';
+          return regionA.localeCompare(regionB, 'pt-BR');
+        case 'date':
+        default:
+          return new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime();
+      }
+    });
+    
     return files;
-  }, [priceFiles, canSeeAllRegions, userRegion, searchTerm, filterRegion]);
+  }, [priceFiles, canSeeAllRegions, userRegion, searchTerm, filterRegion, sortBy]);
 
   // Upload mutation
   const uploadMutation = useMutation({
@@ -368,6 +385,19 @@ const Prices: React.FC = () => {
               </Select>
             </div>
           )}
+          <div className="flex items-center gap-2">
+            <ArrowUpDown className="w-4 h-4 text-muted-foreground" />
+            <Select value={sortBy} onValueChange={(value: 'name' | 'date' | 'region') => setSortBy(value)}>
+              <SelectTrigger className="w-[160px]">
+                <SelectValue placeholder="Ordenar por" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="date">Mais recentes</SelectItem>
+                <SelectItem value="name">Nome (A-Z)</SelectItem>
+                <SelectItem value="region">Região</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </div>
 
         {/* Spreadsheet Preview */}
