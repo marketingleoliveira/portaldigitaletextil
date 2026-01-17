@@ -82,6 +82,12 @@ interface GlobalMeetingState {
   dailyRoom: { url: string; name: string } | null;
   callObject: DailyCall | null;
   messages: ChatMessage[];
+  // User settings that persist across tab switches
+  isMuted: boolean;
+  isVideoOn: boolean;
+  handRaised: boolean;
+  showChat: boolean;
+  showParticipants: boolean;
 }
 const globalMeetingState = new Map<string, GlobalMeetingState>();
 
@@ -104,8 +110,8 @@ export default function MeetingRoom() {
   const isInitializingRef = useRef(false);
   const hasInitializedRef = useRef(false);
   
-  // Local state
-  const [isMuted, setIsMuted] = useState(false);
+  // Local state - microphone starts OFF for all users
+  const [isMuted, setIsMuted] = useState(true);
   const [isVideoOn, setIsVideoOn] = useState(true);
   const [isScreenSharing, setIsScreenSharing] = useState(false);
   const [showChat, setShowChat] = useState(false);
@@ -213,6 +219,7 @@ export default function MeetingRoom() {
       const call = DailyIframe.createCallObject({
         audioSource: true,
         videoSource: true,
+        startAudioOff: true, // Start with microphone OFF
       });
       
       callObjectRef.current = call;
@@ -645,15 +652,16 @@ export default function MeetingRoom() {
         }
       });
       
-      // Update participants state to ensure UI is in sync
+      // Update participants state to ensure UI is in sync - REPLACE entire state to avoid duplicates
       setParticipants(prev => {
-        const updated = { ...prev };
+        // Start fresh with only current participants from callObject
+        const updated: Record<string, ParticipantWithExtras> = {};
         Object.entries(currentParticipants).forEach(([sessionId, participant]) => {
           updated[sessionId] = {
-            ...updated[sessionId],
             ...participant,
-            handRaised: updated[sessionId]?.handRaised,
-            isSpeaking: updated[sessionId]?.isSpeaking
+            // Preserve hand raised and speaking state from previous state
+            handRaised: prev[sessionId]?.handRaised,
+            isSpeaking: prev[sessionId]?.isSpeaking
           };
         });
         return updated;
@@ -696,11 +704,19 @@ export default function MeetingRoom() {
       if (existingState.callObject) {
         setCallObject(existingState.callObject);
         callObjectRef.current = existingState.callObject;
-        // Restore participants from callObject
+        // Restore participants from callObject - use only current participants
         const currentParticipants = existingState.callObject.participants();
         setParticipants(currentParticipants as Record<string, ParticipantWithExtras>);
       }
       if (existingState.messages.length > 0) setMessages(existingState.messages);
+      
+      // Restore user settings
+      setIsMuted(existingState.isMuted);
+      setIsVideoOn(existingState.isVideoOn);
+      setHandRaised(existingState.handRaised);
+      setShowChat(existingState.showChat);
+      setShowParticipants(existingState.showParticipants);
+      
       setLoading(false);
     }
   }, [code, user?.id]);
@@ -713,10 +729,15 @@ export default function MeetingRoom() {
         meeting,
         dailyRoom,
         callObject,
-        messages
+        messages,
+        isMuted,
+        isVideoOn,
+        handRaised,
+        showChat,
+        showParticipants,
       });
     }
-  }, [meeting, dailyRoom, callObject, messages, code, user?.id]);
+  }, [meeting, dailyRoom, callObject, messages, code, user?.id, isMuted, isVideoOn, handRaised, showChat, showParticipants]);
 
   // Separate cleanup effect that only runs on unmount
   useEffect(() => {

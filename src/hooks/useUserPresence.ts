@@ -166,20 +166,19 @@ export const useUserPresence = () => {
       updateSessionDurationRef.current?.();
     }, DURATION_UPDATE_INTERVAL);
 
-    // Handle visibility change (skip if user is in a meeting)
+    // Handle visibility change - MINIMAL action, don't cause any UI updates
     const handleVisibilityChange = async () => {
-      // If user is in a meeting, don't change presence status
+      // If user is in a meeting, don't do anything at all
       if (isUserInMeeting) {
         return;
       }
 
+      // Only update duration silently when hidden, no state changes that could cause re-renders
       if (document.hidden) {
-        // User minimized or switched tabs - update duration but DON'T mark offline
         await updateSessionDurationRef.current?.();
-      } else {
-        // User came back - ensure we're marked online
-        await updatePresenceRef.current?.(true);
       }
+      // When user comes back, just silently update presence without causing re-renders
+      // The heartbeat will handle keeping presence alive
     };
 
     // Handle before unload - use synchronous approach for reliability
