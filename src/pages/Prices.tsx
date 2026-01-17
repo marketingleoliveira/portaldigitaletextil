@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -21,9 +21,11 @@ import {
   FileSpreadsheet, 
   Plus,
   Loader2,
-  X
+  Search,
+  Filter
 } from 'lucide-react';
 import SpreadsheetPreview from '@/components/SpreadsheetPreview';
+import SpreadsheetMiniPreview from '@/components/SpreadsheetMiniPreview';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
@@ -50,6 +52,10 @@ const Prices: React.FC = () => {
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [selectedFile, setSelectedFile] = useState<PriceFile | null>(null);
+  
+  // Search and filter state
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filterRegion, setFilterRegion] = useState<string>('all');
   
   // Form state
   const [uploadFile, setUploadFile] = useState<File | null>(null);
@@ -78,10 +84,28 @@ const Prices: React.FC = () => {
     }
   });
 
-  // Filter files by region for non-admin users
-  const filteredFiles = canSeeAllRegions 
-    ? priceFiles 
-    : priceFiles.filter(f => !f.region || f.region === userRegion);
+  // Filter files by region for non-admin users and apply search/filter
+  const filteredFiles = useMemo(() => {
+    let files = canSeeAllRegions 
+      ? priceFiles 
+      : priceFiles.filter(f => !f.region || f.region === userRegion);
+    
+    // Apply search filter
+    if (searchTerm.trim()) {
+      const search = searchTerm.toLowerCase();
+      files = files.filter(f => 
+        f.name.toLowerCase().includes(search) ||
+        (f.description && f.description.toLowerCase().includes(search))
+      );
+    }
+    
+    // Apply region filter
+    if (filterRegion !== 'all') {
+      files = files.filter(f => f.region === filterRegion || (!f.region && filterRegion === 'todas'));
+    }
+    
+    return files;
+  }, [priceFiles, canSeeAllRegions, userRegion, searchTerm, filterRegion]);
 
   // Upload mutation
   const uploadMutation = useMutation({
@@ -316,6 +340,36 @@ const Prices: React.FC = () => {
           )}
         </div>
 
+        {/* Search and Filter */}
+        <div className="flex flex-col sm:flex-row gap-4">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Input
+              placeholder="Buscar por nome ou descrição..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10"
+            />
+          </div>
+          {canSeeAllRegions && (
+            <div className="flex items-center gap-2">
+              <Filter className="w-4 h-4 text-muted-foreground" />
+              <Select value={filterRegion} onValueChange={setFilterRegion}>
+                <SelectTrigger className="w-[160px]">
+                  <SelectValue placeholder="Filtrar região" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todas as regiões</SelectItem>
+                  <SelectItem value="todas">Sem região específica</SelectItem>
+                  {REGIONS.map(region => (
+                    <SelectItem key={region} value={region}>{region}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+        </div>
+
         {/* Spreadsheet Preview */}
         {selectedFile && previewUrl && (
           <SpreadsheetPreview
@@ -335,11 +389,17 @@ const Prices: React.FC = () => {
           ) : filteredFiles.length === 0 ? (
             <div className="col-span-full text-center py-12 text-muted-foreground">
               <FileSpreadsheet className="w-16 h-16 mx-auto mb-4 opacity-30" />
-              <p className="text-lg font-medium">Nenhuma planilha disponível</p>
+              <p className="text-lg font-medium">
+                {searchTerm || filterRegion !== 'all' 
+                  ? 'Nenhuma planilha encontrada' 
+                  : 'Nenhuma planilha disponível'}
+              </p>
               <p className="text-sm">
-                {canManage 
-                  ? 'Clique em "Nova Planilha" para adicionar' 
-                  : 'Não há planilhas disponíveis para sua região'}
+                {searchTerm || filterRegion !== 'all'
+                  ? 'Tente ajustar os filtros de busca'
+                  : canManage 
+                    ? 'Clique em "Nova Planilha" para adicionar' 
+                    : 'Não há planilhas disponíveis para sua região'}
               </p>
             </div>
           ) : (
@@ -365,7 +425,12 @@ const Prices: React.FC = () => {
                   </div>
                 </CardHeader>
                 <CardContent className="pt-0">
-                  <div className="flex items-center justify-between text-xs text-muted-foreground mb-3">
+                  {/* Mini Preview */}
+                  <div className="mb-3">
+                    <SpreadsheetMiniPreview fileUrl={file.file_url} />
+                  </div>
+                  
+                  <div className="flex items-center justify-between text-xs text-muted-foreground mb-2">
                     <Badge variant="outline" className="text-xs">
                       {getRegionLabel(file.region)}
                     </Badge>
