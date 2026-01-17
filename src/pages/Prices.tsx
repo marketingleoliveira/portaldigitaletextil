@@ -11,7 +11,6 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { 
@@ -22,10 +21,8 @@ import {
   FileSpreadsheet, 
   Plus,
   Loader2,
-  Settings,
-  TableProperties
+  X
 } from 'lucide-react';
-import SpreadsheetEditor from '@/components/SpreadsheetEditor';
 import SpreadsheetPreview from '@/components/SpreadsheetPreview';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -48,12 +45,9 @@ const Prices: React.FC = () => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const canManage = user?.role ? hasFullAccess(user.role) : false;
-  const isDev = user?.role === 'dev';
   
   const [isUploadDialogOpen, setIsUploadDialogOpen] = useState(false);
-  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
-  const [isEditorOpen, setIsEditorOpen] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [selectedFile, setSelectedFile] = useState<PriceFile | null>(null);
   
@@ -64,7 +58,7 @@ const Prices: React.FC = () => {
   const [fileRegion, setFileRegion] = useState<string>('all');
   const [isUploading, setIsUploading] = useState(false);
 
-  // Check if user can see all regions (INTERNO, gerente, admin, dev)
+  // Check if user can see all regions
   const userRegion = user?.profile?.region;
   const canSeeAllRegions = hasFullAccess(user?.role) || 
                            user?.role === 'gerente' || 
@@ -84,6 +78,11 @@ const Prices: React.FC = () => {
     }
   });
 
+  // Filter files by region for non-admin users
+  const filteredFiles = canSeeAllRegions 
+    ? priceFiles 
+    : priceFiles.filter(f => !f.region || f.region === userRegion);
+
   // Upload mutation
   const uploadMutation = useMutation({
     mutationFn: async ({ file, name, description, region }: { 
@@ -92,7 +91,6 @@ const Prices: React.FC = () => {
       description: string; 
       region: string | null;
     }) => {
-      // Upload file to storage
       const fileExt = file.name.split('.').pop();
       const filePath = `${Date.now()}-${name.replace(/\s+/g, '-')}.${fileExt}`;
       
@@ -102,12 +100,10 @@ const Prices: React.FC = () => {
       
       if (uploadError) throw uploadError;
       
-      // Get public URL
       const { data: urlData } = supabase.storage
         .from('price-files')
         .getPublicUrl(filePath);
       
-      // Insert record
       const { error: insertError } = await supabase
         .from('price_files')
         .insert({
@@ -123,69 +119,13 @@ const Prices: React.FC = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['price-files'] });
-      toast.success('Arquivo de preços enviado com sucesso!');
+      toast.success('Arquivo enviado com sucesso!');
       resetForm();
       setIsUploadDialogOpen(false);
     },
     onError: (error) => {
       console.error('Upload error:', error);
       toast.error('Erro ao enviar arquivo');
-    }
-  });
-
-  // Update mutation
-  const updateMutation = useMutation({
-    mutationFn: async ({ id, name, description, region, file }: { 
-      id: string;
-      name: string; 
-      description: string; 
-      region: string | null;
-      file?: File;
-    }) => {
-      let fileUrl = selectedFile?.file_url;
-      let fileSize = selectedFile?.file_size;
-      
-      // If new file uploaded, replace it
-      if (file) {
-        const fileExt = file.name.split('.').pop();
-        const filePath = `${Date.now()}-${name.replace(/\s+/g, '-')}.${fileExt}`;
-        
-        const { error: uploadError } = await supabase.storage
-          .from('price-files')
-          .upload(filePath, file);
-        
-        if (uploadError) throw uploadError;
-        
-        const { data: urlData } = supabase.storage
-          .from('price-files')
-          .getPublicUrl(filePath);
-        
-        fileUrl = urlData.publicUrl;
-        fileSize = file.size;
-      }
-      
-      const { error } = await supabase
-        .from('price_files')
-        .update({
-          name,
-          description: description || null,
-          file_url: fileUrl,
-          file_size: fileSize,
-          region: region === 'all' ? null : region
-        })
-        .eq('id', id);
-      
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['price-files'] });
-      toast.success('Arquivo atualizado com sucesso!');
-      resetForm();
-      setIsEditDialogOpen(false);
-    },
-    onError: (error) => {
-      console.error('Update error:', error);
-      toast.error('Erro ao atualizar arquivo');
     }
   });
 
@@ -214,12 +154,18 @@ const Prices: React.FC = () => {
     setFileName('');
     setFileDescription('');
     setFileRegion('all');
-    setSelectedFile(null);
   };
 
   const handleUpload = () => {
     if (!uploadFile || !fileName) {
       toast.error('Selecione um arquivo e informe o nome');
+      return;
+    }
+    
+    // Validate file type
+    const ext = uploadFile.name.split('.').pop()?.toLowerCase();
+    if (!['xlsx', 'xls'].includes(ext || '')) {
+      toast.error('Apenas arquivos Excel (.xlsx, .xls) são permitidos');
       return;
     }
     
@@ -234,41 +180,10 @@ const Prices: React.FC = () => {
     });
   };
 
-  const handleUpdate = () => {
-    if (!selectedFile || !fileName) {
-      toast.error('Informe o nome do arquivo');
-      return;
-    }
-    
-    setIsUploading(true);
-    updateMutation.mutate({
-      id: selectedFile.id,
-      name: fileName,
-      description: fileDescription,
-      region: fileRegion === 'all' ? null : fileRegion,
-      file: uploadFile || undefined
-    }, {
-      onSettled: () => setIsUploading(false)
-    });
-  };
-
-  const handleEdit = (file: PriceFile) => {
-    setSelectedFile(file);
-    setFileName(file.name);
-    setFileDescription(file.description || '');
-    setFileRegion(file.region || 'all');
-    setIsEditDialogOpen(true);
-  };
-
   const handlePreview = (file: PriceFile) => {
     setPreviewUrl(file.file_url);
     setSelectedFile(file);
     setIsPreviewOpen(true);
-  };
-
-  const handleOpenEditor = (file: PriceFile) => {
-    setSelectedFile(file);
-    setIsEditorOpen(true);
   };
 
   const handleDownload = (file: PriceFile) => {
@@ -282,16 +197,8 @@ const Prices: React.FC = () => {
     return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
   };
 
-  const getFileType = (url: string) => {
-    const ext = url.split('.').pop()?.toLowerCase();
-    if (['xlsx', 'xls'].includes(ext || '')) return 'Excel';
-    if (ext === 'csv') return 'CSV';
-    if (ext === 'pdf') return 'PDF';
-    return ext?.toUpperCase() || 'Arquivo';
-  };
-
   const getRegionLabel = (region: string | null) => {
-    if (!region) return 'Todas as regiões';
+    if (!region) return 'Todas';
     return region;
   };
 
@@ -300,13 +207,14 @@ const Prices: React.FC = () => {
       <div className="space-y-6">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold">Tabela de Preços</h1>
+            <h1 className="text-2xl font-bold flex items-center gap-2">
+              <FileSpreadsheet className="w-6 h-6 text-primary" />
+              Tabela de Preços
+            </h1>
             <p className="text-muted-foreground">
-              {canManage 
-                ? 'Gerencie as planilhas de preços por região' 
-                : canSeeAllRegions
-                  ? 'Visualize todas as planilhas de preços'
-                  : `Visualize as planilhas de preços da sua região (${userRegion || 'Todas'})`}
+              {canSeeAllRegions
+                ? 'Visualize todas as planilhas de preços'
+                : `Planilhas de preços da sua região (${userRegion || 'Todas'})`}
             </p>
           </div>
           
@@ -320,19 +228,19 @@ const Prices: React.FC = () => {
               </DialogTrigger>
               <DialogContent>
                 <DialogHeader>
-                  <DialogTitle>Enviar Nova Planilha</DialogTitle>
+                  <DialogTitle>Enviar Planilha Excel</DialogTitle>
                   <DialogDescription>
-                    Faça upload de uma planilha de preços. Você pode restringir por região.
+                    Faça upload de uma planilha de preços em formato Excel (.xlsx, .xls)
                   </DialogDescription>
                 </DialogHeader>
                 
                 <div className="space-y-4 py-4">
                   <div className="space-y-2">
-                    <Label htmlFor="file">Arquivo</Label>
+                    <Label htmlFor="file">Arquivo Excel</Label>
                     <Input
                       id="file"
                       type="file"
-                      accept=".xlsx,.xls,.csv,.pdf"
+                      accept=".xlsx,.xls"
                       onChange={(e) => {
                         const file = e.target.files?.[0];
                         if (file) {
@@ -344,7 +252,7 @@ const Prices: React.FC = () => {
                       }}
                     />
                     <p className="text-xs text-muted-foreground">
-                      Formatos aceitos: Excel (.xlsx, .xls), CSV, PDF
+                      Apenas arquivos Excel (.xlsx, .xls)
                     </p>
                   </div>
                   
@@ -382,9 +290,6 @@ const Prices: React.FC = () => {
                         ))}
                       </SelectContent>
                     </Select>
-                    <p className="text-xs text-muted-foreground">
-                      Vendedores verão apenas planilhas da sua região. Vendedores Internos veem todas.
-                    </p>
                   </div>
                 </div>
                 
@@ -411,88 +316,7 @@ const Prices: React.FC = () => {
           )}
         </div>
 
-        {/* Edit Dialog */}
-        <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Editar Planilha</DialogTitle>
-              <DialogDescription>
-                Atualize as informações da planilha ou substitua o arquivo.
-              </DialogDescription>
-            </DialogHeader>
-            
-            <div className="space-y-4 py-4">
-              <div className="space-y-2">
-                <Label htmlFor="edit-file">Substituir Arquivo (opcional)</Label>
-                <Input
-                  id="edit-file"
-                  type="file"
-                  accept=".xlsx,.xls,.csv,.pdf"
-                  onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    if (file) {
-                      setUploadFile(file);
-                    }
-                  }}
-                />
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="edit-name">Nome</Label>
-                <Input
-                  id="edit-name"
-                  value={fileName}
-                  onChange={(e) => setFileName(e.target.value)}
-                  placeholder="Nome da planilha"
-                />
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="edit-description">Descrição (opcional)</Label>
-                <Textarea
-                  id="edit-description"
-                  value={fileDescription}
-                  onChange={(e) => setFileDescription(e.target.value)}
-                  placeholder="Descrição da planilha"
-                  rows={2}
-                />
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="edit-region">Região</Label>
-                <Select value={fileRegion} onValueChange={setFileRegion}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione a região" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Todas as regiões</SelectItem>
-                    {REGIONS.map(region => (
-                      <SelectItem key={region} value={region}>{region}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
-                Cancelar
-              </Button>
-              <Button onClick={handleUpdate} disabled={isUploading}>
-                {isUploading ? (
-                  <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Salvando...
-                  </>
-                ) : (
-                  'Salvar Alterações'
-                )}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-
-        {/* Spreadsheet Preview - Internal system */}
+        {/* Spreadsheet Preview */}
         {selectedFile && previewUrl && (
           <SpreadsheetPreview
             open={isPreviewOpen}
@@ -502,138 +326,87 @@ const Prices: React.FC = () => {
           />
         )}
 
-        {/* Spreadsheet Editor for developers */}
-        {selectedFile && (
-          <SpreadsheetEditor
-            open={isEditorOpen}
-            onOpenChange={setIsEditorOpen}
-            fileUrl={selectedFile.file_url}
-            fileName={selectedFile.name}
-            fileId={selectedFile.id}
-            onSave={() => queryClient.invalidateQueries({ queryKey: ['price-files'] })}
-          />
-        )}
-
-        {/* Price Files Table */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <FileSpreadsheet className="w-5 h-5" />
-              Planilhas Disponíveis
-            </CardTitle>
-            <CardDescription>
-              {canSeeAllRegions
-                ? 'Todas as planilhas disponíveis'
-                : userRegion 
-                  ? `Mostrando planilhas para a região ${userRegion}`
-                  : 'Todas as planilhas disponíveis'}
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            {isLoading ? (
-              <div className="flex justify-center py-8">
-                <Loader2 className="w-8 h-8 animate-spin text-primary" />
-              </div>
-            ) : priceFiles.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground">
-                <FileSpreadsheet className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                <p>Nenhuma planilha de preços disponível</p>
-              </div>
-            ) : (
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Nome</TableHead>
-                      <TableHead>Descrição</TableHead>
-                      <TableHead>Tipo</TableHead>
-                      <TableHead>Região</TableHead>
-                      <TableHead>Tamanho</TableHead>
-                      <TableHead>Atualizado</TableHead>
-                      <TableHead className="text-right">Ações</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {priceFiles.map((file) => (
-                      <TableRow key={file.id}>
-                        <TableCell className="font-medium">{file.name}</TableCell>
-                        <TableCell className="max-w-xs truncate text-muted-foreground">
-                          {file.description || '-'}
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant="outline">{getFileType(file.file_url)}</Badge>
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant={file.region ? 'default' : 'secondary'}>
-                            {getRegionLabel(file.region)}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="text-muted-foreground">
-                          {formatFileSize(file.file_size)}
-                        </TableCell>
-                        <TableCell className="text-muted-foreground">
-                          {format(new Date(file.updated_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <div className="flex justify-end gap-1">
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => handlePreview(file)}
-                              title="Visualizar"
-                            >
-                              <Eye className="w-4 h-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => handleDownload(file)}
-                              title="Baixar"
-                            >
-                              <Download className="w-4 h-4" />
-                            </Button>
-                            {isDev && (
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => handleOpenEditor(file)}
-                                title="Editar conteúdo da planilha"
-                                className="text-primary"
-                              >
-                                <TableProperties className="w-4 h-4" />
-                              </Button>
-                            )}
-                            {canManage && (
-                              <>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  onClick={() => handleEdit(file)}
-                                  title="Editar informações do arquivo"
-                                >
-                                  <Settings className="w-4 h-4" />
-                                </Button>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  onClick={() => deleteMutation.mutate(file.id)}
-                                  title="Excluir"
-                                  className="text-destructive hover:text-destructive"
-                                >
-                                  <Trash2 className="w-4 h-4" />
-                                </Button>
-                              </>
-                            )}
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+        {/* Files Grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          {isLoading ? (
+            <div className="col-span-full flex justify-center py-12">
+              <Loader2 className="w-8 h-8 animate-spin text-primary" />
+            </div>
+          ) : filteredFiles.length === 0 ? (
+            <div className="col-span-full text-center py-12 text-muted-foreground">
+              <FileSpreadsheet className="w-16 h-16 mx-auto mb-4 opacity-30" />
+              <p className="text-lg font-medium">Nenhuma planilha disponível</p>
+              <p className="text-sm">
+                {canManage 
+                  ? 'Clique em "Nova Planilha" para adicionar' 
+                  : 'Não há planilhas disponíveis para sua região'}
+              </p>
+            </div>
+          ) : (
+            filteredFiles.map((file) => (
+              <Card 
+                key={file.id} 
+                className="group hover:shadow-lg transition-all cursor-pointer border-2 hover:border-primary/50"
+                onClick={() => handlePreview(file)}
+              >
+                <CardHeader className="pb-3">
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1 min-w-0">
+                      <CardTitle className="text-base truncate" title={file.name}>
+                        {file.name}
+                      </CardTitle>
+                      {file.description && (
+                        <CardDescription className="text-xs mt-1 line-clamp-2">
+                          {file.description}
+                        </CardDescription>
+                      )}
+                    </div>
+                    <FileSpreadsheet className="w-8 h-8 text-green-600 flex-shrink-0 ml-2" />
+                  </div>
+                </CardHeader>
+                <CardContent className="pt-0">
+                  <div className="flex items-center justify-between text-xs text-muted-foreground mb-3">
+                    <Badge variant="outline" className="text-xs">
+                      {getRegionLabel(file.region)}
+                    </Badge>
+                    <span>{formatFileSize(file.file_size)}</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground mb-3">
+                    Atualizado em {format(new Date(file.updated_at), "dd/MM/yyyy", { locale: ptBR })}
+                  </p>
+                  <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="flex-1"
+                      onClick={() => handlePreview(file)}
+                    >
+                      <Eye className="w-4 h-4 mr-1" />
+                      Visualizar
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleDownload(file)}
+                    >
+                      <Download className="w-4 h-4" />
+                    </Button>
+                    {canManage && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => deleteMutation.mutate(file.id)}
+                        className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            ))
+          )}
+        </div>
       </div>
     </DashboardLayout>
   );
