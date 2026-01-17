@@ -1164,20 +1164,22 @@ export default function GuestMeetingRoom() {
       videoStateBeforeScreenShareRef.current = wasVideoOn;
       console.log("Saving video state before screen share:", wasVideoOn);
       
-      // Manually capture screen with system audio using getDisplayMedia
-      // This ensures we get system audio which Daily.co may not capture by default
+      // Capture screen with ONLY the window/tab audio (not system audio)
+      // This prevents duplicating the call audio
       const displayMediaConstraints: DisplayMediaStreamOptions = {
         video: {
           displaySurface: type === 'screen' ? 'monitor' : type === 'window' ? 'window' : 'browser',
           frameRate: { ideal: 30 },
         } as MediaTrackConstraints,
-        audio: {
-          // Request system audio - this is crucial for video playback sound
+        // Only request audio for tabs (browser tabs have isolated audio)
+        // Windows and full screen don't have isolated audio - would capture call audio too
+        audio: type === 'tab' ? {
+          // Tab audio only - this is isolated from system audio
           suppressLocalAudioPlayback: false,
           noiseSuppression: false,
           autoGainControl: false,
           echoCancellation: false,
-        } as MediaTrackConstraints,
+        } as MediaTrackConstraints : false,
       };
       
       // Add additional hints based on type
@@ -1185,22 +1187,26 @@ export default function GuestMeetingRoom() {
       if (type === 'tab') {
         extendedConstraints.preferCurrentTab = false;
         extendedConstraints.selfBrowserSurface = 'include';
+        // For tabs, we can safely include audio as it's isolated
+        extendedConstraints.surfaceSwitching = 'include';
       }
-      extendedConstraints.systemAudio = 'include'; // Force include system audio
-      extendedConstraints.surfaceSwitching = 'include';
+      // DO NOT use systemAudio for windows/screens - it would duplicate call audio
+      // Only tabs have isolated audio that won't include the meeting sounds
       
-      console.log("Requesting screen capture with constraints:", extendedConstraints);
+      console.log("Requesting screen capture with constraints:", extendedConstraints, "type:", type);
       
-      // Get the media stream with system audio
+      // Get the media stream
       const screenStream = await navigator.mediaDevices.getDisplayMedia(extendedConstraints);
       
       const hasAudioTrack = screenStream.getAudioTracks().length > 0;
       console.log("Screen stream obtained, has audio:", hasAudioTrack, "audio tracks:", screenStream.getAudioTracks());
       
       if (hasAudioTrack) {
-        toast.success("Compartilhamento com áudio do sistema ativado");
+        toast.success("Compartilhamento com áudio da aba ativado");
+      } else if (type === 'tab') {
+        toast.info("Compartilhamento iniciado (marque 'Compartilhar áudio da aba' para incluir som)");
       } else {
-        toast.info("Compartilhamento iniciado (sem áudio do sistema - verifique as configurações)");
+        toast.success("Compartilhamento de tela iniciado");
       }
       
       // Pass the captured stream to Daily.co
