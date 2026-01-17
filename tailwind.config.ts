@@ -124,6 +124,64 @@ export default {
             transform: "translateY(-300px) scale(0.8)" 
           },
         },
+        "paper-ball-throw": {
+          "0%": {
+            opacity: "0",
+            transform: "translate(-50%, -50%) scale(0.3) rotate(0deg)",
+          },
+          "15%": {
+            opacity: "1",
+            transform: "translate(-30%, -100%) scale(1.2) rotate(180deg)",
+          },
+          "40%": {
+            transform: "translate(0%, -150%) scale(1) rotate(360deg)",
+          },
+          "70%": {
+            transform: "translate(30%, -50%) scale(1.1) rotate(540deg)",
+          },
+          "85%": {
+            opacity: "1",
+            transform: "translate(45%, 20%) scale(1.3) rotate(720deg)",
+          },
+          "100%": {
+            opacity: "0",
+            transform: "translate(50%, 50%) scale(0.5) rotate(900deg)",
+          },
+        },
+        "paper-ball-impact": {
+          "0%": {
+            transform: "scale(1)",
+          },
+          "20%": {
+            transform: "scale(1.15) rotate(-3deg)",
+          },
+          "40%": {
+            transform: "scale(0.95) rotate(2deg)",
+          },
+          "60%": {
+            transform: "scale(1.05) rotate(-1deg)",
+          },
+          "80%": {
+            transform: "scale(0.98) rotate(1deg)",
+          },
+          "100%": {
+            transform: "scale(1) rotate(0deg)",
+          },
+        },
+        "splat": {
+          "0%": {
+            opacity: "1",
+            transform: "translate(-50%, -50%) scale(0.5)",
+          },
+          "50%": {
+            opacity: "1",
+            transform: "translate(-50%, -50%) scale(1.5)",
+          },
+          "100%": {
+            opacity: "0",
+            transform: "translate(-50%, -50%) scale(2)",
+          },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
@@ -134,6 +192,9 @@ export default {
         "pulse-glow": "pulse-glow 2s ease-in-out infinite",
         "bounce-gentle": "bounce-gentle 1s ease-in-out infinite",
         "float-up": "float-up 3s ease-out forwards",
+        "paper-ball-throw": "paper-ball-throw 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards",
+        "paper-ball-impact": "paper-ball-impact 0.4s ease-out",
+        "splat": "splat 0.5s ease-out forwards",
       },
       boxShadow: {
         primary: "var(--shadow-primary)",

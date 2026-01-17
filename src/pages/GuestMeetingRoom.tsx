@@ -12,9 +12,10 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import DailyIframe, { DailyCall, DailyParticipant, DailyEventObjectParticipant, DailyEventObjectParticipantLeft } from "@daily-co/daily-js";
 import {
   Mic, MicOff, Video, VideoOff, Phone, MessageSquare, Users, 
-  ScreenShare, ScreenShareOff, Send, Loader2, Hand, Smile, PictureInPicture2
+  ScreenShare, ScreenShareOff, Send, Loader2, Hand, Smile, PictureInPicture2, Volume2
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { PaperBallEffect } from "@/components/PaperBallEffect";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import GuestScreenShareLayout from "@/components/GuestScreenShareLayout";
@@ -144,6 +145,10 @@ export default function GuestMeetingRoom() {
   
   // Connection quality state
   const [connectionQuality, setConnectionQuality] = useState<'good' | 'poor' | 'disconnected'>('good');
+  
+  // Paper ball effect state
+  const [paperBallActive, setPaperBallActive] = useState(false);
+  const [paperBallSender, setPaperBallSender] = useState("");
   
   const localVideoRef = useRef<HTMLVideoElement>(null);
   const participantRefs = useRef<Record<string, HTMLVideoElement | null>>({});
@@ -930,6 +935,39 @@ export default function GuestMeetingRoom() {
     };
   }, [meeting?.id]);
 
+  // Subscribe to paper ball throws via realtime
+  useEffect(() => {
+    if (!meeting?.id || !callObject) return;
+
+    const localParticipant = callObject.participants().local;
+    const localSessionId = localParticipant?.session_id;
+
+    const channel = supabase
+      .channel(`guest-meeting-paperball-${meeting.id}`)
+      .on(
+        'broadcast',
+        { event: 'paper_ball' },
+        (payload) => {
+          const { targetSessionId, senderName } = payload.payload;
+          
+          // Only show effect if targeted at this participant
+          if (targetSessionId === localSessionId) {
+            setPaperBallSender(senderName);
+            setPaperBallActive(true);
+            // Play a sound effect
+            const audio = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2teleAlM0dyVfG4RA3a86L2mPAAA4vDTv5w8A1TJ6smncRcAT9b0zbGYRQ893/nbuZg+AA7y+eGuljkAIfH959K2jTkAAP79/fz69PLw7ero5uTi4N7c2tfV09HQzs3LycjGxMPBwL69vLq5t7a1s7KxsK+urayrqqmop6alpKOioaCfnp2cm5qZmJeWlZSTkpGQj46NjIuKiYiHhoWEg4KBgH9+fXx7enl4d3Z1dHNycXBvbm1sa2ppaGdmZWRjYmFgX15dXFtaWVhXVlVUU1JRUE9OTUxLSklIR0ZFRENCQUA/Pj08Ozo5ODc2NTQzMjEwLy4tLCsqKSgnJiUkIyIhIB8eHRwbGhkYFxYVFBMSERAPDg0MCwoJCAcGBQQDAgEAAQIDBAUGBwgJCgsMDQ4PEBESExQVFhcYGRobHB0eHyAhIiMkJSYnKCkqKywtLi8wMTIzNDU2Nzg5Ojs8PT4/QEFCQ0RFRkdISUpLTE1OT1BRUlNUVVZXWFlaW1xdXl9gYWJjZGVmZ2hpamtsbW5vcHFyc3R1dnd4eXp7fH1+f4CBgoOEhYaHiImKi4yNjo+QkZKTlJWWl5iZmpucnZ6foKGio6SlpqeoqaqrrK2ur7CxsrO0tba3uLm6u7y9vr/AwcLDxMXGx8jJysvMzc7P0NHS09TV1tfY2drb3N3e3+Dh4uPk5ebn6Onq6+zt7u/w8fLz9PX29/j5+vv8/f7/');
+            audio.volume = 0.5;
+            audio.play().catch(() => {});
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [meeting?.id, callObject]);
+
   const cleanup = async () => {
     // Clean up message subscription
     if (messagesChannelRef.current) {
@@ -1544,10 +1582,17 @@ export default function GuestMeetingRoom() {
                   <div 
                     className={cn(
                       "relative bg-[#3c4043] rounded-xl overflow-hidden shrink-0",
-                      speakingParticipants.has(participants.local?.session_id || '') && "ring-2 ring-green-500"
+                      speakingParticipants.has(participants.local?.session_id || '') && "ring-2 ring-green-500",
+                      paperBallActive && "animate-paper-ball-impact"
                     )}
                     style={{ width: '300px', height: '250px' }}
                   >
+                    {/* Paper ball effect overlay */}
+                    <PaperBallEffect 
+                      isActive={paperBallActive} 
+                      senderName={paperBallSender}
+                      onComplete={() => setPaperBallActive(false)}
+                    />
                     <video
                       ref={localVideoRef}
                       autoPlay

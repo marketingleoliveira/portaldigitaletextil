@@ -18,9 +18,10 @@ import {
   ScreenShare, ScreenShareOff, MoreVertical, Settings,
   Copy, Maximize, Minimize, Send, ChevronLeft, Loader2,
   Circle, Square, Lock, Hand, Smile, Volume2, Shield,
-  VideoIcon, MicIcon, Ban, Sparkles, UserX, PictureInPicture2, Download, HardDrive
+  VideoIcon, MicIcon, Ban, Sparkles, UserX, PictureInPicture2, Download, HardDrive, FileText
 } from "lucide-react";
 import { useLocalRecording } from "@/hooks/useLocalRecording";
+import { PaperBallEffect, ThrowPaperBallButton } from "@/components/PaperBallEffect";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -162,6 +163,10 @@ export default function MeetingRoom() {
   
   // Connection quality state
   const [connectionQuality, setConnectionQuality] = useState<'good' | 'poor' | 'disconnected'>('good');
+  
+  // Paper ball effect state
+  const [paperBallActive, setPaperBallActive] = useState(false);
+  const [paperBallSender, setPaperBallSender] = useState("");
   
   const localVideoRef = useRef<HTMLVideoElement>(null);
   const participantRefs = useRef<Record<string, HTMLVideoElement | null>>({});
@@ -853,11 +858,11 @@ export default function MeetingRoom() {
           const { session_id, raised, user_name } = payload.payload;
           setRaisedHands(prev => {
             const updated = new Set(prev);
-            if (raised) {
-              updated.add(session_id);
-              if (isHost) {
-                toast.info(`${user_name} levantou a mão`, { icon: "✋" });
-              }
+              if (raised) {
+                updated.add(session_id);
+                if (hasModeratorAccess) {
+                  toast.info(`${user_name} levantou a mão`, { icon: "✋" });
+                }
             } else {
               updated.delete(session_id);
             }
@@ -1003,6 +1008,39 @@ export default function MeetingRoom() {
       supabase.removeChannel(channel);
     };
   }, [meeting?.id]);
+
+  // Subscribe to paper ball throws via realtime
+  useEffect(() => {
+    if (!meeting?.id || !callObject) return;
+
+    const localParticipant = callObject.participants().local;
+    const localSessionId = localParticipant?.session_id;
+
+    const channel = supabase
+      .channel(`meeting-paperball-${meeting.id}`)
+      .on(
+        'broadcast',
+        { event: 'paper_ball' },
+        (payload) => {
+          const { targetSessionId, senderName } = payload.payload;
+          
+          // Only show effect if targeted at this participant
+          if (targetSessionId === localSessionId) {
+            setPaperBallSender(senderName);
+            setPaperBallActive(true);
+            // Play a sound effect
+            const audio = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2teleAlM0dyVfG4RA3a86L2mPAAA4vDTv5w8A1TJ6smncRcAT9b0zbGYRQ893/nbuZg+AA7y+eGuljkAIfH959K2jTkAAP79/fz69PLw7ero5uTi4N7c2tfV09HQzs3LycjGxMPBwL69vLq5t7a1s7KxsK+urayrqqmop6alpKOioaCfnp2cm5qZmJeWlZSTkpGQj46NjIuKiYiHhoWEg4KBgH9+fXx7enl4d3Z1dHNycXBvbm1sa2ppaGdmZWRjYmFgX15dXFtaWVhXVlVUU1JRUE9OTUxLSklIR0ZFRENCQUA/Pj08Ozo5ODc2NTQzMjEwLy4tLCsqKSgnJiUkIyIhIB8eHRwbGhkYFxYVFBMSERAPDg0MCwoJCAcGBQQDAgEAAQIDBAUGBwgJCgsMDQ4PEBESExQVFhcYGRobHB0eHyAhIiMkJSYnKCkqKywtLi8wMTIzNDU2Nzg5Ojs8PT4/QEFCQ0RFRkdISUpLTE1OT1BRUlNUVVZXWFlaW1xdXl9gYWJjZGVmZ2hpamtsbW5vcHFyc3R1dnd4eXp7fH1+f4CBgoOEhYaHiImKi4yNjo+QkZKTlJWWl5iZmpucnZ6foKGio6SlpqeoqaqrrK2ur7CxsrO0tba3uLm6u7y9vr/AwcLDxMXGx8jJysvMzc7P0NHS09TV1tfY2drb3N3e3+Dh4uPk5ebn6Onq6+zt7u/w8fLz9PX29/j5+vv8/f7/');
+            audio.volume = 0.5;
+            audio.play().catch(() => {});
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [meeting?.id, callObject]);
 
   const cleanup = async () => {
     // Clean up message subscription
@@ -1642,6 +1680,48 @@ export default function MeetingRoom() {
     }
   };
 
+  // Throw paper ball at a participant (fun attention getter)
+  const throwPaperBall = async (sessionId: string, participantName: string) => {
+    if (!meeting || !hasModeratorAccess) {
+      console.error('Cannot throw paper ball: missing meeting or not moderator');
+      return;
+    }
+    
+    console.log('Throwing paper ball at:', { sessionId, participantName });
+    
+    try {
+      const channel = supabase.channel(`meeting-paperball-${meeting.id}`);
+      
+      await new Promise<void>((resolve) => {
+        channel.subscribe((status) => {
+          if (status === 'SUBSCRIBED') {
+            resolve();
+          }
+        });
+        setTimeout(resolve, 1000);
+      });
+      
+      await channel.send({
+        type: 'broadcast',
+        event: 'paper_ball',
+        payload: { 
+          targetSessionId: sessionId,
+          senderName: user?.profile?.full_name || "Moderador"
+        }
+      });
+      
+      toast.success(`📄 Bolinha de papel jogada em ${participantName}!`, { icon: "🗞️" });
+      
+      // Cleanup channel
+      setTimeout(() => {
+        supabase.removeChannel(channel);
+      }, 500);
+    } catch (error) {
+      console.error('Error throwing paper ball:', error);
+      toast.error("Erro ao jogar bolinha de papel");
+    }
+  };
+
   const sendMessage = async () => {
     if (!meeting || !user || !newMessage.trim() || !meeting.allow_chat) return;
 
@@ -2152,10 +2232,18 @@ export default function MeetingRoom() {
                 <div 
                   className={cn(
                     "relative bg-gray-800 rounded-xl overflow-hidden transition-all duration-300 shrink-0",
-                    speakingParticipants.has(participants.local?.session_id || "") && "ring-4 ring-green-500"
+                    speakingParticipants.has(participants.local?.session_id || "") && "ring-4 ring-green-500",
+                    paperBallActive && "animate-paper-ball-impact"
                   )}
                   style={{ width: '300px', height: '250px' }}
                 >
+                  {/* Paper ball effect overlay */}
+                  <PaperBallEffect 
+                    isActive={paperBallActive} 
+                    senderName={paperBallSender}
+                    onComplete={() => setPaperBallActive(false)}
+                  />
+                  
                   <video
                     ref={localVideoRef}
                     autoPlay
@@ -2585,6 +2673,21 @@ export default function MeetingRoom() {
                                 <TooltipContent>
                                   {isParticipantScreenSharing ? "Compartilhando tela" : "Não está compartilhando"}
                                 </TooltipContent>
+                              </Tooltip>
+                              
+                              {/* Throw paper ball (fun attention getter) */}
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-8 w-8 text-yellow-500 hover:text-yellow-400 hover:bg-yellow-500/20"
+                                    onClick={() => throwPaperBall(sessionId, firstName)}
+                                  >
+                                    <span className="text-lg">📄</span>
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>Jogar bolinha de papel 🗞️</TooltipContent>
                               </Tooltip>
                               
                               {/* Remove participant */}
