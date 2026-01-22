@@ -36,7 +36,7 @@ const Index: React.FC = () => {
       <section className="py-20 lg:py-32">
         <div className="container mx-auto px-4 text-center">
           <div className="max-w-3xl mx-auto animate-fade-in">
-            <h1 className="text-4xl lg:text-6xl font-bold mb-6">Portal
+            <h1 className="text-4xl lg:text-6xl font-bold mb-6">Portal Comercial
 Digitale Têxtil<span className="text-primary block mt-2">Digitale Têxtil</span>
             </h1>
             <p className="text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">Aqui você encontra tudo o que é necessário para que você brilhe ainda mais na sua função, o portal chegou parar revolucionar seu método de trabalho oferecendo ferramentas criativas para seu dia-a-dia de trabalho.</p>
