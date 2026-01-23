@@ -32,6 +32,7 @@ import { Badge } from '@/components/ui/badge';
 import OnlineUsersCard from '@/components/OnlineUsersCard';
 import ActivityRankingCard from '@/components/ActivityRankingCard';
 import CarnivalMask from '@/components/CarnivalMask';
+import CarnivalCountdown from '@/components/CarnivalCountdown';
 
 interface FileTypeStats {
   pdf: number;
@@ -315,6 +316,9 @@ const Dashboard: React.FC = () => {
   return (
     <DashboardLayout>
       <div className="space-y-6 animate-fade-in">
+        {/* Carnival Countdown Banner */}
+        <CarnivalCountdown />
+
         {/* Welcome Section with Carnival Decoration */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 relative">
           {/* Carnival Masks Decoration */}
