@@ -4,110 +4,113 @@
 
 @layer base {
   :root {
-    /* Digitale Têxtil Corporate Theme - #1f3249 */
-    --background: 210 20% 98%;
-    --foreground: 213 40% 20%;
+    /* 🎭 Carnaval do Brasil Theme 🎉 */
+    --background: 280 30% 98%;
+    --foreground: 280 50% 15%;
 
     --card: 0 0% 100%;
-    --card-foreground: 213 40% 20%;
+    --card-foreground: 280 50% 15%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 213 40% 20%;
+    --popover-foreground: 280 50% 15%;
 
-    /* Corporate Blue #1f3249 */
-    --primary: 213 40% 20%;
+    /* Carnival Purple/Pink */
+    --primary: 320 80% 50%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 214 32% 91%;
-    --secondary-foreground: 213 40% 20%;
+    --secondary: 45 95% 60%;
+    --secondary-foreground: 280 50% 15%;
 
-    --muted: 210 40% 96%;
-    --muted-foreground: 213 25% 40%;
+    --muted: 280 20% 94%;
+    --muted-foreground: 280 30% 40%;
 
-    --accent: 213 30% 90%;
-    --accent-foreground: 213 40% 20%;
+    --accent: 170 70% 45%;
+    --accent-foreground: 0 0% 100%;
 
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
 
-    /* Status colors */
+    /* Status colors - more festive */
     --success: 142 76% 36%;
     --success-foreground: 0 0% 100%;
     --warning: 38 92% 50%;
     --warning-foreground: 0 0% 100%;
 
-    --border: 214 32% 91%;
-    --input: 214 32% 91%;
-    --ring: 213 40% 20%;
+    --border: 320 40% 85%;
+    --input: 320 40% 90%;
+    --ring: 320 80% 50%;
 
     --radius: 0.5rem;
 
-    /* Role colors */
+    /* Role colors - carnival style */
     --role-dev: 280 100% 50%;
-    --role-admin: 262 83% 58%;
-    --role-gerente: 213 40% 30%;
-    --role-vendedor: 142 71% 45%;
-    --role-criacao: 330 80% 60%;
+    --role-admin: 320 83% 58%;
+    --role-gerente: 45 90% 50%;
+    --role-vendedor: 170 71% 45%;
+    --role-criacao: 280 80% 60%;
 
-    /* Sidebar */
-    --sidebar-background: 213 40% 20%;
-    --sidebar-foreground: 210 40% 98%;
-    --sidebar-primary: 213 40% 35%;
+    /* Sidebar - Carnival gradient feel */
+    --sidebar-background: 280 60% 25%;
+    --sidebar-foreground: 45 100% 95%;
+    --sidebar-primary: 320 80% 55%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 213 40% 28%;
-    --sidebar-accent-foreground: 210 40% 98%;
-    --sidebar-border: 213 40% 25%;
-    --sidebar-ring: 213 40% 35%;
+    --sidebar-accent: 280 50% 35%;
+    --sidebar-accent-foreground: 45 100% 95%;
+    --sidebar-border: 280 50% 30%;
+    --sidebar-ring: 320 80% 55%;
 
-    /* Gradients */
-    --gradient-primary: linear-gradient(135deg, hsl(213 40% 20%) 0%, hsl(213 40% 30%) 100%);
-    --gradient-sidebar: linear-gradient(180deg, hsl(213 40% 20%) 0%, hsl(213 40% 15%) 100%);
-    --gradient-card: linear-gradient(180deg, hsl(0 0% 100%) 0%, hsl(210 20% 98%) 100%);
+    /* Carnival Gradients */
+    --gradient-primary: linear-gradient(135deg, hsl(320 80% 50%) 0%, hsl(280 60% 40%) 50%, hsl(45 90% 50%) 100%);
+    --gradient-sidebar: linear-gradient(180deg, hsl(280 60% 25%) 0%, hsl(320 60% 20%) 100%);
+    --gradient-card: linear-gradient(180deg, hsl(0 0% 100%) 0%, hsl(280 30% 98%) 100%);
+    --gradient-carnival: linear-gradient(90deg, hsl(320 80% 50%), hsl(45 90% 55%), hsl(170 70% 45%), hsl(280 60% 50%));
 
-    /* Shadows */
+    /* Shadows with carnival glow */
     --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
     --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
     --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
-    --shadow-primary: 0 4px 14px 0 hsl(213 40% 20% / 0.25);
+    --shadow-primary: 0 4px 14px 0 hsl(320 80% 50% / 0.35);
+    --shadow-carnival: 0 0 20px hsl(320 80% 50% / 0.3), 0 0 40px hsl(45 90% 50% / 0.2);
   }
 
   .dark {
-    --background: 213 40% 6%;
-    --foreground: 210 40% 98%;
+    /* 🎭 Dark Carnaval Theme 🎉 */
+    --background: 280 40% 8%;
+    --foreground: 45 100% 95%;
 
-    --card: 213 40% 9%;
-    --card-foreground: 210 40% 98%;
+    --card: 280 40% 12%;
+    --card-foreground: 45 100% 95%;
 
-    --popover: 213 40% 9%;
-    --popover-foreground: 210 40% 98%;
+    --popover: 280 40% 12%;
+    --popover-foreground: 45 100% 95%;
 
-    --primary: 213 40% 35%;
+    --primary: 320 80% 55%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 213 40% 15%;
-    --secondary-foreground: 210 40% 98%;
+    --secondary: 45 80% 45%;
+    --secondary-foreground: 280 40% 10%;
 
-    --muted: 213 40% 15%;
-    --muted-foreground: 213 20% 65%;
+    --muted: 280 40% 18%;
+    --muted-foreground: 280 20% 65%;
 
-    --accent: 213 40% 18%;
-    --accent-foreground: 213 40% 50%;
+    --accent: 170 60% 40%;
+    --accent-foreground: 0 0% 100%;
 
-    --destructive: 0 62% 30%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive: 0 62% 40%;
+    --destructive-foreground: 0 0% 100%;
 
-    --border: 213 40% 18%;
-    --input: 213 40% 18%;
-    --ring: 213 40% 35%;
+    --border: 280 40% 20%;
+    --input: 280 40% 18%;
+    --ring: 320 80% 55%;
 
-    --sidebar-background: 213 40% 6%;
-    --sidebar-foreground: 210 40% 98%;
-    --sidebar-primary: 213 40% 35%;
+    --sidebar-background: 280 50% 10%;
+    --sidebar-foreground: 45 100% 95%;
+    --sidebar-primary: 320 80% 55%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 213 40% 12%;
-    --sidebar-accent-foreground: 210 40% 98%;
-    --sidebar-border: 213 40% 15%;
-    --sidebar-ring: 213 40% 35%;
+    --sidebar-accent: 280 40% 18%;
+    --sidebar-accent-foreground: 45 100% 95%;
+    --sidebar-border: 280 40% 15%;
+    --sidebar-ring: 320 80% 55%;
   }
 }
 
@@ -250,4 +253,116 @@
 
 .animate-float-up {
   animation: float-up 3s ease-out forwards;
+}
+
+/* 🎭 Carnival Animations 🎉 */
+@keyframes confetti-fall {
+  0% {
+    transform: translateY(-100px) rotate(0deg);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(100vh) rotate(720deg);
+    opacity: 0.7;
+  }
+}
+
+@keyframes confetti-spin {
+  0% {
+    transform: rotateY(0deg) rotateX(0deg);
+  }
+  100% {
+    transform: rotateY(360deg) rotateX(360deg);
+  }
+}
+
+@keyframes confetti-sway {
+  0%, 100% {
+    transform: translateX(0) rotate(-10deg);
+  }
+  50% {
+    transform: translateX(30px) rotate(10deg);
+  }
+}
+
+@keyframes carnival-glow {
+  0%, 100% {
+    box-shadow: 0 0 10px hsl(320 80% 50% / 0.5), 0 0 20px hsl(45 90% 50% / 0.3);
+  }
+  33% {
+    box-shadow: 0 0 15px hsl(45 90% 50% / 0.5), 0 0 30px hsl(170 70% 45% / 0.3);
+  }
+  66% {
+    box-shadow: 0 0 15px hsl(170 70% 45% / 0.5), 0 0 30px hsl(320 80% 50% / 0.3);
+  }
+}
+
+@keyframes rainbow-border {
+  0% {
+    border-color: hsl(320 80% 50%);
+  }
+  25% {
+    border-color: hsl(45 90% 50%);
+  }
+  50% {
+    border-color: hsl(170 70% 45%);
+  }
+  75% {
+    border-color: hsl(280 60% 50%);
+  }
+  100% {
+    border-color: hsl(320 80% 50%);
+  }
+}
+
+.animate-confetti-fall {
+  animation: confetti-fall linear infinite;
+}
+
+.animate-confetti-spin {
+  animation: confetti-spin 2s linear infinite;
+}
+
+.animate-confetti-sway {
+  animation: confetti-sway 1s ease-in-out infinite;
+}
+
+.animate-carnival-glow {
+  animation: carnival-glow 3s ease-in-out infinite;
+}
+
+.animate-rainbow-border {
+  animation: rainbow-border 4s linear infinite;
+}
+
+/* Carnival gradient text */
+.carnival-text {
+  background: linear-gradient(90deg, hsl(320 80% 50%), hsl(45 90% 55%), hsl(170 70% 45%), hsl(280 60% 50%));
+  background-size: 300% 300%;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: gradient-shift 4s ease infinite;
+}
+
+@keyframes gradient-shift {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+/* Festive card hover */
+.carnival-card {
+  transition: all 0.3s ease;
+}
+
+.carnival-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-carnival);
 }

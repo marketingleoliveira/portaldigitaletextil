@@ -8,6 +8,7 @@ import { useActiveMeetings } from "@/hooks/useActiveMeetings";
 import Logo from "@/components/Logo";
 import SustainabilityBadge from "@/components/SustainabilityBadge";
 import RoleBadge from "@/components/RoleBadge";
+import CarnivalConfetti from "@/components/CarnivalConfetti";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -126,6 +127,9 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
+      {/* 🎭 Carnival Confetti Effect 🎉 */}
+      <CarnivalConfetti />
+
       {/* Notification Banner */}
       {showBanner && (
         <NotificationBanner
@@ -152,11 +156,19 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
           )}
         >
           <div className="flex flex-col h-full">
-            {/* Logo */}
+            {/* Logo with Carnival Glow */}
             <div className="p-6 border-b border-sidebar-border">
               <div className="flex items-center gap-3">
-                <Logo variant="light" />
+                <div className="animate-carnival-glow rounded-lg p-1">
+                  <Logo variant="light" />
+                </div>
                 <SustainabilityBadge />
+              </div>
+              {/* Carnival Banner */}
+              <div className="mt-3 text-center">
+                <span className="carnival-text text-sm font-bold tracking-wide">
+                  🎭 CARNAVAL 2026 🎉
+                </span>
               </div>
             </div>
 
