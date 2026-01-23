@@ -178,17 +178,34 @@ const ActivityRankingCard: React.FC = () => {
 
       if (!session.session_end) {
         // Active session (no end time)
+        // Check if user was active recently (within last 5 minutes for open sessions)
+        const sessionStart = new Date(session.session_start).getTime();
+        const storedDuration = session.duration_seconds || 0;
+        
         if (onlineUsersRef.current.has(session.user_id)) {
-          // User is online - calculate real-time duration from session start
-          const sessionStart = new Date(session.session_start).getTime();
+          // User is currently online - calculate real-time duration from session start
           duration = Math.floor((now - sessionStart) / 1000);
         } else {
-          // User is offline but session wasn't closed properly - use stored duration
-          duration = session.duration_seconds || 0;
+          // User is offline - use the stored duration_seconds which is updated periodically
+          // If stored duration is 0 or very small, calculate from session time but cap it
+          if (storedDuration > 0) {
+            duration = storedDuration;
+          } else {
+            // Session without proper duration - calculate elapsed time but cap at 8 hours
+            const elapsed = Math.floor((now - sessionStart) / 1000);
+            duration = Math.min(elapsed, 8 * 60 * 60); // Cap at 8 hours max
+          }
         }
       } else {
-        // Completed session - use stored duration
-        duration = session.duration_seconds || 0;
+        // Completed session - use stored duration or calculate from start/end
+        if (session.duration_seconds && session.duration_seconds > 0) {
+          duration = session.duration_seconds;
+        } else {
+          // Calculate from session times
+          const start = new Date(session.session_start).getTime();
+          const end = new Date(session.session_end).getTime();
+          duration = Math.max(0, Math.floor((end - start) / 1000));
+        }
       }
 
       const current = userDurations.get(session.user_id) || 0;
