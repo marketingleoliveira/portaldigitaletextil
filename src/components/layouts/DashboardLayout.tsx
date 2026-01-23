@@ -9,6 +9,7 @@ import Logo from "@/components/Logo";
 import SustainabilityBadge from "@/components/SustainabilityBadge";
 import RoleBadge from "@/components/RoleBadge";
 import CarnivalConfetti from "@/components/CarnivalConfetti";
+import CarnivalToggle from "@/components/CarnivalToggle";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -97,7 +98,18 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
   const location = useLocation();
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [confettiEnabled, setConfettiEnabled] = useState(() => {
+    const saved = localStorage.getItem('carnival-confetti-enabled');
+    return saved !== null ? saved === 'true' : true;
+  });
 
+  const toggleConfetti = () => {
+    setConfettiEnabled(prev => {
+      const newValue = !prev;
+      localStorage.setItem('carnival-confetti-enabled', String(newValue));
+      return newValue;
+    });
+  };
   // Time clock reminder alerts
   useTimeClockReminder();
 
@@ -128,7 +140,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
   return (
     <div className="min-h-screen bg-background flex flex-col">
       {/* 🎭 Carnival Confetti Effect 🎉 */}
-      <CarnivalConfetti />
+      <CarnivalConfetti enabled={confettiEnabled} />
 
       {/* Notification Banner */}
       {showBanner && (
@@ -280,6 +292,9 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
               </div>
 
               <div className="flex items-center gap-2">
+                {/* Carnival Toggle */}
+                <CarnivalToggle enabled={confettiEnabled} onToggle={toggleConfetti} />
+
                 {/* Notification Bell with enhanced visibility */}
                 <Button
                   variant="ghost"
