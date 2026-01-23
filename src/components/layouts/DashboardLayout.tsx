@@ -295,7 +295,10 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
                 {/* Carnival Toggle */}
                 <div className="flex items-center gap-1.5">
                   <CarnivalToggle enabled={confettiEnabled} onToggle={toggleConfetti} />
-                  <span className="text-xs text-muted-foreground hidden sm:inline">
+                  <span 
+                    key={confettiEnabled ? 'disable' : 'enable'}
+                    className="text-xs text-muted-foreground hidden sm:inline animate-fade-in"
+                  >
                     {confettiEnabled ? 'Desabilitar efeitos' : 'Habilitar efeitos'}
                   </span>
                 </div>
