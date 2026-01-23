@@ -24,10 +24,19 @@ const CARNIVAL_COLORS = [
   '#1E90FF', // Dodger Blue
 ];
 
-const CarnivalConfetti: React.FC = () => {
+interface CarnivalConfettiProps {
+  enabled?: boolean;
+}
+
+const CarnivalConfetti: React.FC<CarnivalConfettiProps> = ({ enabled = true }) => {
   const [confetti, setConfetti] = useState<ConfettiPiece[]>([]);
 
   useEffect(() => {
+    if (!enabled) {
+      setConfetti([]);
+      return;
+    }
+
     const pieces: ConfettiPiece[] = [];
     for (let i = 0; i < 50; i++) {
       pieces.push({
@@ -42,7 +51,9 @@ const CarnivalConfetti: React.FC = () => {
       });
     }
     setConfetti(pieces);
-  }, []);
+  }, [enabled]);
+
+  if (!enabled || confetti.length === 0) return null;
 
   return (
     <div className="fixed inset-0 pointer-events-none overflow-hidden z-50">

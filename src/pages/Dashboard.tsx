@@ -31,6 +31,7 @@ import RoleBadge from '@/components/RoleBadge';
 import { Badge } from '@/components/ui/badge';
 import OnlineUsersCard from '@/components/OnlineUsersCard';
 import ActivityRankingCard from '@/components/ActivityRankingCard';
+import CarnivalMask from '@/components/CarnivalMask';
 
 interface FileTypeStats {
   pdf: number;
@@ -314,14 +315,22 @@ const Dashboard: React.FC = () => {
   return (
     <DashboardLayout>
       <div className="space-y-6 animate-fade-in">
-        {/* Welcome Section */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-bold">
-              {getGreeting()}, {user?.profile?.full_name?.split(' ')[0] || 'Usuário'}!
+        {/* Welcome Section with Carnival Decoration */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 relative">
+          {/* Carnival Masks Decoration */}
+          <div className="absolute -top-2 -left-2 opacity-60 hidden md:block">
+            <CarnivalMask variant="gold" size="lg" className="animate-bounce-gentle" />
+          </div>
+          <div className="absolute -top-2 right-20 opacity-60 hidden md:block">
+            <CarnivalMask variant="pink" size="md" />
+          </div>
+          
+          <div className="pl-0 md:pl-12">
+            <h1 className="text-2xl font-bold carnival-text">
+              {getGreeting()}, {user?.profile?.full_name?.split(' ')[0] || 'Usuário'}! 🎭
             </h1>
             <p className="text-muted-foreground mt-1">
-              Confira as informações do seu painel
+              Confira as informações do seu painel • <span className="text-primary font-medium">Carnaval 2026</span>
             </p>
           </div>
           {user?.role && (
@@ -339,7 +348,11 @@ const Dashboard: React.FC = () => {
             const hasBreakdown = 'breakdown' in stat && stat.breakdown;
             return (
               <Link key={stat.title} to={stat.href}>
-                <Card className="hover:shadow-md transition-all hover:border-primary/50 cursor-pointer h-full">
+                <Card className="hover:shadow-md transition-all hover:border-primary/50 cursor-pointer h-full carnival-card relative overflow-hidden">
+                  {/* Subtle carnival decoration on hover */}
+                  <div className="absolute top-2 right-2 opacity-20">
+                    <CarnivalMask variant={['gold', 'pink', 'purple', 'teal'][Math.floor(Math.random() * 4)] as 'gold' | 'pink' | 'purple' | 'teal'} size="sm" />
+                  </div>
                   <CardContent className="pt-6">
                     <div className="flex items-center justify-between">
                       <div className="flex-1">
@@ -427,7 +440,11 @@ const Dashboard: React.FC = () => {
         {/* Main Content Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Quick Actions */}
-          <Card className="lg:col-span-2">
+          <Card className="lg:col-span-2 relative overflow-hidden">
+            {/* Carnival corner decoration */}
+            <div className="absolute -top-4 -right-4 opacity-30 rotate-12">
+              <CarnivalMask variant="purple" size="lg" />
+            </div>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <TrendingUp className="w-5 h-5 text-primary" />
