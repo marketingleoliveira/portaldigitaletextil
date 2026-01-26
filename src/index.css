@@ -4,113 +4,113 @@
 
 @layer base {
   :root {
-    /* 🎭 Carnaval do Brasil Theme 🎉 */
-    --background: 280 30% 98%;
-    --foreground: 280 50% 15%;
+    /* Corporate Theme - Original Colors */
+    --background: 210 40% 98%;
+    --foreground: 222 47% 11%;
 
     --card: 0 0% 100%;
-    --card-foreground: 280 50% 15%;
+    --card-foreground: 222 47% 11%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 280 50% 15%;
+    --popover-foreground: 222 47% 11%;
 
-    /* Carnival Purple/Pink */
-    --primary: 320 80% 50%;
+    /* Primary Blue */
+    --primary: 221 83% 53%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 45 95% 60%;
-    --secondary-foreground: 280 50% 15%;
+    --secondary: 210 40% 96%;
+    --secondary-foreground: 222 47% 11%;
 
-    --muted: 280 20% 94%;
-    --muted-foreground: 280 30% 40%;
+    --muted: 210 40% 96%;
+    --muted-foreground: 215 16% 47%;
 
-    --accent: 170 70% 45%;
-    --accent-foreground: 0 0% 100%;
+    --accent: 210 40% 96%;
+    --accent-foreground: 222 47% 11%;
 
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
 
-    /* Status colors - more festive */
+    /* Status colors */
     --success: 142 76% 36%;
     --success-foreground: 0 0% 100%;
     --warning: 38 92% 50%;
     --warning-foreground: 0 0% 100%;
 
-    --border: 320 40% 85%;
-    --input: 320 40% 90%;
-    --ring: 320 80% 50%;
+    --border: 214 32% 91%;
+    --input: 214 32% 91%;
+    --ring: 221 83% 53%;
 
     --radius: 0.5rem;
 
-    /* Role colors - carnival style */
+    /* Role colors */
     --role-dev: 280 100% 50%;
     --role-admin: 320 83% 58%;
     --role-gerente: 45 90% 50%;
     --role-vendedor: 170 71% 45%;
     --role-criacao: 280 80% 60%;
 
-    /* Sidebar - Carnival gradient feel */
-    --sidebar-background: 280 60% 25%;
-    --sidebar-foreground: 45 100% 95%;
-    --sidebar-primary: 320 80% 55%;
+    /* Sidebar - Corporate */
+    --sidebar-background: 222 47% 11%;
+    --sidebar-foreground: 210 40% 98%;
+    --sidebar-primary: 221 83% 53%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 280 50% 35%;
-    --sidebar-accent-foreground: 45 100% 95%;
-    --sidebar-border: 280 50% 30%;
-    --sidebar-ring: 320 80% 55%;
+    --sidebar-accent: 217 33% 17%;
+    --sidebar-accent-foreground: 210 40% 98%;
+    --sidebar-border: 217 33% 17%;
+    --sidebar-ring: 221 83% 53%;
 
-    /* Carnival Gradients */
-    --gradient-primary: linear-gradient(135deg, hsl(320 80% 50%) 0%, hsl(280 60% 40%) 50%, hsl(45 90% 50%) 100%);
-    --gradient-sidebar: linear-gradient(180deg, hsl(280 60% 25%) 0%, hsl(320 60% 20%) 100%);
-    --gradient-card: linear-gradient(180deg, hsl(0 0% 100%) 0%, hsl(280 30% 98%) 100%);
+    /* Corporate Gradients */
+    --gradient-primary: linear-gradient(135deg, hsl(221 83% 53%) 0%, hsl(217 91% 60%) 100%);
+    --gradient-sidebar: linear-gradient(180deg, hsl(222 47% 11%) 0%, hsl(217 33% 17%) 100%);
+    --gradient-card: linear-gradient(180deg, hsl(0 0% 100%) 0%, hsl(210 40% 98%) 100%);
     --gradient-carnival: linear-gradient(90deg, hsl(320 80% 50%), hsl(45 90% 55%), hsl(170 70% 45%), hsl(280 60% 50%));
 
-    /* Shadows with carnival glow */
+    /* Shadows */
     --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
     --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
     --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
-    --shadow-primary: 0 4px 14px 0 hsl(320 80% 50% / 0.35);
+    --shadow-primary: 0 4px 14px 0 hsl(221 83% 53% / 0.35);
     --shadow-carnival: 0 0 20px hsl(320 80% 50% / 0.3), 0 0 40px hsl(45 90% 50% / 0.2);
   }
 
   .dark {
-    /* 🎭 Dark Carnaval Theme 🎉 */
-    --background: 280 40% 8%;
-    --foreground: 45 100% 95%;
+    /* Dark Corporate Theme */
+    --background: 222 47% 11%;
+    --foreground: 210 40% 98%;
 
-    --card: 280 40% 12%;
-    --card-foreground: 45 100% 95%;
+    --card: 217 33% 17%;
+    --card-foreground: 210 40% 98%;
 
-    --popover: 280 40% 12%;
-    --popover-foreground: 45 100% 95%;
+    --popover: 217 33% 17%;
+    --popover-foreground: 210 40% 98%;
 
-    --primary: 320 80% 55%;
+    --primary: 217 91% 60%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 45 80% 45%;
-    --secondary-foreground: 280 40% 10%;
+    --secondary: 217 33% 17%;
+    --secondary-foreground: 210 40% 98%;
 
-    --muted: 280 40% 18%;
-    --muted-foreground: 280 20% 65%;
+    --muted: 217 33% 17%;
+    --muted-foreground: 215 20% 65%;
 
-    --accent: 170 60% 40%;
-    --accent-foreground: 0 0% 100%;
+    --accent: 217 33% 17%;
+    --accent-foreground: 210 40% 98%;
 
     --destructive: 0 62% 40%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 280 40% 20%;
-    --input: 280 40% 18%;
-    --ring: 320 80% 55%;
+    --border: 217 33% 17%;
+    --input: 217 33% 17%;
+    --ring: 217 91% 60%;
 
-    --sidebar-background: 280 50% 10%;
-    --sidebar-foreground: 45 100% 95%;
-    --sidebar-primary: 320 80% 55%;
+    --sidebar-background: 222 47% 8%;
+    --sidebar-foreground: 210 40% 98%;
+    --sidebar-primary: 217 91% 60%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 280 40% 18%;
-    --sidebar-accent-foreground: 45 100% 95%;
-    --sidebar-border: 280 40% 15%;
-    --sidebar-ring: 320 80% 55%;
+    --sidebar-accent: 217 33% 17%;
+    --sidebar-accent-foreground: 210 40% 98%;
+    --sidebar-border: 217 33% 12%;
+    --sidebar-ring: 217 91% 60%;
   }
 }
 
