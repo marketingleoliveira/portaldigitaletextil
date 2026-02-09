@@ -44,6 +44,7 @@ import {
   MapPin,
   Video,
   Film,
+  Handshake,
 } from "lucide-react";
 import { useTimeClockReminder } from "@/hooks/useTimeClockReminder";
 import { useLocationTracking } from "@/hooks/useLocationTracking";
@@ -68,6 +69,7 @@ const navItems: NavItem[] = [
   { label: "Reunião", href: "/reunioes", icon: Video, roles: ["dev", "admin", "gerente", "vendedor", "criacao"] },
   { label: "Localizar", href: "/localizar", icon: MapPin, roles: ["dev"] },
   { label: "Metas", href: "/metas", icon: Target, roles: ["dev", "admin", "gerente", "vendedor"] },
+  { label: "CRM", href: "/crm", icon: Handshake, roles: ["dev", "vendedor"] },
   { label: "Categorias", href: "/categorias", icon: FolderOpen, roles: ["dev", "admin", "criacao"] },
   { label: "Usuários", href: "/usuarios", icon: Users, roles: ["dev", "admin"] },
   { label: "Inativos", href: "/inativos", icon: UserX, roles: ["dev", "admin"] },
