@@ -461,6 +461,109 @@ export type Database = {
         }
         Relationships: []
       }
+      lead_activities: {
+        Row: {
+          activity_type: string
+          created_at: string
+          description: string
+          id: string
+          lead_id: string
+          new_status: Database["public"]["Enums"]["lead_status"] | null
+          previous_status: Database["public"]["Enums"]["lead_status"] | null
+          user_id: string
+        }
+        Insert: {
+          activity_type: string
+          created_at?: string
+          description: string
+          id?: string
+          lead_id: string
+          new_status?: Database["public"]["Enums"]["lead_status"] | null
+          previous_status?: Database["public"]["Enums"]["lead_status"] | null
+          user_id: string
+        }
+        Update: {
+          activity_type?: string
+          created_at?: string
+          description?: string
+          id?: string
+          lead_id?: string
+          new_status?: Database["public"]["Enums"]["lead_status"] | null
+          previous_status?: Database["public"]["Enums"]["lead_status"] | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lead_activities_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      leads: {
+        Row: {
+          assigned_to: string | null
+          company_name: string
+          contact_email: string | null
+          contact_name: string
+          contact_phone: string | null
+          created_at: string
+          created_by: string
+          estimated_value: number | null
+          expected_close_date: string | null
+          id: string
+          last_contact_at: string | null
+          notes: string | null
+          source: Database["public"]["Enums"]["lead_source"]
+          status: Database["public"]["Enums"]["lead_status"]
+          updated_at: string
+        }
+        Insert: {
+          assigned_to?: string | null
+          company_name: string
+          contact_email?: string | null
+          contact_name: string
+          contact_phone?: string | null
+          created_at?: string
+          created_by: string
+          estimated_value?: number | null
+          expected_close_date?: string | null
+          id?: string
+          last_contact_at?: string | null
+          notes?: string | null
+          source?: Database["public"]["Enums"]["lead_source"]
+          status?: Database["public"]["Enums"]["lead_status"]
+          updated_at?: string
+        }
+        Update: {
+          assigned_to?: string | null
+          company_name?: string
+          contact_email?: string | null
+          contact_name?: string
+          contact_phone?: string | null
+          created_at?: string
+          created_by?: string
+          estimated_value?: number | null
+          expected_close_date?: string | null
+          id?: string
+          last_contact_at?: string | null
+          notes?: string | null
+          source?: Database["public"]["Enums"]["lead_source"]
+          status?: Database["public"]["Enums"]["lead_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "leads_assigned_to_fkey"
+            columns: ["assigned_to"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       meeting_messages: {
         Row: {
           created_at: string
@@ -1334,6 +1437,22 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "gerente" | "vendedor" | "dev" | "criacao"
+      lead_source:
+        | "indicacao"
+        | "site"
+        | "telefone"
+        | "email"
+        | "rede_social"
+        | "evento"
+        | "outro"
+      lead_status:
+        | "novo"
+        | "contatado"
+        | "qualificado"
+        | "proposta"
+        | "negociacao"
+        | "ganho"
+        | "perdido"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1462,6 +1581,24 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "gerente", "vendedor", "dev", "criacao"],
+      lead_source: [
+        "indicacao",
+        "site",
+        "telefone",
+        "email",
+        "rede_social",
+        "evento",
+        "outro",
+      ],
+      lead_status: [
+        "novo",
+        "contatado",
+        "qualificado",
+        "proposta",
+        "negociacao",
+        "ganho",
+        "perdido",
+      ],
     },
   },
 } as const
