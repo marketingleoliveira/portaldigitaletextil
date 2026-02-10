@@ -128,12 +128,25 @@ const GoalHistory: React.FC = () => {
         setProgress(progressData || []);
       }
 
-      // Fetch user profiles (for dev view)
+      // Fetch all vendedor profiles for dev view
       if (isDev) {
         const { data: usersData } = await supabase
           .from('profiles')
-          .select('id, full_name');
-        setUsers(usersData || []);
+          .select('id, full_name, region')
+          .eq('is_active', true);
+
+        // Fetch roles to identify vendedores
+        const { data: rolesData } = await supabase
+          .from('user_roles')
+          .select('user_id, role');
+
+        const usersWithRoles = (usersData || []).map(u => ({
+          ...u,
+          role: rolesData?.find(r => r.user_id === u.id)?.role || null,
+        }));
+
+        // Show all users (vendedores prioritized in filter)
+        setUsers(usersWithRoles);
       }
     } catch (error) {
       console.error('Error fetching goal history:', error);
