@@ -680,7 +680,16 @@ const Goals: React.FC = () => {
                 <TabsTrigger value="weekly">Semanais</TabsTrigger>
                 <TabsTrigger value="monthly">Mensais</TabsTrigger>
                 <TabsTrigger value="yearly">Anuais</TabsTrigger>
+                <TabsTrigger value="historico" className="gap-1.5">
+                  <History className="w-3.5 h-3.5" />
+                  Histórico
+                </TabsTrigger>
               </TabsList>
+
+              {/* Histórico Tab Content */}
+              <TabsContent value="historico">
+                <GoalHistory />
+              </TabsContent>
             </Tabs>
 
             {/* Team Goals Section - Only visible to DEV */}
