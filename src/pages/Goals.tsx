@@ -16,6 +16,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from 'sonner';
 import { hasFullAccess, AppRole } from '@/types/auth';
 import MeritCertificate from '@/components/MeritCertificate';
+import GoalHistory from '@/components/GoalHistory';
 import {
   Target,
   Plus,
@@ -32,6 +33,7 @@ import {
   Medal,
   Crown,
   Award,
+  History,
 } from 'lucide-react';
 import { format, startOfDay, startOfWeek, startOfMonth, startOfYear, endOfDay, endOfWeek, endOfMonth, endOfYear } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
