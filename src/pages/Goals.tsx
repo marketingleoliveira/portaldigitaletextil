@@ -16,6 +16,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from 'sonner';
 import { hasFullAccess, AppRole } from '@/types/auth';
 import MeritCertificate from '@/components/MeritCertificate';
+import GoalHistory from '@/components/GoalHistory';
 import {
   Target,
   Plus,
@@ -32,6 +33,7 @@ import {
   Medal,
   Crown,
   Award,
+  History,
 } from 'lucide-react';
 import { format, startOfDay, startOfWeek, startOfMonth, startOfYear, endOfDay, endOfWeek, endOfMonth, endOfYear } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -678,11 +680,20 @@ const Goals: React.FC = () => {
                 <TabsTrigger value="weekly">Semanais</TabsTrigger>
                 <TabsTrigger value="monthly">Mensais</TabsTrigger>
                 <TabsTrigger value="yearly">Anuais</TabsTrigger>
+                <TabsTrigger value="historico" className="gap-1.5">
+                  <History className="w-3.5 h-3.5" />
+                  Histórico
+                </TabsTrigger>
               </TabsList>
+
+              {/* Histórico Tab Content */}
+              <TabsContent value="historico">
+                <GoalHistory />
+              </TabsContent>
             </Tabs>
 
-            {/* Team Goals Section - Only visible to DEV */}
-            {isDev && (
+            {/* Team Goals Section - Only visible to DEV and not on historico tab */}
+            {isDev && selectedTab !== 'historico' && (
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
@@ -853,6 +864,7 @@ const Goals: React.FC = () => {
             )}
 
             {/* Individual Goals Section */}
+            {selectedTab !== 'historico' && (
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
@@ -986,6 +998,7 @@ const Goals: React.FC = () => {
                 )}
               </CardContent>
             </Card>
+            )}
           </div>
 
           {/* Seller Ranking - Right (1 column) - Only visible to gerente, admin, dev */}
