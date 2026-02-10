@@ -15,7 +15,9 @@ import {
   History,
   Users,
   User,
+  Trash2,
 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
@@ -156,6 +158,20 @@ const GoalHistory: React.FC = () => {
     }
   };
 
+  const handleDeleteGoal = async (goalId: string) => {
+    if (!confirm('Tem certeza que deseja excluir permanentemente esta meta do histórico?')) return;
+    try {
+      await supabase.from('goal_progress').delete().eq('goal_id', goalId);
+      const { error } = await supabase.from('goals').delete().eq('id', goalId);
+      if (error) throw error;
+      setGoals((prev) => prev.filter((g) => g.id !== goalId));
+      toast.success('Meta excluída do histórico');
+    } catch (error) {
+      console.error('Error deleting goal:', error);
+      toast.error('Erro ao excluir meta');
+    }
+  };
+
   const getProgressForGoal = (goalId: string) => {
     if (isDev) {
       return progress
@@ -267,9 +283,22 @@ const GoalHistory: React.FC = () => {
                     : 'bg-muted/20 opacity-80'
                 }`}
               >
-                {isAchieved && (
+                {isAchieved && !isDev && (
                   <div className="absolute top-3 right-3">
                     <Trophy className="w-6 h-6 text-green-500" />
+                  </div>
+                )}
+                {isDev && (
+                  <div className="absolute top-3 right-3 flex items-center gap-1">
+                    {isAchieved && <Trophy className="w-5 h-5 text-green-500" />}
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7 text-destructive hover:text-destructive"
+                      onClick={() => handleDeleteGoal(goal.id)}
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
                   </div>
                 )}
                 <CardHeader className="pb-2">
