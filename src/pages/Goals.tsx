@@ -864,6 +864,7 @@ const Goals: React.FC = () => {
             )}
 
             {/* Individual Goals Section */}
+            {selectedTab !== 'historico' && (
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
