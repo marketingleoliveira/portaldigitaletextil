@@ -998,6 +998,7 @@ const Goals: React.FC = () => {
                 )}
               </CardContent>
             </Card>
+            )}
           </div>
 
           {/* Seller Ranking - Right (1 column) - Only visible to gerente, admin, dev */}
