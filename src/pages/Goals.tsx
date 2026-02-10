@@ -692,8 +692,8 @@ const Goals: React.FC = () => {
               </TabsContent>
             </Tabs>
 
-            {/* Team Goals Section - Only visible to DEV */}
-            {isDev && (
+            {/* Team Goals Section - Only visible to DEV and not on historico tab */}
+            {isDev && selectedTab !== 'historico' && (
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
