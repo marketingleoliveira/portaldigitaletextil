@@ -211,7 +211,7 @@ const GoalHistory: React.FC = () => {
           </SelectContent>
         </Select>
 
-        {isDev && goalUsers.length > 0 && (
+        {isDev && allVendedores.length > 0 && (
           <Select value={filterUser} onValueChange={setFilterUser}>
             <SelectTrigger className="w-[200px]">
               <SelectValue placeholder="Vendedor" />
@@ -219,9 +219,9 @@ const GoalHistory: React.FC = () => {
             <SelectContent>
               <SelectItem value="all">Todos</SelectItem>
               <SelectItem value="team">Metas de Equipe</SelectItem>
-              {goalUsers.map((userId) => (
-                <SelectItem key={userId} value={userId}>
-                  {getUserName(userId)}
+              {allVendedores.map((vendedor) => (
+                <SelectItem key={vendedor.id} value={vendedor.id}>
+                  {vendedor.full_name} {vendedor.region && `(${vendedor.region})`}
                 </SelectItem>
               ))}
             </SelectContent>
