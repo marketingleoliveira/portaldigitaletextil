@@ -176,7 +176,12 @@ const GoalHistory: React.FC = () => {
     if (filterPeriod !== 'all' && g.period_type !== filterPeriod) return false;
     if (isDev && filterUser !== 'all') {
       if (filterUser === 'team') return g.goal_type === 'team';
-      return g.target_user_id === filterUser;
+      // Show individual goals assigned to user OR team goals where user has progress
+      const isAssigned = g.target_user_id === filterUser;
+      const hasProgress = g.goal_type === 'team' && progress.some(
+        (p) => p.goal_id === g.id && p.user_id === filterUser
+      );
+      return isAssigned || hasProgress;
     }
     return true;
   });
