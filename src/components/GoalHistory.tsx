@@ -44,6 +44,8 @@ interface GoalProgress {
 interface UserProfile {
   id: string;
   full_name: string;
+  region: string | null;
+  role?: string | null;
 }
 
 const periodLabels: Record<string, string> = {
