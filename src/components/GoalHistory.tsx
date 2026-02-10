@@ -283,9 +283,22 @@ const GoalHistory: React.FC = () => {
                     : 'bg-muted/20 opacity-80'
                 }`}
               >
-                {isAchieved && (
+                {isAchieved && !isDev && (
                   <div className="absolute top-3 right-3">
                     <Trophy className="w-6 h-6 text-green-500" />
+                  </div>
+                )}
+                {isDev && (
+                  <div className="absolute top-3 right-3 flex items-center gap-1">
+                    {isAchieved && <Trophy className="w-5 h-5 text-green-500" />}
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7 text-destructive hover:text-destructive"
+                      onClick={() => handleDeleteGoal(goal.id)}
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
                   </div>
                 )}
                 <CardHeader className="pb-2">
