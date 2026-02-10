@@ -158,6 +158,20 @@ const GoalHistory: React.FC = () => {
     }
   };
 
+  const handleDeleteGoal = async (goalId: string) => {
+    if (!confirm('Tem certeza que deseja excluir permanentemente esta meta do histórico?')) return;
+    try {
+      await supabase.from('goal_progress').delete().eq('goal_id', goalId);
+      const { error } = await supabase.from('goals').delete().eq('id', goalId);
+      if (error) throw error;
+      setGoals((prev) => prev.filter((g) => g.id !== goalId));
+      toast.success('Meta excluída do histórico');
+    } catch (error) {
+      console.error('Error deleting goal:', error);
+      toast.error('Erro ao excluir meta');
+    }
+  };
+
   const getProgressForGoal = (goalId: string) => {
     if (isDev) {
       return progress
