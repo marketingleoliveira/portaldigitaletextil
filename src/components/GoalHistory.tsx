@@ -181,9 +181,9 @@ const GoalHistory: React.FC = () => {
     return true;
   });
 
-  // Get unique users that have goals assigned
-  const goalUsers = isDev
-    ? Array.from(new Set(goals.filter((g) => g.target_user_id).map((g) => g.target_user_id!)))
+  // Get all vendedores for the filter (not just those with goals)
+  const allVendedores = isDev
+    ? users.filter((u) => u.role === 'vendedor')
     : [];
 
   if (loading) {
