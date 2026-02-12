@@ -88,56 +88,48 @@ const GoalHistory: React.FC = () => {
 
   const fetchHistory = async () => {
     try {
-      // Fetch inactive goals (historical)
+      // Fetch ALL goals (both active and inactive) to build complete history
       const { data: goalsData, error: goalsError } = await supabase
         .from('goals')
         .select('*')
-        .eq('is_active', false)
         .order('created_at', { ascending: false });
 
       if (goalsError) throw goalsError;
 
-      let filteredGoals = (goalsData || []) as HistoricalGoal[];
+      let allGoals = (goalsData || []) as HistoricalGoal[];
 
-      // Vendedores: only see goals assigned to them (individual) or team goals they participated in
+      // Fetch ALL progress records
+      const { data: allProgressData } = await supabase
+        .from('goal_progress')
+        .select('*');
+
+      const allProgress = (allProgressData || []) as GoalProgress[];
+
+      // Vendedores: only see goals assigned to them or team goals they participated in
       if (!isDev) {
-        const { data: userProgressData } = await supabase
-          .from('goal_progress')
-          .select('goal_id')
-          .eq('user_id', user?.id || '');
-
-        const participatedGoalIds = new Set(
-          (userProgressData || []).map((p) => p.goal_id)
+        const userParticipatedGoalIds = new Set(
+          allProgress
+            .filter((p) => p.user_id === user?.id)
+            .map((p) => p.goal_id)
         );
 
-        filteredGoals = filteredGoals.filter(
+        allGoals = allGoals.filter(
           (g) =>
             g.target_user_id === user?.id ||
-            (g.goal_type === 'team' && participatedGoalIds.has(g.id))
+            (g.goal_type === 'team' && userParticipatedGoalIds.has(g.id))
         );
       }
 
-      setGoals(filteredGoals);
+      setGoals(allGoals);
+      setProgress(allProgress);
 
-      // Fetch all progress for these goals
-      const goalIds = filteredGoals.map((g) => g.id);
-      if (goalIds.length > 0) {
-        const { data: progressData } = await supabase
-          .from('goal_progress')
-          .select('*')
-          .in('goal_id', goalIds);
-
-        setProgress(progressData || []);
-      }
-
-      // Fetch all vendedor profiles for dev view
+      // Fetch all profiles and roles for dev view
       if (isDev) {
         const { data: usersData } = await supabase
           .from('profiles')
           .select('id, full_name, region')
           .eq('is_active', true);
 
-        // Fetch roles to identify vendedores
         const { data: rolesData } = await supabase
           .from('user_roles')
           .select('user_id, role');
@@ -147,7 +139,6 @@ const GoalHistory: React.FC = () => {
           role: rolesData?.find(r => r.user_id === u.id)?.role || null,
         }));
 
-        // Show all users (vendedores prioritized in filter)
         setUsers(usersWithRoles);
       }
     } catch (error) {
