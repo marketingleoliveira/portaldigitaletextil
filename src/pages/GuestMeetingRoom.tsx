@@ -1464,7 +1464,28 @@ export default function GuestMeetingRoom() {
     );
   }
 
-  const remoteParticipants: [string, ParticipantWithExtras][] = Object.entries(participants).filter(([_, p]) => !p.local) as [string, ParticipantWithExtras][];
+  // Deduplicate remote participants by user_name to prevent multiple camera windows
+  // from the same user (e.g. when they open multiple tabs)
+  const allRemoteParticipants = Object.entries(participants).filter(([_, p]) => !p.local) as [string, ParticipantWithExtras][];
+  const remoteParticipants: [string, ParticipantWithExtras][] = (() => {
+    const seen = new Map<string, [string, ParticipantWithExtras]>();
+    for (const entry of allRemoteParticipants) {
+      const [sessionId, p] = entry;
+      const name = p.user_name || sessionId;
+      const existing = seen.get(name);
+      if (!existing) {
+        seen.set(name, entry);
+      } else {
+        // Keep the session that has video active, or the newer one
+        const existingHasVideo = existing[1].video || existing[1].tracks?.video?.state === 'playable';
+        const currentHasVideo = p.video || p.tracks?.video?.state === 'playable';
+        if (currentHasVideo && !existingHasVideo) {
+          seen.set(name, entry);
+        }
+      }
+    }
+    return Array.from(seen.values());
+  })();
   const participantCount = Object.keys(participants).length;
   
   // Find who is sharing screen
