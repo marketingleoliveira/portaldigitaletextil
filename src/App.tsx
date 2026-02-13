@@ -6,6 +6,8 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { NotificationProvider } from "@/contexts/NotificationContext";
 import ProtectedRoute from "@/components/ProtectedRoute";
+import ErrorBoundary from "@/components/ErrorBoundary";
+import MeetingErrorBoundary from "@/components/MeetingErrorBoundary";
 import { useUserPresence } from "@/hooks/useUserPresence";
 import { useLocationTracking } from "@/hooks/useLocationTracking";
 import { LocationRequestNotification } from "@/components/LocationRequestNotification";
@@ -57,56 +59,58 @@ const PresenceTracker = ({ children }: { children: React.ReactNode }) => {
 };
 
 const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <AuthProvider>
-          <NotificationProvider>
-            <PresenceTracker>
-              <Routes>
-                <Route path="/" element={<Index />} />
-                <Route path="/login" element={<Login />} />
-                
-                {/* Protected Routes */}
-                <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-                <Route path="/produtos" element={<ProtectedRoute><Products /></ProtectedRoute>} />
-                <Route path="/produtos/:id" element={<ProtectedRoute><ProductDetails /></ProtectedRoute>} />
-                <Route path="/categorias" element={<ProtectedRoute allowedRoles={['dev', 'admin', 'criacao']}><Categories /></ProtectedRoute>} />
-                <Route path="/usuarios" element={<ProtectedRoute allowedRoles={['dev', 'admin']}><Users /></ProtectedRoute>} />
-                <Route path="/inativos" element={<ProtectedRoute allowedRoles={['dev', 'admin']}><InactiveUsers /></ProtectedRoute>} />
-                <Route path="/equipe" element={<ProtectedRoute><Team /></ProtectedRoute>} />
-                <Route path="/arquivos" element={<ProtectedRoute allowedRoles={['dev', 'admin', 'criacao']}><FileManagement /></ProtectedRoute>} />
-                <Route path="/material-criacao" element={<ProtectedRoute allowedRoles={['dev', 'criacao']}><CreationMaterials /></ProtectedRoute>} />
-                <Route path="/downloads" element={<ProtectedRoute><Downloads /></ProtectedRoute>} />
-                <Route path="/notificacoes" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
-                <Route path="/relatorios" element={<ProtectedRoute allowedRoles={['dev', 'admin', 'gerente']}><Reports /></ProtectedRoute>} />
-                <Route path="/perfil" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
-                <Route path="/ajuda" element={<ProtectedRoute><Help /></ProtectedRoute>} />
-                <Route path="/tickets" element={<ProtectedRoute><Tickets /></ProtectedRoute>} />
-                <Route path="/tickets/novo" element={<ProtectedRoute><NewTicket /></ProtectedRoute>} />
-                <Route path="/tickets/:id" element={<ProtectedRoute><TicketDetails /></ProtectedRoute>} />
-                <Route path="/ponto" element={<ProtectedRoute><TimeClock /></ProtectedRoute>} />
-                <Route path="/localizar" element={<ProtectedRoute allowedRoles={['dev']}><Localizar /></ProtectedRoute>} />
-                <Route path="/metas" element={<ProtectedRoute><Goals /></ProtectedRoute>} />
-                <Route path="/crm" element={<ProtectedRoute allowedRoles={['dev', 'vendedor']}><CRM /></ProtectedRoute>} />
-                <Route path="/precos" element={<ProtectedRoute><Prices /></ProtectedRoute>} />
-                <Route path="/atualizacoes" element={<ProtectedRoute><Updates /></ProtectedRoute>} />
-                <Route path="/reunioes" element={<ProtectedRoute><Meetings /></ProtectedRoute>} />
-                <Route path="/reuniao/:code" element={<ProtectedRoute><MeetingRoom /></ProtectedRoute>} />
-                
-                <Route path="/entrar/:code" element={<GuestJoin />} />
-                <Route path="/convidado/:code" element={<GuestMeetingRoom />} />
-                
-                <Route path="*" element={<NotFound />} />
-              </Routes>
-            </PresenceTracker>
-          </NotificationProvider>
-        </AuthProvider>
-      </BrowserRouter>
-    </TooltipProvider>
-  </QueryClientProvider>
+  <ErrorBoundary>
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <AuthProvider>
+            <NotificationProvider>
+              <PresenceTracker>
+                <Routes>
+                  <Route path="/" element={<Index />} />
+                  <Route path="/login" element={<Login />} />
+                  
+                  {/* Protected Routes */}
+                  <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+                  <Route path="/produtos" element={<ProtectedRoute><Products /></ProtectedRoute>} />
+                  <Route path="/produtos/:id" element={<ProtectedRoute><ProductDetails /></ProtectedRoute>} />
+                  <Route path="/categorias" element={<ProtectedRoute allowedRoles={['dev', 'admin', 'criacao']}><Categories /></ProtectedRoute>} />
+                  <Route path="/usuarios" element={<ProtectedRoute allowedRoles={['dev', 'admin']}><Users /></ProtectedRoute>} />
+                  <Route path="/inativos" element={<ProtectedRoute allowedRoles={['dev', 'admin']}><InactiveUsers /></ProtectedRoute>} />
+                  <Route path="/equipe" element={<ProtectedRoute><Team /></ProtectedRoute>} />
+                  <Route path="/arquivos" element={<ProtectedRoute allowedRoles={['dev', 'admin', 'criacao']}><FileManagement /></ProtectedRoute>} />
+                  <Route path="/material-criacao" element={<ProtectedRoute allowedRoles={['dev', 'criacao']}><CreationMaterials /></ProtectedRoute>} />
+                  <Route path="/downloads" element={<ProtectedRoute><Downloads /></ProtectedRoute>} />
+                  <Route path="/notificacoes" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
+                  <Route path="/relatorios" element={<ProtectedRoute allowedRoles={['dev', 'admin', 'gerente']}><Reports /></ProtectedRoute>} />
+                  <Route path="/perfil" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+                  <Route path="/ajuda" element={<ProtectedRoute><Help /></ProtectedRoute>} />
+                  <Route path="/tickets" element={<ProtectedRoute><Tickets /></ProtectedRoute>} />
+                  <Route path="/tickets/novo" element={<ProtectedRoute><NewTicket /></ProtectedRoute>} />
+                  <Route path="/tickets/:id" element={<ProtectedRoute><TicketDetails /></ProtectedRoute>} />
+                  <Route path="/ponto" element={<ProtectedRoute><TimeClock /></ProtectedRoute>} />
+                  <Route path="/localizar" element={<ProtectedRoute allowedRoles={['dev']}><Localizar /></ProtectedRoute>} />
+                  <Route path="/metas" element={<ProtectedRoute><Goals /></ProtectedRoute>} />
+                  <Route path="/crm" element={<ProtectedRoute allowedRoles={['dev', 'vendedor']}><CRM /></ProtectedRoute>} />
+                  <Route path="/precos" element={<ProtectedRoute><Prices /></ProtectedRoute>} />
+                  <Route path="/atualizacoes" element={<ProtectedRoute><Updates /></ProtectedRoute>} />
+                  <Route path="/reunioes" element={<ProtectedRoute><Meetings /></ProtectedRoute>} />
+                  <Route path="/reuniao/:code" element={<ProtectedRoute><MeetingErrorBoundary><MeetingRoom /></MeetingErrorBoundary></ProtectedRoute>} />
+                  
+                  <Route path="/entrar/:code" element={<GuestJoin />} />
+                  <Route path="/convidado/:code" element={<MeetingErrorBoundary><GuestMeetingRoom /></MeetingErrorBoundary>} />
+                  
+                  <Route path="*" element={<NotFound />} />
+                </Routes>
+              </PresenceTracker>
+            </NotificationProvider>
+          </AuthProvider>
+        </BrowserRouter>
+      </TooltipProvider>
+    </QueryClientProvider>
+  </ErrorBoundary>
 );
 
 export default App;
