@@ -8,8 +8,6 @@ import { useActiveMeetings } from "@/hooks/useActiveMeetings";
 import Logo from "@/components/Logo";
 import SustainabilityBadge from "@/components/SustainabilityBadge";
 import RoleBadge from "@/components/RoleBadge";
-import CarnivalConfetti from "@/components/CarnivalConfetti";
-import CarnivalToggle from "@/components/CarnivalToggle";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -100,18 +98,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
   const location = useLocation();
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [confettiEnabled, setConfettiEnabled] = useState(() => {
-    const saved = localStorage.getItem('carnival-confetti-enabled');
-    return saved !== null ? saved === 'true' : true;
-  });
 
-  const toggleConfetti = () => {
-    setConfettiEnabled(prev => {
-      const newValue = !prev;
-      localStorage.setItem('carnival-confetti-enabled', String(newValue));
-      return newValue;
-    });
-  };
   // Time clock reminder alerts
   useTimeClockReminder();
 
@@ -141,9 +128,6 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      {/* 🎭 Carnival Confetti Effect 🎉 */}
-      <CarnivalConfetti enabled={confettiEnabled} />
-
       {/* Notification Banner */}
       {showBanner && (
         <NotificationBanner
@@ -170,19 +154,11 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
           )}
         >
           <div className="flex flex-col h-full">
-            {/* Logo with Carnival Glow */}
+            {/* Logo */}
             <div className="p-6 border-b border-sidebar-border">
               <div className="flex items-center gap-3">
-                <div className="animate-carnival-glow rounded-lg p-1">
-                  <Logo variant="light" />
-                </div>
+                <Logo variant="light" />
                 <SustainabilityBadge />
-              </div>
-              {/* Carnival Banner */}
-              <div className="mt-3 text-center">
-                <span className="carnival-text text-sm font-bold tracking-wide">
-                  🎭 CARNAVAL 2026 🎉
-                </span>
               </div>
             </div>
 
@@ -294,17 +270,6 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
               </div>
 
               <div className="flex items-center gap-2">
-                {/* Carnival Toggle */}
-                <div className="flex items-center gap-1.5">
-                  <CarnivalToggle enabled={confettiEnabled} onToggle={toggleConfetti} />
-                  <span 
-                    key={confettiEnabled ? 'disable' : 'enable'}
-                    className="text-xs text-muted-foreground hidden sm:inline animate-fade-in"
-                  >
-                    {confettiEnabled ? 'Desabilitar efeitos' : 'Habilitar efeitos'}
-                  </span>
-                </div>
-
                 {/* Notification Bell with enhanced visibility */}
                 <Button
                   variant="ghost"

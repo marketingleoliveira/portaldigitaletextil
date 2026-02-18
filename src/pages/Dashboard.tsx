@@ -31,8 +31,6 @@ import RoleBadge from '@/components/RoleBadge';
 import { Badge } from '@/components/ui/badge';
 import OnlineUsersCard from '@/components/OnlineUsersCard';
 import ActivityRankingCard from '@/components/ActivityRankingCard';
-import CarnivalMask from '@/components/CarnivalMask';
-import CarnivalCountdown from '@/components/CarnivalCountdown';
 
 interface FileTypeStats {
   pdf: number;
@@ -113,30 +111,25 @@ const Dashboard: React.FC = () => {
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        // Fetch products count
         const { count: productsCount } = await supabase
           .from('products')
           .select('*', { count: 'exact', head: true });
 
-        // Fetch categories count
         const { count: categoriesCount } = await supabase
           .from('categories')
           .select('*', { count: 'exact', head: true });
 
-        // Fetch files with names for breakdown
         const { data: filesData, count: filesCount } = await supabase
           .from('files')
           .select('name, is_external_link', { count: 'exact' });
         
         const filesBreakdown = calculateFileBreakdown(filesData || []);
 
-        // Fetch open tickets for the user
         const { count: ticketsCount } = await supabase
           .from('tickets')
           .select('*', { count: 'exact', head: true })
           .eq('status', 'aberto');
 
-        // Fetch creation files with names for breakdown (for criacao role)
         let creationFilesCount = 0;
         let creationFilesBreakdown: FileTypeStats = emptyBreakdown();
         if (user?.role === 'criacao' || user?.role === 'dev') {
@@ -147,7 +140,6 @@ const Dashboard: React.FC = () => {
           creationFilesBreakdown = calculateFileBreakdown(creationData || []);
         }
 
-        // Admin/Dev-only stats
         let usersCount = 0;
         let logsCount = 0;
 
@@ -163,7 +155,6 @@ const Dashboard: React.FC = () => {
           logsCount = logs || 0;
         }
 
-        // Fetch links from Links de Acesso category
         const { data: linksData } = await supabase
           .from('files')
           .select('id, name, file_url, description')
@@ -316,25 +307,14 @@ const Dashboard: React.FC = () => {
   return (
     <DashboardLayout>
       <div className="space-y-6 animate-fade-in">
-        {/* Carnival Countdown Banner */}
-        <CarnivalCountdown />
-
-        {/* Welcome Section with Carnival Decoration */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 relative">
-          {/* Carnival Masks Decoration */}
-          <div className="absolute -top-2 -left-2 opacity-60 hidden md:block">
-            <CarnivalMask variant="gold" size="lg" className="animate-bounce-gentle" />
-          </div>
-          <div className="absolute -top-2 right-20 opacity-60 hidden md:block">
-            <CarnivalMask variant="pink" size="md" />
-          </div>
-          
-          <div className="pl-0 md:pl-12">
-            <h1 className="text-2xl font-bold carnival-text">
-              {getGreeting()}, {user?.profile?.full_name?.split(' ')[0] || 'Usuário'}! 🎭
+        {/* Welcome Section */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-bold text-foreground">
+              {getGreeting()}, {user?.profile?.full_name?.split(' ')[0] || 'Usuário'}!
             </h1>
             <p className="text-muted-foreground mt-1">
-              Confira as informações do seu painel • <span className="text-primary font-medium">Carnaval 2026</span>
+              Confira as informações do seu painel
             </p>
           </div>
           {user?.role && (
@@ -352,11 +332,7 @@ const Dashboard: React.FC = () => {
             const hasBreakdown = 'breakdown' in stat && stat.breakdown;
             return (
               <Link key={stat.title} to={stat.href}>
-                <Card className="hover:shadow-md transition-all hover:border-primary/50 cursor-pointer h-full carnival-card relative overflow-hidden">
-                  {/* Subtle carnival decoration on hover */}
-                  <div className="absolute top-2 right-2 opacity-20">
-                    <CarnivalMask variant={['gold', 'pink', 'purple', 'teal'][Math.floor(Math.random() * 4)] as 'gold' | 'pink' | 'purple' | 'teal'} size="sm" />
-                  </div>
+                <Card className="hover:shadow-md transition-all hover:border-primary/50 cursor-pointer h-full">
                   <CardContent className="pt-6">
                     <div className="flex items-center justify-between">
                       <div className="flex-1">
@@ -444,11 +420,7 @@ const Dashboard: React.FC = () => {
         {/* Main Content Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Quick Actions */}
-          <Card className="lg:col-span-2 relative overflow-hidden">
-            {/* Carnival corner decoration */}
-            <div className="absolute -top-4 -right-4 opacity-30 rotate-12">
-              <CarnivalMask variant="purple" size="lg" />
-            </div>
+          <Card className="lg:col-span-2">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <TrendingUp className="w-5 h-5 text-primary" />
@@ -550,10 +522,8 @@ const Dashboard: React.FC = () => {
 
         {/* Activity Ranking & Links */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Activity Ranking - visible to all users with role */}
           {user?.role && <ActivityRankingCard />}
 
-          {/* Links Rápidos */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
