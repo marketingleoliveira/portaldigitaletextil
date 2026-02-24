@@ -1,4 +1,4 @@
-export type AppRole = 'admin' | 'gerente' | 'vendedor' | 'dev' | 'criacao';
+export type AppRole = 'admin' | 'gerente' | 'vendedor' | 'dev' | 'criacao' | 'sdr';
 
 export interface UserProfile {
   id: string;
@@ -113,6 +113,7 @@ export const ROLE_LABELS: Record<AppRole, string> = {
   gerente: 'Gerente',
   vendedor: 'Vendedor',
   criacao: 'Criação',
+  sdr: 'SDR',
 };
 
 export const ROLE_COLORS: Record<AppRole, string> = {
@@ -121,6 +122,7 @@ export const ROLE_COLORS: Record<AppRole, string> = {
   gerente: 'bg-role-gerente',
   vendedor: 'bg-role-vendedor',
   criacao: 'bg-role-criacao',
+  sdr: 'bg-role-sdr',
 };
 
 // Helper to check if role has full access (dev or admin/diretor)

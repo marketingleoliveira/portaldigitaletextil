@@ -40,6 +40,8 @@ const ACTIVITY_TYPES = [
 export function LeadDetailSheet({ lead, open, onOpenChange }: LeadDetailSheetProps) {
   const { user } = useAuth();
   const isDev = user?.role === "dev";
+  const isSDR = user?.role === "sdr";
+  const canManage = isDev || isSDR;
   const updateLead = useUpdateLead();
   const deleteLead = useDeleteLead();
   const addActivity = useAddActivity();
@@ -182,8 +184,8 @@ export function LeadDetailSheet({ lead, open, onOpenChange }: LeadDetailSheetPro
               </Select>
             </div>
 
-            {/* Assign */}
-            {isDev && (
+            {/* Assign - only in ganho status */}
+            {lead.status === "ganho" && (isDev || isSDR) && (
               <div className="space-y-1.5">
                 <Label className="text-xs font-medium text-muted-foreground">Vendedor Responsável</Label>
                 <Select value={lead.assigned_to || ""} onValueChange={handleAssign}>

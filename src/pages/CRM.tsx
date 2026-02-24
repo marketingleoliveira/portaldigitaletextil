@@ -17,6 +17,7 @@ import { Plus, Search, LayoutGrid, List, Loader2, Upload } from "lucide-react";
 const CRM = () => {
   const { user } = useAuth();
   const isDev = user?.role === "dev";
+  const canManageCRM = user?.role === "dev" || user?.role === "sdr";
   const [viewMode, setViewMode] = useState<"kanban" | "table">("kanban");
   const [statusFilter, setStatusFilter] = useState<LeadStatus | "all">("all");
   const [searchTerm, setSearchTerm] = useState("");
@@ -51,15 +52,21 @@ const CRM = () => {
           <div>
             <h1 className="text-2xl font-bold">CRM</h1>
             <p className="text-sm text-muted-foreground">
-              {isDev ? "Gerencie leads e atribua vendedores" : "Acompanhe seus leads"}
+            {isDev
+              ? "Gerencie leads e atribua vendedores"
+              : user?.role === "sdr"
+                ? "Prospecte leads e agende reuniões"
+                : "Acompanhe seus leads"}
             </p>
           </div>
-          {isDev && (
+          {canManageCRM && (
             <div className="flex gap-2">
-              <Button variant="outline" onClick={() => setShowImport(true)} className="gap-2">
-                <Upload className="w-4 h-4" />
-                Importar CSV
-              </Button>
+              {isDev && (
+                <Button variant="outline" onClick={() => setShowImport(true)} className="gap-2">
+                  <Upload className="w-4 h-4" />
+                  Importar CSV
+                </Button>
+              )}
               <Button onClick={() => setShowForm(true)} className="gap-2">
                 <Plus className="w-4 h-4" />
                 Novo Lead

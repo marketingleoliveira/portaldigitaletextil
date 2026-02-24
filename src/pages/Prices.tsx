@@ -70,6 +70,7 @@ const Prices: React.FC = () => {
   const userRegion = user?.profile?.region;
   const canSeeAllRegions = hasFullAccess(user?.role) || 
                            user?.role === 'gerente' || 
+                           user?.role === 'sdr' ||
                            hasAllRegionsAccess(userRegion);
 
   // Fetch price files
