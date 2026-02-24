@@ -160,6 +160,27 @@ export function useCompleteLeadSchedule() {
   });
 }
 
+export function useDeleteLeadSchedule() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (scheduleId: string) => {
+      const { error } = await supabase
+        .from("lead_schedules")
+        .delete()
+        .eq("id", scheduleId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["lead-schedules"] });
+      toast.success("Agendamento excluído com sucesso!");
+    },
+    onError: (err: any) => {
+      toast.error("Erro ao excluir: " + err.message);
+    },
+  });
+}
+
 function generateMeetingCode() {
   const chars = "abcdefghijklmnopqrstuvwxyz";
   let result = "";
