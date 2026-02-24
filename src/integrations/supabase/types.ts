@@ -509,6 +509,57 @@ export type Database = {
           },
         ]
       }
+      lead_schedules: {
+        Row: {
+          created_at: string
+          created_by: string
+          id: string
+          lead_id: string
+          meeting_id: string | null
+          notes: string | null
+          scheduled_date: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          id?: string
+          lead_id: string
+          meeting_id?: string | null
+          notes?: string | null
+          scheduled_date: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          id?: string
+          lead_id?: string
+          meeting_id?: string | null
+          notes?: string | null
+          scheduled_date?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lead_schedules_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_schedules_meeting_id_fkey"
+            columns: ["meeting_id"]
+            isOneToOne: false
+            referencedRelation: "meetings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       leads: {
         Row: {
           assigned_to: string | null

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
+import { ScheduleMeetingDialog } from "./ScheduleMeetingDialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -14,7 +15,7 @@ import {
   useUpdateLead, useDeleteLead, useLeadActivities, useAddActivity, useVendedores,
 } from "@/hooks/useCRM";
 import { useAuth } from "@/contexts/AuthContext";
-import { Building2, User, Phone, Mail, DollarSign, Calendar, Clock, Trash2, Loader2, MessageSquare, PhoneCall, Video, FileText } from "lucide-react";
+import { Building2, User, Phone, Mail, DollarSign, Calendar, Clock, Trash2, Loader2, MessageSquare, PhoneCall, Video, FileText, CalendarPlus } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
@@ -47,6 +48,7 @@ export function LeadDetailSheet({ lead, open, onOpenChange }: LeadDetailSheetPro
 
   const [activityType, setActivityType] = useState("note");
   const [activityDesc, setActivityDesc] = useState("");
+  const [showSchedule, setShowSchedule] = useState(false);
 
   if (!lead) return null;
 
@@ -77,6 +79,7 @@ export function LeadDetailSheet({ lead, open, onOpenChange }: LeadDetailSheetPro
     new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v);
 
   return (
+    <>
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent className="w-full sm:max-w-lg overflow-y-auto">
         <SheetHeader className="pb-4">
@@ -84,6 +87,15 @@ export function LeadDetailSheet({ lead, open, onOpenChange }: LeadDetailSheetPro
             <div>
               <SheetTitle className="text-lg">{lead.company_name}</SheetTitle>
               <LeadStatusBadge status={lead.status} className="mt-1" />
+              <Button
+                size="sm"
+                variant="outline"
+                className="mt-2 gap-1.5 text-xs"
+                onClick={() => setShowSchedule(true)}
+              >
+                <CalendarPlus className="w-3.5 h-3.5" />
+                Agendar Reunião
+              </Button>
             </div>
             {isDev && (
               <AlertDialog>
@@ -259,5 +271,12 @@ export function LeadDetailSheet({ lead, open, onOpenChange }: LeadDetailSheetPro
         </Tabs>
       </SheetContent>
     </Sheet>
+
+    <ScheduleMeetingDialog
+      lead={lead}
+      open={showSchedule}
+      onOpenChange={setShowSchedule}
+    />
+    </>
   );
 }
