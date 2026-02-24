@@ -1,7 +1,7 @@
 import { type Lead, type LeadStatus, LEAD_STATUS_CONFIG, useUpdateLead } from "@/hooks/useCRM";
 import { LeadStatusBadge } from "./LeadStatusBadge";
 import { Card } from "@/components/ui/card";
-import { User, Phone, Mail, DollarSign } from "lucide-react";
+import { User, Phone, Mail, DollarSign, Trophy } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface CRMKanbanProps {
@@ -9,7 +9,7 @@ interface CRMKanbanProps {
   onSelectLead: (lead: Lead) => void;
 }
 
-const KANBAN_COLUMNS: LeadStatus[] = ["novo", "contatado", "qualificado", "proposta", "negociacao", "ganho", "perdido"];
+const KANBAN_COLUMNS: LeadStatus[] = ["novo", "contatado", "qualificado", "proposta", "ganho", "perdido"];
 
 export function CRMKanban({ leads, onSelectLead }: CRMKanbanProps) {
   const updateLead = useUpdateLead();
@@ -31,10 +31,19 @@ export function CRMKanban({ leads, onSelectLead }: CRMKanbanProps) {
           <div key={status} className="min-w-[260px] max-w-[280px] flex-shrink-0">
             <div className="flex items-center justify-between mb-2 px-1">
               <div className="flex items-center gap-2">
-                <LeadStatusBadge status={status} />
-                <span className="text-xs text-muted-foreground font-medium">
-                  {columnLeads.length}
-                </span>
+                {status === "ganho" ? (
+                  <div className="flex items-center gap-1.5">
+                    <Trophy className="w-5 h-5 text-amber-500" />
+                    <span className="text-sm font-bold text-amber-600">{columnLeads.length}</span>
+                  </div>
+                ) : (
+                  <>
+                    <LeadStatusBadge status={status} />
+                    <span className="text-xs text-muted-foreground font-medium">
+                      {columnLeads.length}
+                    </span>
+                  </>
+                )}
               </div>
               {totalValue > 0 && (
                 <span className="text-xs text-muted-foreground">
