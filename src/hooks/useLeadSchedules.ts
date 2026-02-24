@@ -13,6 +13,7 @@ export interface LeadSchedule {
   created_by: string;
   created_at: string;
   updated_at: string;
+  completed_at: string | null;
   lead?: {
     company_name: string;
     contact_name: string;
@@ -134,6 +135,27 @@ export function useCreateLeadSchedule() {
     },
     onError: (err: any) => {
       toast.error("Erro ao agendar reunião: " + err.message);
+    },
+  });
+}
+
+export function useCompleteLeadSchedule() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (scheduleId: string) => {
+      const { error } = await supabase
+        .from("lead_schedules")
+        .update({ completed_at: new Date().toISOString() } as any)
+        .eq("id", scheduleId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["lead-schedules"] });
+      toast.success("Agendamento marcado como realizado!");
+    },
+    onError: (err: any) => {
+      toast.error("Erro: " + err.message);
     },
   });
 }
