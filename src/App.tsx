@@ -43,6 +43,7 @@ import GuestMeetingRoom from "./pages/GuestMeetingRoom";
 
 import CreationMaterials from "./pages/CreationMaterials";
 import CRM from "./pages/CRM";
+import Agendamentos from "./pages/Agendamentos";
 
 const queryClient = new QueryClient();
 
@@ -94,6 +95,7 @@ const App = () => (
                   <Route path="/localizar" element={<ProtectedRoute allowedRoles={['dev']}><Localizar /></ProtectedRoute>} />
                   <Route path="/metas" element={<ProtectedRoute><Goals /></ProtectedRoute>} />
                   <Route path="/crm" element={<ProtectedRoute allowedRoles={['dev', 'vendedor']}><CRM /></ProtectedRoute>} />
+                  <Route path="/agendamentos" element={<ProtectedRoute allowedRoles={['dev', 'vendedor']}><Agendamentos /></ProtectedRoute>} />
                   <Route path="/precos" element={<ProtectedRoute><Prices /></ProtectedRoute>} />
                   <Route path="/atualizacoes" element={<ProtectedRoute><Updates /></ProtectedRoute>} />
                   <Route path="/reunioes" element={<ProtectedRoute><Meetings /></ProtectedRoute>} />
