@@ -6,12 +6,13 @@ import { CRMStats } from "@/components/crm/CRMStats";
 import { CRMKanban } from "@/components/crm/CRMKanban";
 import { CRMTable } from "@/components/crm/CRMTable";
 import { LeadFormDialog } from "@/components/crm/LeadFormDialog";
+import { CRMImportDialog } from "@/components/crm/CRMImportDialog";
 import { LeadDetailSheet } from "@/components/crm/LeadDetailSheet";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Search, LayoutGrid, List, Loader2 } from "lucide-react";
+import { Plus, Search, LayoutGrid, List, Loader2, Upload } from "lucide-react";
 
 const CRM = () => {
   const { user } = useAuth();
@@ -20,6 +21,7 @@ const CRM = () => {
   const [statusFilter, setStatusFilter] = useState<LeadStatus | "all">("all");
   const [searchTerm, setSearchTerm] = useState("");
   const [showForm, setShowForm] = useState(false);
+  const [showImport, setShowImport] = useState(false);
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
   const [showDetail, setShowDetail] = useState(false);
 
@@ -53,10 +55,16 @@ const CRM = () => {
             </p>
           </div>
           {isDev && (
-            <Button onClick={() => setShowForm(true)} className="gap-2">
-              <Plus className="w-4 h-4" />
-              Novo Lead
-            </Button>
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={() => setShowImport(true)} className="gap-2">
+                <Upload className="w-4 h-4" />
+                Importar CSV
+              </Button>
+              <Button onClick={() => setShowForm(true)} className="gap-2">
+                <Plus className="w-4 h-4" />
+                Novo Lead
+              </Button>
+            </div>
           )}
         </div>
 
@@ -116,6 +124,7 @@ const CRM = () => {
 
       {/* Dialogs */}
       <LeadFormDialog open={showForm} onOpenChange={setShowForm} />
+      <CRMImportDialog open={showImport} onOpenChange={setShowImport} />
       <LeadDetailSheet lead={selectedLead} open={showDetail} onOpenChange={setShowDetail} />
     </DashboardLayout>
   );
