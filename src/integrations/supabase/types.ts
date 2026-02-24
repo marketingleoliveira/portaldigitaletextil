@@ -545,6 +545,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "lead_schedules_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "lead_schedules_lead_id_fkey"
             columns: ["lead_id"]
             isOneToOne: false
