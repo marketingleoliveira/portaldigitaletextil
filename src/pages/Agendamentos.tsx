@@ -1,11 +1,11 @@
 import { useState } from "react";
 import DashboardLayout from "@/components/layouts/DashboardLayout";
-import { useLeadSchedules, useCompleteLeadSchedule } from "@/hooks/useLeadSchedules";
+import { useLeadSchedules, useCompleteLeadSchedule, useDeleteLeadSchedule } from "@/hooks/useLeadSchedules";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
   Loader2, ChevronLeft, ChevronRight, Video, Building2, User, Clock,
-  Copy, CheckCircle2, Circle, Calendar as CalendarIcon,
+  Copy, CheckCircle2, Circle, Calendar as CalendarIcon, Trash2,
 } from "lucide-react";
 import {
   format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth,
@@ -17,10 +17,13 @@ import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import type { LeadSchedule } from "@/hooks/useLeadSchedules";
+import { useAuth } from "@/contexts/AuthContext";
 
 export default function Agendamentos() {
   const { data: schedules = [], isLoading } = useLeadSchedules();
   const completeMutation = useCompleteLeadSchedule();
+  const deleteMutation = useDeleteLeadSchedule();
+  const { user } = useAuth();
   const navigate = useNavigate();
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<Date | null>(new Date());
@@ -259,12 +262,26 @@ export default function Agendamentos() {
                           </div>
                         )}
 
-                        {/* Creator */}
-                        {schedule.created_by_profile && (
-                          <p className="text-[10px] text-muted-foreground mt-2">
-                            Agendado por {schedule.created_by_profile.full_name}
-                          </p>
-                        )}
+                        {/* Creator & Delete */}
+                        <div className="flex items-center justify-between mt-2">
+                          {schedule.created_by_profile && (
+                            <p className="text-[10px] text-muted-foreground">
+                              Agendado por {schedule.created_by_profile.full_name}
+                            </p>
+                          )}
+                          {isCompleted && user?.role === 'dev' && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-6 w-6 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
+                              onClick={() => deleteMutation.mutate(schedule.id)}
+                              disabled={deleteMutation.isPending}
+                              title="Excluir agendamento"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </Button>
+                          )}
+                        </div>
                       </div>
                     );
                   })
