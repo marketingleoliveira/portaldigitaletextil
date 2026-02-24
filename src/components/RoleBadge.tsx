@@ -17,17 +17,19 @@ const RoleBadge: React.FC<RoleBadgeProps> = ({ role, region, showIcon = true, si
     gerente: UserCog,
     vendedor: User,
     criacao: Palette,
+    sdr: User,
   };
 
   const Icon = icons[role];
   
   // Map roles to badge variants (criacao uses secondary as fallback)
-  const roleToVariant: Record<AppRole, "dev" | "admin" | "gerente" | "vendedor" | "criacao"> = {
+  const roleToVariant: Record<AppRole, string> = {
     dev: "dev",
     admin: "admin",
     gerente: "gerente",
     vendedor: "vendedor",
     criacao: "criacao",
+    sdr: "secondary",
   };
 
   // For vendedor with region, show "Vendedor SP" format
@@ -41,7 +43,7 @@ const RoleBadge: React.FC<RoleBadgeProps> = ({ role, region, showIcon = true, si
   const displayLabel = getDisplayLabel();
 
   return (
-    <Badge variant={roleToVariant[role]} className={size === 'sm' ? 'text-xs px-2 py-0.5' : ''}>
+    <Badge variant={roleToVariant[role] as any} className={size === 'sm' ? 'text-xs px-2 py-0.5' : ''}>
       {showIcon && Icon && <Icon className={`${size === 'sm' ? 'w-3 h-3' : 'w-3.5 h-3.5'} mr-1`} />}
       {displayLabel}
     </Badge>

@@ -1,7 +1,8 @@
 import { useState, type DragEvent } from "react";
-import { type Lead, type LeadStatus, LEAD_STATUS_CONFIG, useUpdateLead } from "@/hooks/useCRM";
+import { type Lead, type LeadStatus, LEAD_STATUS_CONFIG, useUpdateLead, useVendedores } from "@/hooks/useCRM";
 import { LeadStatusBadge } from "./LeadStatusBadge";
 import { Card } from "@/components/ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { User, Phone, DollarSign, Trophy, GripVertical } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -14,6 +15,7 @@ const KANBAN_COLUMNS: LeadStatus[] = ["novo", "contatado", "qualificado", "propo
 
 export function CRMKanban({ leads, onSelectLead }: CRMKanbanProps) {
   const updateLead = useUpdateLead();
+  const { data: vendedores } = useVendedores();
   const [draggedLeadId, setDraggedLeadId] = useState<string | null>(null);
   const [dropTarget, setDropTarget] = useState<LeadStatus | null>(null);
 
@@ -58,6 +60,10 @@ export function CRMKanban({ leads, onSelectLead }: CRMKanbanProps) {
     setDropTarget(null);
   };
 
+  const handleAssignVendedor = (leadId: string, vendedorId: string) => {
+    updateLead.mutate({ id: leadId, assigned_to: vendedorId });
+  };
+
   return (
     <div className="flex gap-3 overflow-x-auto pb-4">
       {KANBAN_COLUMNS.map((status) => {
@@ -65,6 +71,7 @@ export function CRMKanban({ leads, onSelectLead }: CRMKanbanProps) {
         const config = LEAD_STATUS_CONFIG[status];
         const totalValue = columnLeads.reduce((sum, l) => sum + (l.estimated_value || 0), 0);
         const isOver = dropTarget === status;
+        const isGanho = status === "ganho";
 
         return (
           <div
@@ -76,7 +83,7 @@ export function CRMKanban({ leads, onSelectLead }: CRMKanbanProps) {
           >
             <div className="flex items-center justify-between mb-2 px-1">
               <div className="flex items-center gap-2">
-                {status === "ganho" ? (
+                {isGanho ? (
                   <div className="flex items-center gap-1.5">
                     <Trophy className="w-5 h-5 text-amber-500" />
                     <span className="text-sm font-bold text-amber-600">{columnLeads.length}</span>
@@ -152,18 +159,25 @@ export function CRMKanban({ leads, onSelectLead }: CRMKanbanProps) {
                           <span>{formatCurrency(lead.estimated_value)}</span>
                         </div>
                       )}
-                      {lead.assigned_profile && (
-                        <div className="flex items-center gap-1.5 mt-2 pt-2 border-t">
-                          {lead.assigned_profile.avatar_url ? (
-                            <img src={lead.assigned_profile.avatar_url} className="w-5 h-5 rounded-full object-cover" alt="" />
-                          ) : (
-                            <div className="w-5 h-5 rounded-full bg-primary/10 flex items-center justify-center">
-                              <User className="w-3 h-3 text-primary" />
-                            </div>
-                          )}
-                          <span className="text-xs text-muted-foreground truncate">
-                            {lead.assigned_profile.full_name}
-                          </span>
+                      
+                      {/* Vendedor Responsável - ONLY in Ganho column */}
+                      {isGanho && (
+                        <div className="mt-2 pt-2 border-t" onClick={(e) => e.stopPropagation()}>
+                          <Select
+                            value={lead.assigned_to || ""}
+                            onValueChange={(v) => handleAssignVendedor(lead.id, v)}
+                          >
+                            <SelectTrigger className="h-7 text-xs">
+                              <SelectValue placeholder="Vendedor responsável..." />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {vendedores?.map((v) => (
+                                <SelectItem key={v.id} value={v.id} className="text-xs">
+                                  {v.full_name} {v.region ? `(${v.region})` : ''}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
                         </div>
                       )}
                     </div>

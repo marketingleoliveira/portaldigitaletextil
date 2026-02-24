@@ -7,6 +7,7 @@ export const ROLE_TEXT_COLORS: Record<AppRole, string> = {
   gerente: 'text-blue-400',
   vendedor: 'text-emerald-400',
   criacao: 'text-pink-400',
+  sdr: 'text-cyan-400',
 };
 
 // Extract role from participant name (format: "Name (Role)")

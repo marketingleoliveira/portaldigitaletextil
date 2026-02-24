@@ -112,15 +112,18 @@ export function useVendedores() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("user_roles")
-        .select("user_id, role, profiles:profiles!user_roles_user_id_fkey(id, full_name, avatar_url)")
+        .select("user_id, role, profiles:profiles!inner(id, full_name, avatar_url, region, is_active)")
         .in("role", ["vendedor", "dev"]);
       if (error) throw error;
-      return data?.map((r: any) => ({
-        id: r.user_id,
-        full_name: r.profiles?.full_name || "Sem nome",
-        avatar_url: r.profiles?.avatar_url,
-        role: r.role,
-      })) || [];
+      return data
+        ?.filter((r: any) => r.profiles?.is_active !== false)
+        .map((r: any) => ({
+          id: r.user_id,
+          full_name: r.profiles?.full_name || "Sem nome",
+          avatar_url: r.profiles?.avatar_url,
+          role: r.role,
+          region: r.profiles?.region,
+        })) || [];
     },
   });
 }
