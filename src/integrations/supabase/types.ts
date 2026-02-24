@@ -511,6 +511,7 @@ export type Database = {
       }
       lead_schedules: {
         Row: {
+          completed_at: string | null
           created_at: string
           created_by: string
           id: string
@@ -522,6 +523,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          completed_at?: string | null
           created_at?: string
           created_by: string
           id?: string
@@ -533,6 +535,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          completed_at?: string | null
           created_at?: string
           created_by?: string
           id?: string
