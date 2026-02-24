@@ -51,10 +51,10 @@ export interface CreateLeadData {
 }
 
 export const LEAD_STATUS_CONFIG: Record<LeadStatus, { label: string; color: string }> = {
-  novo: { label: "Novo", color: "bg-blue-500/15 text-blue-700 border-blue-300" },
-  contatado: { label: "Contatado", color: "bg-sky-500/15 text-sky-700 border-sky-300" },
+  novo: { label: "Prospectados", color: "bg-blue-500/15 text-blue-700 border-blue-300" },
+  contatado: { label: "Em Contato", color: "bg-sky-500/15 text-sky-700 border-sky-300" },
   qualificado: { label: "Qualificado", color: "bg-violet-500/15 text-violet-700 border-violet-300" },
-  proposta: { label: "Proposta", color: "bg-amber-500/15 text-amber-700 border-amber-300" },
+  proposta: { label: "Reunião", color: "bg-amber-500/15 text-amber-700 border-amber-300" },
   negociacao: { label: "Negociação", color: "bg-orange-500/15 text-orange-700 border-orange-300" },
   ganho: { label: "Ganho", color: "bg-emerald-500/15 text-emerald-700 border-emerald-300" },
   perdido: { label: "Perdido", color: "bg-red-500/15 text-red-700 border-red-300" },
