@@ -110,7 +110,13 @@ export function useCreateLeadSchedule() {
 
       if (scheduleError) throw scheduleError;
 
-      // 3. Log activity on the lead
+      // 3. Move lead to "proposta" (Reunião column)
+      await supabase
+        .from("leads")
+        .update({ status: "proposta" as any })
+        .eq("id", data.lead_id);
+
+      // 4. Log activity on the lead
       await supabase.from("lead_activities").insert({
         lead_id: data.lead_id,
         user_id: user!.id,
