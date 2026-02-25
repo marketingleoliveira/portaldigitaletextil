@@ -1116,6 +1116,54 @@ export type Database = {
           },
         ]
       }
+      testimonial_schedules: {
+        Row: {
+          company_name: string
+          completed_at: string | null
+          contact_name: string | null
+          contact_phone: string | null
+          created_at: string
+          created_by: string
+          id: string
+          notes: string | null
+          orientation_file_name: string | null
+          orientation_file_url: string | null
+          scheduled_date: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          company_name: string
+          completed_at?: string | null
+          contact_name?: string | null
+          contact_phone?: string | null
+          created_at?: string
+          created_by: string
+          id?: string
+          notes?: string | null
+          orientation_file_name?: string | null
+          orientation_file_url?: string | null
+          scheduled_date: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          company_name?: string
+          completed_at?: string | null
+          contact_name?: string | null
+          contact_phone?: string | null
+          created_at?: string
+          created_by?: string
+          id?: string
+          notes?: string | null
+          orientation_file_name?: string | null
+          orientation_file_url?: string | null
+          scheduled_date?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       ticket_attachments: {
         Row: {
           created_at: string | null

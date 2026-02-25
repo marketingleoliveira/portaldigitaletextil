@@ -44,6 +44,8 @@ import GuestMeetingRoom from "./pages/GuestMeetingRoom";
 import CreationMaterials from "./pages/CreationMaterials";
 import CRM from "./pages/CRM";
 import Agendamentos from "./pages/Agendamentos";
+import Marketing from "./pages/Marketing";
+import Depoimentos from "./pages/Depoimentos";
 
 const queryClient = new QueryClient();
 
@@ -82,7 +84,7 @@ const App = () => (
                   <Route path="/inativos" element={<ProtectedRoute allowedRoles={['dev', 'admin']}><InactiveUsers /></ProtectedRoute>} />
                   <Route path="/equipe" element={<ProtectedRoute><Team /></ProtectedRoute>} />
                   <Route path="/arquivos" element={<ProtectedRoute allowedRoles={['dev', 'admin', 'criacao']}><FileManagement /></ProtectedRoute>} />
-                  <Route path="/material-criacao" element={<ProtectedRoute allowedRoles={['dev', 'criacao']}><CreationMaterials /></ProtectedRoute>} />
+                  <Route path="/material-criacao" element={<ProtectedRoute allowedRoles={['dev', 'criacao', 'marketing']}><CreationMaterials /></ProtectedRoute>} />
                   <Route path="/downloads" element={<ProtectedRoute><Downloads /></ProtectedRoute>} />
                   <Route path="/notificacoes" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
                   <Route path="/relatorios" element={<ProtectedRoute allowedRoles={['dev', 'admin', 'gerente']}><Reports /></ProtectedRoute>} />
@@ -98,6 +100,8 @@ const App = () => (
                   <Route path="/agendamentos" element={<ProtectedRoute allowedRoles={['dev', 'vendedor', 'sdr']}><Agendamentos /></ProtectedRoute>} />
                   <Route path="/precos" element={<ProtectedRoute><Prices /></ProtectedRoute>} />
                   <Route path="/atualizacoes" element={<ProtectedRoute><Updates /></ProtectedRoute>} />
+                  <Route path="/marketing" element={<ProtectedRoute allowedRoles={['dev', 'marketing']}><Marketing /></ProtectedRoute>} />
+                  <Route path="/depoimentos" element={<ProtectedRoute allowedRoles={['dev', 'marketing']}><Depoimentos /></ProtectedRoute>} />
                   <Route path="/reunioes" element={<ProtectedRoute><Meetings /></ProtectedRoute>} />
                   <Route path="/reuniao/:code" element={<ProtectedRoute><MeetingErrorBoundary><MeetingRoom /></MeetingErrorBoundary></ProtectedRoute>} />
                   

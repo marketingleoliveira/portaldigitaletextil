@@ -44,6 +44,8 @@ import {
   Film,
   Handshake,
   CalendarCheck,
+  Megaphone,
+  FileVideo,
 } from "lucide-react";
 import { useTimeClockReminder } from "@/hooks/useTimeClockReminder";
 import { useLocationTracking } from "@/hooks/useLocationTracking";
@@ -63,13 +65,15 @@ interface NavItem {
 }
 
 const navItems: NavItem[] = [
-  { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard, roles: ["dev", "admin", "gerente", "vendedor", "criacao", "sdr"] },
+  { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard, roles: ["dev", "admin", "gerente", "vendedor", "criacao", "sdr", "marketing"] },
   { label: "Ponto", href: "/ponto", icon: Clock, roles: ["dev", "admin", "gerente", "vendedor"] },
   { label: "Reunião", href: "/reunioes", icon: Video, roles: ["dev", "admin", "gerente", "vendedor", "criacao", "sdr"] },
   { label: "Localizar", href: "/localizar", icon: MapPin, roles: ["dev"] },
   { label: "Metas", href: "/metas", icon: Target, roles: ["dev", "admin", "gerente", "vendedor"] },
   { label: "CRM", href: "/crm", icon: Handshake, roles: ["dev", "vendedor", "sdr"] },
   { label: "Agendamentos", href: "/agendamentos", icon: CalendarCheck, roles: ["dev", "vendedor", "sdr"] },
+  { label: "Marketing", href: "/marketing", icon: Megaphone, roles: ["dev", "marketing"] },
+  { label: "Depoimentos", href: "/depoimentos", icon: FileVideo, roles: ["dev", "marketing"] },
   { label: "Categorias", href: "/categorias", icon: FolderOpen, roles: ["dev", "admin", "criacao"] },
   { label: "Usuários", href: "/usuarios", icon: Users, roles: ["dev", "admin"] },
   { label: "Inativos", href: "/inativos", icon: UserX, roles: ["dev", "admin"] },
@@ -77,18 +81,18 @@ const navItems: NavItem[] = [
   { label: "Arquivos", href: "/arquivos", icon: Upload, roles: ["dev", "admin"] },
   { label: "Relatórios", href: "/relatorios", icon: BarChart3, roles: ["dev", "admin", "gerente"] },
   { label: "Tabelas de Preços", href: "/precos", icon: DollarSign, roles: ["dev", "admin", "gerente", "vendedor", "sdr"] },
-  { label: "Materiais Comerciais", href: "/downloads", icon: FileText, roles: ["dev", "admin", "gerente", "vendedor", "criacao", "sdr"] },
-  { label: "Material Criação", href: "/material-criacao", icon: Package, roles: ["dev", "criacao"] },
-  { label: "Notificações", href: "/notificacoes", icon: Bell, roles: ["dev", "admin", "gerente", "vendedor", "criacao", "sdr"] },
+  { label: "Materiais Comerciais", href: "/downloads", icon: FileText, roles: ["dev", "admin", "gerente", "vendedor", "criacao", "sdr", "marketing"] },
+  { label: "Material Criação", href: "/material-criacao", icon: Package, roles: ["dev", "criacao", "marketing"] },
+  { label: "Notificações", href: "/notificacoes", icon: Bell, roles: ["dev", "admin", "gerente", "vendedor", "criacao", "sdr", "marketing"] },
   {
     label: "Solicitar Ajuda",
     href: "/tickets",
     icon: TicketIcon,
-    roles: ["dev", "admin", "gerente", "vendedor", "criacao", "sdr"],
+    roles: ["dev", "admin", "gerente", "vendedor", "criacao", "sdr", "marketing"],
     highlight: true,
   },
-  { label: "FAQ", href: "/ajuda", icon: HelpCircle, roles: ["dev", "admin", "gerente", "vendedor", "criacao", "sdr"] },
-  { label: "Atualizações", href: "/atualizacoes", icon: Rocket, roles: ["dev", "admin", "gerente", "vendedor", "criacao", "sdr"] },
+  { label: "FAQ", href: "/ajuda", icon: HelpCircle, roles: ["dev", "admin", "gerente", "vendedor", "criacao", "sdr", "marketing"] },
+  { label: "Atualizações", href: "/atualizacoes", icon: Rocket, roles: ["dev", "admin", "gerente", "vendedor", "criacao", "sdr", "marketing"] },
 ];
 
 interface DashboardLayoutProps {
