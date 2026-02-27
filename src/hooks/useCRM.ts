@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 
-export type LeadStatus = 'novo' | 'contatado' | 'qualificado' | 'proposta' | 'negociacao' | 'ganho' | 'perdido';
+export type LeadStatus = 'novo' | 'fora_de_perfil' | 'contatado' | 'qualificado' | 'proposta' | 'negociacao' | 'ganho' | 'perdido';
 export type LeadSource = 'indicacao' | 'site' | 'telefone' | 'email' | 'rede_social' | 'evento' | 'outro';
 
 export interface Lead {
@@ -52,6 +52,7 @@ export interface CreateLeadData {
 
 export const LEAD_STATUS_CONFIG: Record<LeadStatus, { label: string; color: string }> = {
   novo: { label: "Prospectados", color: "bg-blue-500/15 text-blue-700 border-blue-300" },
+  fora_de_perfil: { label: "Fora de Perfil", color: "bg-gray-500/15 text-gray-700 border-gray-300" },
   contatado: { label: "Em Contato", color: "bg-sky-500/15 text-sky-700 border-sky-300" },
   qualificado: { label: "Qualificado", color: "bg-violet-500/15 text-violet-700 border-violet-300" },
   proposta: { label: "Reunião", color: "bg-amber-500/15 text-amber-700 border-amber-300" },

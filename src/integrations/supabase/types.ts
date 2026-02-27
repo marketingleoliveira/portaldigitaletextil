@@ -1570,6 +1570,7 @@ export type Database = {
         | "outro"
       lead_status:
         | "novo"
+        | "fora_de_perfil"
         | "contatado"
         | "qualificado"
         | "proposta"
@@ -1723,6 +1724,7 @@ export const Constants = {
       ],
       lead_status: [
         "novo",
+        "fora_de_perfil",
         "contatado",
         "qualificado",
         "proposta",
