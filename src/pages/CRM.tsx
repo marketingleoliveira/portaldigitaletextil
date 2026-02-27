@@ -64,7 +64,7 @@ const CRM = () => {
               {isDev && (
                 <Button variant="outline" onClick={() => setShowImport(true)} className="gap-2">
                   <Upload className="w-4 h-4" />
-                  Importar CSV
+                  Importar
                 </Button>
               )}
               <Button onClick={() => setShowForm(true)} className="gap-2">

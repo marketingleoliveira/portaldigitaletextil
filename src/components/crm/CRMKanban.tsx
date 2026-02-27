@@ -11,7 +11,7 @@ interface CRMKanbanProps {
   onSelectLead: (lead: Lead) => void;
 }
 
-const KANBAN_COLUMNS: LeadStatus[] = ["novo", "contatado", "qualificado", "proposta", "ganho", "perdido"];
+const KANBAN_COLUMNS: LeadStatus[] = ["novo", "fora_de_perfil", "contatado", "qualificado", "proposta", "ganho", "perdido"];
 
 export function CRMKanban({ leads, onSelectLead }: CRMKanbanProps) {
   const updateLead = useUpdateLead();
