@@ -157,7 +157,7 @@ const CreationMaterials: React.FC = () => {
   const [previewFile, setPreviewFile] = useState<CreationFile | null>(null);
   const [deleteItem, setDeleteItem] = useState<{ type: "category" | "subcategory" | "file"; item: any } | null>(null);
 
-  const hasAccess = user?.role === "dev" || user?.role === "criacao";
+  const hasAccess = user?.role === "dev" || user?.role === "criacao" || user?.role === "marketing";
 
   useEffect(() => {
     if (hasAccess) {
