@@ -47,6 +47,7 @@ export const useTestimonials = () => {
       notes?: string;
       orientation_file_url?: string;
       orientation_file_name?: string;
+      meeting_link?: string;
     }) => {
       const { data, error } = await supabase
         .from('testimonial_schedules')
