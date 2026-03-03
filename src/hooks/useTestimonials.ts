@@ -12,6 +12,7 @@ export interface TestimonialSchedule {
   notes: string | null;
   orientation_file_url: string | null;
   orientation_file_name: string | null;
+  meeting_link: string | null;
   status: string;
   created_by: string;
   completed_at: string | null;
@@ -46,6 +47,7 @@ export const useTestimonials = () => {
       notes?: string;
       orientation_file_url?: string;
       orientation_file_name?: string;
+      meeting_link?: string;
     }) => {
       const { data, error } = await supabase
         .from('testimonial_schedules')
