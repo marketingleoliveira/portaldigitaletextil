@@ -1125,6 +1125,7 @@ export type Database = {
           created_at: string
           created_by: string
           id: string
+          meeting_link: string | null
           notes: string | null
           orientation_file_name: string | null
           orientation_file_url: string | null
@@ -1140,6 +1141,7 @@ export type Database = {
           created_at?: string
           created_by: string
           id?: string
+          meeting_link?: string | null
           notes?: string | null
           orientation_file_name?: string | null
           orientation_file_url?: string | null
@@ -1155,6 +1157,7 @@ export type Database = {
           created_at?: string
           created_by?: string
           id?: string
+          meeting_link?: string | null
           notes?: string | null
           orientation_file_name?: string | null
           orientation_file_url?: string | null

@@ -6,14 +6,14 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
-import { Calendar } from '@/components/ui/calendar';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useTestimonials, TestimonialSchedule } from '@/hooks/useTestimonials';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { format, isSameDay, parseISO, startOfMonth, endOfMonth, eachDayOfInterval, isToday, isSameMonth, startOfWeek, endOfWeek, addMonths, subMonths } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { Plus, Clock, Building2, Phone, FileText, Upload, Check, Trash2, ChevronLeft, ChevronRight, Loader2, Paperclip } from 'lucide-react';
+import { Plus, Clock, Building2, Phone, FileText, Upload, Check, Trash2, ChevronLeft, ChevronRight, Loader2, Paperclip, Pencil, Link2, ExternalLink } from 'lucide-react';
 
 const STATUS_MAP: Record<string, { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline' }> = {
   pendente: { label: 'Pendente', variant: 'outline' },
@@ -22,25 +22,42 @@ const STATUS_MAP: Record<string, { label: string; variant: 'default' | 'secondar
   cancelado: { label: 'Cancelado', variant: 'destructive' },
 };
 
+interface TestimonialForm {
+  company_name: string;
+  contact_name: string;
+  contact_phone: string;
+  scheduled_date: string;
+  scheduled_time: string;
+  notes: string;
+  orientation_file_url: string;
+  orientation_file_name: string;
+  meeting_link: string;
+  status: string;
+}
+
+const emptyForm: TestimonialForm = {
+  company_name: '',
+  contact_name: '',
+  contact_phone: '',
+  scheduled_date: '',
+  scheduled_time: '09:00',
+  notes: '',
+  orientation_file_url: '',
+  orientation_file_name: '',
+  meeting_link: '',
+  status: 'pendente',
+};
+
 const Depoimentos: React.FC = () => {
   const { user } = useAuth();
   const { testimonials, isLoading, createTestimonial, updateTestimonial, deleteTestimonial } = useTestimonials();
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [detailDialog, setDetailDialog] = useState<TestimonialSchedule | null>(null);
   const [uploading, setUploading] = useState(false);
-
-  const [form, setForm] = useState({
-    company_name: '',
-    contact_name: '',
-    contact_phone: '',
-    scheduled_date: '',
-    scheduled_time: '09:00',
-    notes: '',
-    orientation_file_url: '',
-    orientation_file_name: '',
-  });
+  const [form, setForm] = useState<TestimonialForm>({ ...emptyForm });
 
   const monthStart = startOfMonth(currentMonth);
   const monthEnd = endOfMonth(currentMonth);
@@ -84,20 +101,61 @@ const Depoimentos: React.FC = () => {
     }
   };
 
-  const handleCreate = () => {
+  const handleSubmit = () => {
     if (!form.company_name || !form.scheduled_date) return;
     const dateTime = `${form.scheduled_date}T${form.scheduled_time}:00`;
-    createTestimonial.mutate({
-      company_name: form.company_name,
-      contact_name: form.contact_name || undefined,
-      contact_phone: form.contact_phone || undefined,
-      scheduled_date: new Date(dateTime).toISOString(),
-      notes: form.notes || undefined,
-      orientation_file_url: form.orientation_file_url || undefined,
-      orientation_file_name: form.orientation_file_name || undefined,
-    });
+
+    if (editingId) {
+      updateTestimonial.mutate({
+        id: editingId,
+        company_name: form.company_name,
+        contact_name: form.contact_name || null,
+        contact_phone: form.contact_phone || null,
+        scheduled_date: new Date(dateTime).toISOString(),
+        notes: form.notes || null,
+        orientation_file_url: form.orientation_file_url || null,
+        orientation_file_name: form.orientation_file_name || null,
+        meeting_link: form.meeting_link || null,
+        status: form.status,
+      });
+    } else {
+      createTestimonial.mutate({
+        company_name: form.company_name,
+        contact_name: form.contact_name || undefined,
+        contact_phone: form.contact_phone || undefined,
+        scheduled_date: new Date(dateTime).toISOString(),
+        notes: form.notes || undefined,
+        orientation_file_url: form.orientation_file_url || undefined,
+        orientation_file_name: form.orientation_file_name || undefined,
+        meeting_link: form.meeting_link || undefined,
+      });
+    }
+    closeFormDialog();
+  };
+
+  const closeFormDialog = () => {
     setDialogOpen(false);
-    setForm({ company_name: '', contact_name: '', contact_phone: '', scheduled_date: '', scheduled_time: '09:00', notes: '', orientation_file_url: '', orientation_file_name: '' });
+    setEditingId(null);
+    setForm({ ...emptyForm });
+  };
+
+  const openEdit = (t: TestimonialSchedule) => {
+    const date = parseISO(t.scheduled_date);
+    setForm({
+      company_name: t.company_name,
+      contact_name: t.contact_name || '',
+      contact_phone: t.contact_phone || '',
+      scheduled_date: format(date, 'yyyy-MM-dd'),
+      scheduled_time: format(date, 'HH:mm'),
+      notes: t.notes || '',
+      orientation_file_url: t.orientation_file_url || '',
+      orientation_file_name: t.orientation_file_name || '',
+      meeting_link: t.meeting_link || '',
+      status: t.status,
+    });
+    setEditingId(t.id);
+    setDetailDialog(null);
+    setDialogOpen(true);
   };
 
   const handleMarkComplete = (t: TestimonialSchedule) => {
@@ -106,7 +164,8 @@ const Depoimentos: React.FC = () => {
   };
 
   const openNewWithDate = (date: Date) => {
-    setForm((prev) => ({ ...prev, scheduled_date: format(date, 'yyyy-MM-dd') }));
+    setForm({ ...emptyForm, scheduled_date: format(date, 'yyyy-MM-dd') });
+    setEditingId(null);
     setDialogOpen(true);
   };
 
@@ -120,7 +179,7 @@ const Depoimentos: React.FC = () => {
             <h1 className="text-2xl font-bold">Depoimentos</h1>
             <p className="text-muted-foreground">Agende e gerencie gravações de depoimentos</p>
           </div>
-          <Button onClick={() => setDialogOpen(true)}>
+          <Button onClick={() => { setEditingId(null); setForm({ ...emptyForm }); setDialogOpen(true); }}>
             <Plus className="w-4 h-4 mr-2" />
             Agendar Depoimento
           </Button>
@@ -150,7 +209,10 @@ const Depoimentos: React.FC = () => {
                         <p className="text-xs text-muted-foreground">{format(parseISO(t.scheduled_date), 'HH:mm')}</p>
                       </div>
                     </div>
-                    <Badge variant={STATUS_MAP[t.status]?.variant || 'outline'}>{STATUS_MAP[t.status]?.label || t.status}</Badge>
+                    <div className="flex items-center gap-2">
+                      {t.meeting_link && <Link2 className="w-3 h-3 text-primary" />}
+                      <Badge variant={STATUS_MAP[t.status]?.variant || 'outline'}>{STATUS_MAP[t.status]?.label || t.status}</Badge>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -262,8 +324,14 @@ const Depoimentos: React.FC = () => {
                             {STATUS_MAP[t.status]?.label || t.status}
                           </Badge>
                         </div>
+                        {t.meeting_link && (
+                          <p className="text-[10px] text-primary flex items-center gap-1 mt-2">
+                            <Link2 className="w-3 h-3" />
+                            Link da reunião
+                          </p>
+                        )}
                         {t.orientation_file_name && (
-                          <p className="text-[10px] text-muted-foreground flex items-center gap-1 mt-2">
+                          <p className="text-[10px] text-muted-foreground flex items-center gap-1 mt-1">
                             <Paperclip className="w-3 h-3" />
                             {t.orientation_file_name}
                           </p>
@@ -279,11 +347,11 @@ const Depoimentos: React.FC = () => {
           </Card>
         </div>
 
-        {/* Create Dialog */}
-        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        {/* Create/Edit Dialog */}
+        <Dialog open={dialogOpen} onOpenChange={(open) => { if (!open) closeFormDialog(); }}>
           <DialogContent className="max-w-md">
             <DialogHeader>
-              <DialogTitle>Agendar Depoimento</DialogTitle>
+              <DialogTitle>{editingId ? 'Editar Depoimento' : 'Agendar Depoimento'}</DialogTitle>
             </DialogHeader>
             <div className="space-y-4 py-2">
               <div className="space-y-2">
@@ -309,6 +377,28 @@ const Depoimentos: React.FC = () => {
                 <Input value={form.contact_phone} onChange={(e) => setForm({ ...form, contact_phone: e.target.value })} placeholder="(00) 00000-0000" />
               </div>
               <div className="space-y-2">
+                <Label className="flex items-center gap-1">
+                  <Link2 className="w-3.5 h-3.5" />
+                  Link da Reunião
+                </Label>
+                <Input value={form.meeting_link} onChange={(e) => setForm({ ...form, meeting_link: e.target.value })} placeholder="https://meet.google.com/..." />
+              </div>
+              {editingId && (
+                <div className="space-y-2">
+                  <Label>Status</Label>
+                  <Select value={form.status} onValueChange={(v) => setForm({ ...form, status: v })}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Object.entries(STATUS_MAP).map(([key, { label }]) => (
+                        <SelectItem key={key} value={key}>{label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+              <div className="space-y-2">
                 <Label>Observações</Label>
                 <Textarea value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} placeholder="Informações adicionais..." rows={3} />
               </div>
@@ -326,10 +416,10 @@ const Depoimentos: React.FC = () => {
               </div>
             </div>
             <DialogFooter>
-              <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancelar</Button>
-              <Button onClick={handleCreate} disabled={!form.company_name || !form.scheduled_date || createTestimonial.isPending}>
-                {createTestimonial.isPending ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : null}
-                Agendar
+              <Button variant="outline" onClick={closeFormDialog}>Cancelar</Button>
+              <Button onClick={handleSubmit} disabled={!form.company_name || !form.scheduled_date || createTestimonial.isPending || updateTestimonial.isPending}>
+                {(createTestimonial.isPending || updateTestimonial.isPending) ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : null}
+                {editingId ? 'Salvar' : 'Agendar'}
               </Button>
             </DialogFooter>
           </DialogContent>
@@ -366,6 +456,15 @@ const Depoimentos: React.FC = () => {
                     <span>{detailDialog.contact_phone}</span>
                   </div>
                 )}
+                {detailDialog.meeting_link && (
+                  <div className="flex items-center gap-2">
+                    <Link2 className="w-4 h-4 text-primary" />
+                    <a href={detailDialog.meeting_link} target="_blank" rel="noopener noreferrer" className="text-sm text-primary hover:underline flex items-center gap-1">
+                      Link da Reunião
+                      <ExternalLink className="w-3 h-3" />
+                    </a>
+                  </div>
+                )}
                 {detailDialog.notes && (
                   <div className="text-sm">
                     <p className="text-muted-foreground mb-1">Observações:</p>
@@ -381,6 +480,10 @@ const Depoimentos: React.FC = () => {
                   </div>
                 )}
                 <div className="flex gap-2 pt-2">
+                  <Button size="sm" variant="outline" onClick={() => openEdit(detailDialog)}>
+                    <Pencil className="w-4 h-4 mr-1" />
+                    Editar
+                  </Button>
                   {detailDialog.status !== 'realizado' && (
                     <Button size="sm" onClick={() => handleMarkComplete(detailDialog)}>
                       <Check className="w-4 h-4 mr-1" />
