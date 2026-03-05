@@ -632,6 +632,45 @@ export type Database = {
           },
         ]
       }
+      marketing_leads: {
+        Row: {
+          company_name: string
+          contact_email: string | null
+          contact_name: string
+          contact_phone: string | null
+          created_at: string
+          created_by: string
+          id: string
+          notes: string | null
+          status: Database["public"]["Enums"]["marketing_lead_status"]
+          updated_at: string
+        }
+        Insert: {
+          company_name: string
+          contact_email?: string | null
+          contact_name: string
+          contact_phone?: string | null
+          created_at?: string
+          created_by: string
+          id?: string
+          notes?: string | null
+          status?: Database["public"]["Enums"]["marketing_lead_status"]
+          updated_at?: string
+        }
+        Update: {
+          company_name?: string
+          contact_email?: string | null
+          contact_name?: string
+          contact_phone?: string | null
+          created_at?: string
+          created_by?: string
+          id?: string
+          notes?: string | null
+          status?: Database["public"]["Enums"]["marketing_lead_status"]
+          updated_at?: string
+        }
+        Relationships: []
+      }
       meeting_messages: {
         Row: {
           created_at: string
@@ -1580,6 +1619,12 @@ export type Database = {
         | "negociacao"
         | "ganho"
         | "perdido"
+      marketing_lead_status:
+        | "lead"
+        | "contato_inicial"
+        | "resposta"
+        | "agendado"
+        | "depoimento_realizado"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1734,6 +1779,13 @@ export const Constants = {
         "negociacao",
         "ganho",
         "perdido",
+      ],
+      marketing_lead_status: [
+        "lead",
+        "contato_inicial",
+        "resposta",
+        "agendado",
+        "depoimento_realizado",
       ],
     },
   },
