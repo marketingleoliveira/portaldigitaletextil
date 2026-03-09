@@ -357,12 +357,20 @@ export function useLocalRecording({ meetingTitle, autoDownload = true, meetingId
 
       const currentMimeType = globalRecordingState.mediaRecorder.mimeType || 'video/webm';
       
-      globalRecordingState.mediaRecorder.onstop = async () => {
-        const blob = new Blob(globalRecordingState.chunks, { type: currentMimeType });
+      // Capture values BEFORE async onstop fires (component may unmount)
+      const savedChunks = [...globalRecordingState.chunks];
+      const savedTitle = globalRecordingState.meetingTitle || 'Reunião';
+      const shouldAutoDownload = autoDownload;
+
+      globalRecordingState.mediaRecorder.onstop = () => {
+        // Request final data and build blob from all accumulated chunks
+        const allChunks = [...savedChunks, ...globalRecordingState.chunks.slice(savedChunks.length)];
+        const blob = new Blob(allChunks, { type: currentMimeType });
         console.log('Final recording blob size:', blob.size);
-        setRecordedBlob(blob);
-        setIsLocalRecording(false);
-        setLocalRecordingStartTime(null);
+        
+        try { setRecordedBlob(blob); } catch (e) { /* component may be unmounted */ }
+        try { setIsLocalRecording(false); } catch (e) { /* component may be unmounted */ }
+        try { setLocalRecordingStartTime(null); } catch (e) { /* component may be unmounted */ }
         
         // Stop all tracks
         if (globalRecordingState.stream) {
@@ -375,11 +383,6 @@ export function useLocalRecording({ meetingTitle, autoDownload = true, meetingId
           globalRecordingState.audioContext = null;
         }
         
-        // Save to cloud
-        const savedTitle = globalRecordingState.meetingTitle;
-        const savedMeetingId = globalRecordingState.meetingId;
-        const savedStartTime = globalRecordingState.startTime;
-        
         // Reset global state
         globalRecordingState.mediaRecorder = null;
         globalRecordingState.stream = null;
@@ -390,9 +393,20 @@ export function useLocalRecording({ meetingTitle, autoDownload = true, meetingId
         
         toast.success('Gravação local finalizada!');
         
-        // Download locally
-        if (blob.size > 0 && autoDownload) {
-          downloadRecording(blob);
+        // Download locally - use inline logic to avoid stale closure
+        if (blob.size > 0 && shouldAutoDownload) {
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          const date = new Date().toISOString().split('T')[0];
+          const time = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }).replace(':', '-');
+          const safeName = savedTitle.replace(/[^a-zA-Z0-9]/g, '_');
+          a.download = `${safeName}_${date}_${time}.webm`;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          URL.revokeObjectURL(url);
+          toast.success('Gravação baixada com sucesso!');
         }
         
         resolve(blob);
