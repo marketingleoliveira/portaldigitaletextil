@@ -292,8 +292,10 @@ export default function Agendamentos() {
             </div>
           </div>
 
-          {/* Completed meetings & history */}
-          <CompletedMeetingsSection schedules={schedules} currentMonth={currentMonth} />
+          {/* Completed meetings & history - visible only to dev and marketing */}
+          {(user?.role === 'dev' || user?.role === 'marketing') && (
+            <CompletedMeetingsSection schedules={schedules} currentMonth={currentMonth} />
+          )}
           </>
         )}
       </div>
