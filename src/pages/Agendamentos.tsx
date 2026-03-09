@@ -7,6 +7,7 @@ import {
   Loader2, ChevronLeft, ChevronRight, Video, Building2, User, Clock,
   Copy, CheckCircle2, Circle, Calendar as CalendarIcon, Trash2,
 } from "lucide-react";
+import CompletedMeetingsSection from "@/components/agendamentos/CompletedMeetingsSection";
 import {
   format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth,
   isSameDay, isToday, addMonths, subMonths, startOfWeek, endOfWeek,
@@ -69,6 +70,7 @@ export default function Agendamentos() {
             <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
           </div>
         ) : (
+          <>
           <div className="grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-6">
             {/* Calendar Grid */}
             <div className="border rounded-xl bg-card overflow-hidden">
@@ -289,6 +291,10 @@ export default function Agendamentos() {
               </div>
             </div>
           </div>
+
+          {/* Completed meetings & history */}
+          <CompletedMeetingsSection schedules={schedules} currentMonth={currentMonth} />
+          </>
         )}
       </div>
     </DashboardLayout>
