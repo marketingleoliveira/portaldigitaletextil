@@ -7,6 +7,7 @@ import {
   Loader2, ChevronLeft, ChevronRight, Video, Building2, User, Clock,
   Copy, CheckCircle2, Circle, Calendar as CalendarIcon, Trash2,
 } from "lucide-react";
+import CompletedMeetingsSection from "@/components/agendamentos/CompletedMeetingsSection";
 import {
   format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth,
   isSameDay, isToday, addMonths, subMonths, startOfWeek, endOfWeek,
