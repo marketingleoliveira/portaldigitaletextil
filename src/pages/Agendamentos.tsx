@@ -70,6 +70,7 @@ export default function Agendamentos() {
             <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
           </div>
         ) : (
+          <>
           <div className="grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-6">
             {/* Calendar Grid */}
             <div className="border rounded-xl bg-card overflow-hidden">
