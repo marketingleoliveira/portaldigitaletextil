@@ -294,6 +294,7 @@ export default function Agendamentos() {
 
           {/* Completed meetings & history */}
           <CompletedMeetingsSection schedules={schedules} currentMonth={currentMonth} />
+          </>
         )}
       </div>
     </DashboardLayout>
