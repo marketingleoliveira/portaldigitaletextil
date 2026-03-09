@@ -67,7 +67,7 @@ interface NavItem {
 const navItems: NavItem[] = [
   { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard, roles: ["dev", "admin", "gerente", "vendedor", "criacao", "sdr", "marketing"] },
   { label: "Ponto", href: "/ponto", icon: Clock, roles: ["dev", "admin", "gerente", "vendedor"] },
-  { label: "Reunião", href: "/reunioes", icon: Video, roles: ["dev", "admin", "gerente", "vendedor", "criacao", "sdr"] },
+  { label: "Reunião", href: "/reunioes", icon: Video, roles: ["dev", "admin", "gerente", "vendedor", "criacao", "sdr", "marketing"] },
   { label: "Localizar", href: "/localizar", icon: MapPin, roles: ["dev"] },
   { label: "Metas", href: "/metas", icon: Target, roles: ["dev", "admin", "gerente", "vendedor"] },
   { label: "CRM", href: "/crm", icon: Handshake, roles: ["dev", "vendedor", "sdr"] },
