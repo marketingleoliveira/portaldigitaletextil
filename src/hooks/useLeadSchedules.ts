@@ -74,6 +74,7 @@ interface CreateScheduleData {
   scheduled_date: string;
   title: string;
   notes?: string;
+  assigned_to?: string;
 }
 
 export function useCreateLeadSchedule() {
@@ -111,10 +112,14 @@ export function useCreateLeadSchedule() {
 
       if (scheduleError) throw scheduleError;
 
-      // 3. Move lead to "proposta" (Reunião column)
+      // 3. Move lead to "proposta" (Reunião column) and assign vendedor if provided
+      const leadUpdate: Record<string, any> = { status: "proposta" as any };
+      if (data.assigned_to) {
+        leadUpdate.assigned_to = data.assigned_to;
+      }
       await supabase
         .from("leads")
-        .update({ status: "proposta" as any })
+        .update(leadUpdate)
         .eq("id", data.lead_id);
 
       // 4. Log activity on the lead
