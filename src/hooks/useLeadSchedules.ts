@@ -74,6 +74,7 @@ interface CreateScheduleData {
   scheduled_date: string;
   title: string;
   notes?: string;
+  assigned_to?: string;
 }
 
 export function useCreateLeadSchedule() {
