@@ -536,12 +536,20 @@ const Downloads: React.FC = () => {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
             {filteredFiles.map((file) => {
               const fileType = getFileType(file.file_type, file.name);
+              const broken = isFileBroken(file.file_url);
               
               return (
                 <Card 
                   key={file.id} 
-                  className="group overflow-hidden hover:shadow-lg transition-all duration-300 border-0 shadow-md"
+                  className={`group overflow-hidden hover:shadow-lg transition-all duration-300 border-0 shadow-md ${broken ? 'ring-2 ring-destructive/40 opacity-70' : ''}`}
                 >
+                  {/* Broken file warning */}
+                  {broken && (
+                    <div className="flex items-center gap-1.5 px-3 py-1.5 bg-destructive/10 text-destructive text-xs font-medium">
+                      <AlertTriangle className="w-3.5 h-3.5" />
+                      Arquivo indisponível — reenvio necessário
+                    </div>
+                  )}
                   {/* Thumbnail/Preview Area */}
                   <div 
                     className="relative cursor-pointer" 
