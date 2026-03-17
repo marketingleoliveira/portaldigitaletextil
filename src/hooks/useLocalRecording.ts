@@ -28,7 +28,7 @@ interface GlobalRecordingState {
   meetingId: string | null;
   audioContext: AudioContext | null;
   callObject: DailyCall | null;
-  trackSyncInterval: NodeJS.Timeout | null;
+  trackSyncInterval: ReturnType<typeof setInterval> | null;
 }
 
 const globalRecordingState: GlobalRecordingState = {

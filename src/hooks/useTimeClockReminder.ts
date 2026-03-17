@@ -23,7 +23,7 @@ const punchSchedule: { type: PunchType; hour: number; label: string; column: key
 export function useTimeClockReminder() {
   const { user } = useAuth();
   const lastAlertRef = useRef<string | null>(null);
-  const checkIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const checkIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const checkAndAlert = useCallback(async () => {
     if (!user) return;
