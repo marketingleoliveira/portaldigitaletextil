@@ -21,6 +21,15 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 
+const CURRENT_SUPABASE_HOST = 'ddgbqeaqksiamnnzioyv.supabase.co';
+
+const isFileBroken = (fileUrl: string): boolean => {
+  if (!fileUrl) return false;
+  const isSupabaseUrl = fileUrl.includes('.supabase.co/storage/');
+  if (!isSupabaseUrl) return false;
+  return !fileUrl.includes(CURRENT_SUPABASE_HOST);
+};
+
 const Downloads: React.FC = () => {
   const { user } = useAuth();
   const { logDownload } = useAccessLog();
@@ -33,6 +42,7 @@ const Downloads: React.FC = () => {
   const [expandedCategory, setExpandedCategory] = useState<string | null>(null);
   const [subcategories, setSubcategories] = useState<{id: string, name: string, category_id: string}[]>([]);
   const [previewFile, setPreviewFile] = useState<FileItem | null>(null);
+  const [showBrokenList, setShowBrokenList] = useState(false);
 
   const handleDownload = async (file: FileItem) => {
     try {
