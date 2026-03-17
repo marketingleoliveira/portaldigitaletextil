@@ -16,8 +16,8 @@ export const useUserPresence = () => {
   const { user } = useAuth();
   const sessionIdRef = useRef<string | null>(null);
   const sessionStartRef = useRef<Date | null>(null);
-  const heartbeatRef = useRef<NodeJS.Timeout | null>(null);
-  const durationUpdateRef = useRef<NodeJS.Timeout | null>(null);
+  const heartbeatRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const durationUpdateRef = useRef<ReturnType<typeof setInterval> | null>(null);
   
   // Refs for function callbacks to avoid effect re-runs
   const startSessionRef = useRef<() => Promise<void>>();
