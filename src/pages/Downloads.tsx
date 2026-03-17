@@ -8,7 +8,7 @@ import { FileItem, AppRole } from '@/types/auth';
 import { 
   FileText, Download, Search, Loader2, FolderOpen, Eye, X,
   FileImage, FileVideo, FileAudio, FileSpreadsheet, FileType, File, Globe, ExternalLink,
-  ChevronDown, ChevronRight
+  ChevronDown, ChevronRight, AlertTriangle, List
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/contexts/AuthContext';
