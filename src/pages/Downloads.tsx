@@ -384,6 +384,57 @@ const Downloads: React.FC = () => {
           </p>
         </div>
 
+        {/* Broken Files Warning - Dev only */}
+        {user?.role === 'dev' && (() => {
+          const brokenFiles = files.filter(f => isFileBroken(f.file_url));
+          if (brokenFiles.length === 0) return null;
+          return (
+            <Card className="border-destructive/50 bg-destructive/5">
+              <CardContent className="pt-4 pb-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-destructive">
+                    <AlertTriangle className="w-5 h-5" />
+                    <span className="font-medium text-sm">
+                      {brokenFiles.length} arquivo(s) com link quebrado (servidor antigo)
+                    </span>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowBrokenList(!showBrokenList)}
+                    className="gap-1 text-xs"
+                  >
+                    <List className="w-4 h-4" />
+                    {showBrokenList ? 'Ocultar lista' : 'Ver lista completa'}
+                  </Button>
+                </div>
+                {showBrokenList && (
+                  <div className="mt-3 max-h-60 overflow-y-auto rounded-lg border bg-background">
+                    <table className="w-full text-xs">
+                      <thead className="sticky top-0 bg-muted">
+                        <tr>
+                          <th className="text-left p-2 font-medium">Nome</th>
+                          <th className="text-left p-2 font-medium">Categoria</th>
+                          <th className="text-left p-2 font-medium">URL antiga</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {brokenFiles.map(f => (
+                          <tr key={f.id} className="border-t">
+                            <td className="p-2 font-medium">{f.name}</td>
+                            <td className="p-2 text-muted-foreground">{f.category || '—'}</td>
+                            <td className="p-2 text-muted-foreground truncate max-w-[300px]">{f.file_url}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          );
+        })()}
+
         {/* Search */}
         <Card>
           <CardContent className="pt-6">
