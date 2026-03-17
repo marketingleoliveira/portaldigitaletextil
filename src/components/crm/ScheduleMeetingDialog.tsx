@@ -6,11 +6,13 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { CalendarIcon, Clock, Loader2, Video } from "lucide-react";
+import { CalendarIcon, Clock, Loader2, Video, User } from "lucide-react";
 import { type Lead } from "@/hooks/useCRM";
+import { useVendedores } from "@/hooks/useCRM";
 import { useCreateLeadSchedule } from "@/hooks/useLeadSchedules";
 
 interface ScheduleMeetingDialogProps {
@@ -24,7 +26,9 @@ export function ScheduleMeetingDialog({ lead, open, onOpenChange }: ScheduleMeet
   const [time, setTime] = useState("09:00");
   const [title, setTitle] = useState(`Reunião - ${lead.company_name}`);
   const [notes, setNotes] = useState("");
+  const [selectedVendedor, setSelectedVendedor] = useState<string>(lead.assigned_to || "");
   const createSchedule = useCreateLeadSchedule();
+  const { data: vendedores } = useVendedores();
 
   const handleSubmit = async () => {
     if (!date) return;
@@ -38,6 +42,7 @@ export function ScheduleMeetingDialog({ lead, open, onOpenChange }: ScheduleMeet
       scheduled_date: scheduledDate.toISOString(),
       title,
       notes: notes || undefined,
+      assigned_to: selectedVendedor || undefined,
     });
 
     onOpenChange(false);
@@ -45,6 +50,7 @@ export function ScheduleMeetingDialog({ lead, open, onOpenChange }: ScheduleMeet
     setTime("09:00");
     setTitle(`Reunião - ${lead.company_name}`);
     setNotes("");
+    setSelectedVendedor("");
   };
 
   return (
@@ -66,6 +72,26 @@ export function ScheduleMeetingDialog({ lead, open, onOpenChange }: ScheduleMeet
           <div className="space-y-2">
             <Label>Título da reunião</Label>
             <Input value={title} onChange={(e) => setTitle(e.target.value)} />
+          </div>
+
+          {/* Vendedor responsável */}
+          <div className="space-y-2">
+            <Label className="flex items-center gap-1.5">
+              <User className="w-4 h-4" />
+              Vendedor responsável
+            </Label>
+            <Select value={selectedVendedor} onValueChange={setSelectedVendedor}>
+              <SelectTrigger>
+                <SelectValue placeholder="Selecionar vendedor..." />
+              </SelectTrigger>
+              <SelectContent>
+                {vendedores?.map((v) => (
+                  <SelectItem key={v.id} value={v.id}>
+                    {v.full_name} {v.region ? `(${v.region})` : ''}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           <div className="space-y-2">

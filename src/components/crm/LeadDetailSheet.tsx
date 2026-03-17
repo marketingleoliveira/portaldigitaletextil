@@ -184,15 +184,15 @@ export function LeadDetailSheet({ lead, open, onOpenChange }: LeadDetailSheetPro
               </Select>
             </div>
 
-            {/* Assign - only in ganho status */}
-            {lead.status === "ganho" && (isDev || isSDR) && (
+            {/* Assign - in qualificado and ganho status */}
+            {(lead.status === "qualificado" || lead.status === "ganho") && (isDev || isSDR) && (
               <div className="space-y-1.5">
                 <Label className="text-xs font-medium text-muted-foreground">Vendedor Responsável</Label>
                 <Select value={lead.assigned_to || ""} onValueChange={handleAssign}>
-                  <SelectTrigger><SelectValue placeholder="Selecionar..." /></SelectTrigger>
+                  <SelectTrigger><SelectValue placeholder="Selecionar vendedor..." /></SelectTrigger>
                   <SelectContent>
                     {vendedores?.map((v) => (
-                      <SelectItem key={v.id} value={v.id}>{v.full_name}</SelectItem>
+                      <SelectItem key={v.id} value={v.id}>{v.full_name} {v.region ? `(${v.region})` : ''}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>

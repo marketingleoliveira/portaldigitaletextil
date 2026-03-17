@@ -160,8 +160,8 @@ export function CRMKanban({ leads, onSelectLead }: CRMKanbanProps) {
                         </div>
                       )}
                       
-                      {/* Vendedor Responsável - ONLY in Ganho column */}
-                      {isGanho && (
+                      {/* Vendedor Responsável - in Qualificado and Ganho columns */}
+                      {(isGanho || status === "qualificado") && (
                         <div className="mt-2 pt-2 border-t" onClick={(e) => e.stopPropagation()}>
                           <Select
                             value={lead.assigned_to || ""}
