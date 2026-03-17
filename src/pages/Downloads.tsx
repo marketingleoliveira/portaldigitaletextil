@@ -8,7 +8,7 @@ import { FileItem, AppRole } from '@/types/auth';
 import { 
   FileText, Download, Search, Loader2, FolderOpen, Eye, X,
   FileImage, FileVideo, FileAudio, FileSpreadsheet, FileType, File, Globe, ExternalLink,
-  ChevronDown, ChevronRight
+  ChevronDown, ChevronRight, AlertTriangle, List
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/contexts/AuthContext';
@@ -20,6 +20,15 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+
+const CURRENT_SUPABASE_HOST = 'ddgbqeaqksiamnnzioyv.supabase.co';
+
+const isFileBroken = (fileUrl: string): boolean => {
+  if (!fileUrl) return false;
+  const isSupabaseUrl = fileUrl.includes('.supabase.co/storage/');
+  if (!isSupabaseUrl) return false;
+  return !fileUrl.includes(CURRENT_SUPABASE_HOST);
+};
 
 const Downloads: React.FC = () => {
   const { user } = useAuth();
@@ -33,6 +42,7 @@ const Downloads: React.FC = () => {
   const [expandedCategory, setExpandedCategory] = useState<string | null>(null);
   const [subcategories, setSubcategories] = useState<{id: string, name: string, category_id: string}[]>([]);
   const [previewFile, setPreviewFile] = useState<FileItem | null>(null);
+  const [showBrokenList, setShowBrokenList] = useState(false);
 
   const handleDownload = async (file: FileItem) => {
     try {
@@ -374,6 +384,57 @@ const Downloads: React.FC = () => {
           </p>
         </div>
 
+        {/* Broken Files Warning - Dev only */}
+        {user?.role === 'dev' && (() => {
+          const brokenFiles = files.filter(f => isFileBroken(f.file_url));
+          if (brokenFiles.length === 0) return null;
+          return (
+            <Card className="border-destructive/50 bg-destructive/5">
+              <CardContent className="pt-4 pb-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-destructive">
+                    <AlertTriangle className="w-5 h-5" />
+                    <span className="font-medium text-sm">
+                      {brokenFiles.length} arquivo(s) com link quebrado (servidor antigo)
+                    </span>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowBrokenList(!showBrokenList)}
+                    className="gap-1 text-xs"
+                  >
+                    <List className="w-4 h-4" />
+                    {showBrokenList ? 'Ocultar lista' : 'Ver lista completa'}
+                  </Button>
+                </div>
+                {showBrokenList && (
+                  <div className="mt-3 max-h-60 overflow-y-auto rounded-lg border bg-background">
+                    <table className="w-full text-xs">
+                      <thead className="sticky top-0 bg-muted">
+                        <tr>
+                          <th className="text-left p-2 font-medium">Nome</th>
+                          <th className="text-left p-2 font-medium">Categoria</th>
+                          <th className="text-left p-2 font-medium">URL antiga</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {brokenFiles.map(f => (
+                          <tr key={f.id} className="border-t">
+                            <td className="p-2 font-medium">{f.name}</td>
+                            <td className="p-2 text-muted-foreground">{f.category || '—'}</td>
+                            <td className="p-2 text-muted-foreground truncate max-w-[300px]">{f.file_url}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          );
+        })()}
+
         {/* Search */}
         <Card>
           <CardContent className="pt-6">
@@ -475,12 +536,20 @@ const Downloads: React.FC = () => {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
             {filteredFiles.map((file) => {
               const fileType = getFileType(file.file_type, file.name);
+              const broken = isFileBroken(file.file_url);
               
               return (
                 <Card 
                   key={file.id} 
-                  className="group overflow-hidden hover:shadow-lg transition-all duration-300 border-0 shadow-md"
+                  className={`group overflow-hidden hover:shadow-lg transition-all duration-300 border-0 shadow-md ${broken ? 'ring-2 ring-destructive/40 opacity-70' : ''}`}
                 >
+                  {/* Broken file warning */}
+                  {broken && (
+                    <div className="flex items-center gap-1.5 px-3 py-1.5 bg-destructive/10 text-destructive text-xs font-medium">
+                      <AlertTriangle className="w-3.5 h-3.5" />
+                      Arquivo indisponível — reenvio necessário
+                    </div>
+                  )}
                   {/* Thumbnail/Preview Area */}
                   <div 
                     className="relative cursor-pointer" 
