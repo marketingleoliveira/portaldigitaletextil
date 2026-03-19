@@ -367,6 +367,47 @@ const Dashboard: React.FC = () => {
           )}
         </div>
 
+        {/* Notifications Section */}
+        {recentNotifications.length > 0 && (
+          <Card>
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between">
+                <CardTitle className="flex items-center gap-2">
+                  <Bell className="w-5 h-5 text-warning" />
+                  Notificações Recentes
+                </CardTitle>
+                <Link to="/notificacoes">
+                  <Badge variant="outline" className="cursor-pointer hover:bg-muted transition-colors gap-1">
+                    Ver todas
+                    <ArrowRight className="w-3 h-3" />
+                  </Badge>
+                </Link>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                {recentNotifications.map((notif) => (
+                  <div
+                    key={`${notif.type}-${notif.id}`}
+                    className="flex items-start gap-3 p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors"
+                  >
+                    <div className={`p-2 rounded-full mt-0.5 ${notif.type === 'individual' ? 'bg-primary/10' : 'bg-warning/10'}`}>
+                      <Bell className={`w-4 h-4 ${notif.type === 'individual' ? 'text-primary' : 'text-warning'}`} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-sm truncate">{notif.title}</p>
+                      <p className="text-xs text-muted-foreground line-clamp-2 mt-0.5">{notif.message}</p>
+                      <p className="text-xs text-muted-foreground/70 mt-1">
+                        {formatDistanceToNow(new Date(notif.created_at), { addSuffix: true, locale: ptBR })}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Stats Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-4">
           {hasFullAccess(user?.role) && (
