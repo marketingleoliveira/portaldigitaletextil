@@ -3,7 +3,7 @@ import { type Lead, type LeadStatus, LEAD_STATUS_CONFIG, useUpdateLead, useVende
 import { LeadStatusBadge } from "./LeadStatusBadge";
 import { Card } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { User, Phone, DollarSign, Trophy, GripVertical } from "lucide-react";
+import { User, Phone, DollarSign, Trophy, GripVertical, UserCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface CRMKanbanProps {
