@@ -175,6 +175,40 @@ const Dashboard: React.FC = () => {
 
         setLinkFiles(linksData || []);
 
+        // Fetch recent notifications for current user
+        const allNotifs: RecentNotification[] = [];
+
+        // Group notifications (by role)
+        if (user?.role) {
+          const { data: groupNotifs } = await supabase
+            .from('notifications')
+            .select('id, title, message, created_at')
+            .order('created_at', { ascending: false })
+            .limit(5);
+          
+          if (groupNotifs) {
+            allNotifs.push(...groupNotifs.map(n => ({ ...n, type: 'group' as const })));
+          }
+        }
+
+        // Individual notifications
+        if (user?.id) {
+          const { data: userNotifs } = await supabase
+            .from('user_notifications')
+            .select('id, title, message, created_at')
+            .eq('target_user_id', user.id)
+            .order('created_at', { ascending: false })
+            .limit(5);
+          
+          if (userNotifs) {
+            allNotifs.push(...userNotifs.map(n => ({ ...n, type: 'individual' as const })));
+          }
+        }
+
+        // Sort by date and take latest 6
+        allNotifs.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+        setRecentNotifications(allNotifs.slice(0, 6));
+
         setStats({
           totalProducts: productsCount || 0,
           totalUsers: usersCount,
