@@ -114,7 +114,7 @@ export function useVendedores() {
       const { data, error } = await supabase
         .from("user_roles")
         .select("user_id, role, profiles:profiles!inner(id, full_name, avatar_url, region, is_active)")
-        .in("role", ["vendedor", "dev"]);
+        .in("role", ["vendedor", "dev", "sdr", "gerente"]);
       if (error) throw error;
       return data
         ?.filter((r: any) => r.profiles?.is_active !== false)
