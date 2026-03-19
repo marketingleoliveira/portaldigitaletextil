@@ -31,7 +31,6 @@ import {
   Link as LinkIcon
 } from 'lucide-react';
 import RoleBadge from '@/components/RoleBadge';
-import { Badge } from '@/components/ui/badge';
 import OnlineUsersCard from '@/components/OnlineUsersCard';
 import ActivityRankingCard from '@/components/ActivityRankingCard';
 
