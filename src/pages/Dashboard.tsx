@@ -4,7 +4,10 @@ import { useAuth } from '@/contexts/AuthContext';
 import { hasFullAccess } from '@/types/auth';
 import DashboardLayout from '@/components/layouts/DashboardLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
+import { formatDistanceToNow } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 import { 
   Users, 
   FolderOpen, 
@@ -28,7 +31,6 @@ import {
   Link as LinkIcon
 } from 'lucide-react';
 import RoleBadge from '@/components/RoleBadge';
-import { Badge } from '@/components/ui/badge';
 import OnlineUsersCard from '@/components/OnlineUsersCard';
 import ActivityRankingCard from '@/components/ActivityRankingCard';
 
@@ -62,6 +64,14 @@ interface LinkFile {
   name: string;
   file_url: string;
   description: string | null;
+}
+
+interface RecentNotification {
+  id: string;
+  title: string;
+  message: string;
+  created_at: string;
+  type: 'group' | 'individual';
 }
 
 const getFileTypeFromName = (fileName: string, isExternalLink?: boolean): keyof FileTypeStats | null => {
@@ -106,6 +116,7 @@ const Dashboard: React.FC = () => {
     creationFilesBreakdown: emptyBreakdown(),
   });
   const [linkFiles, setLinkFiles] = useState<LinkFile[]>([]);
+  const [recentNotifications, setRecentNotifications] = useState<RecentNotification[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -163,6 +174,40 @@ const Dashboard: React.FC = () => {
           .order('name', { ascending: true });
 
         setLinkFiles(linksData || []);
+
+        // Fetch recent notifications for current user
+        const allNotifs: RecentNotification[] = [];
+
+        // Group notifications (by role)
+        if (user?.role) {
+          const { data: groupNotifs } = await supabase
+            .from('notifications')
+            .select('id, title, message, created_at')
+            .order('created_at', { ascending: false })
+            .limit(5);
+          
+          if (groupNotifs) {
+            allNotifs.push(...groupNotifs.map(n => ({ ...n, type: 'group' as const })));
+          }
+        }
+
+        // Individual notifications
+        if (user?.id) {
+          const { data: userNotifs } = await supabase
+            .from('user_notifications')
+            .select('id, title, message, created_at')
+            .eq('target_user_id', user.id)
+            .order('created_at', { ascending: false })
+            .limit(5);
+          
+          if (userNotifs) {
+            allNotifs.push(...userNotifs.map(n => ({ ...n, type: 'individual' as const })));
+          }
+        }
+
+        // Sort by date and take latest 6
+        allNotifs.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+        setRecentNotifications(allNotifs.slice(0, 6));
 
         setStats({
           totalProducts: productsCount || 0,
@@ -321,6 +366,47 @@ const Dashboard: React.FC = () => {
             <RoleBadge role={user.role} />
           )}
         </div>
+
+        {/* Notifications Section */}
+        {recentNotifications.length > 0 && (
+          <Card>
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between">
+                <CardTitle className="flex items-center gap-2">
+                  <Bell className="w-5 h-5 text-warning" />
+                  Notificações Recentes
+                </CardTitle>
+                <Link to="/notificacoes">
+                  <Badge variant="outline" className="cursor-pointer hover:bg-muted transition-colors gap-1">
+                    Ver todas
+                    <ArrowRight className="w-3 h-3" />
+                  </Badge>
+                </Link>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                {recentNotifications.map((notif) => (
+                  <div
+                    key={`${notif.type}-${notif.id}`}
+                    className="flex items-start gap-3 p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors"
+                  >
+                    <div className={`p-2 rounded-full mt-0.5 ${notif.type === 'individual' ? 'bg-primary/10' : 'bg-warning/10'}`}>
+                      <Bell className={`w-4 h-4 ${notif.type === 'individual' ? 'text-primary' : 'text-warning'}`} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-sm truncate">{notif.title}</p>
+                      <p className="text-xs text-muted-foreground line-clamp-2 mt-0.5">{notif.message}</p>
+                      <p className="text-xs text-muted-foreground/70 mt-1">
+                        {formatDistanceToNow(new Date(notif.created_at), { addSuffix: true, locale: ptBR })}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Stats Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-4">
