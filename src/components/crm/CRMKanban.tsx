@@ -159,8 +159,19 @@ export function CRMKanban({ leads, onSelectLead }: CRMKanbanProps) {
                           <span>{formatCurrency(lead.estimated_value)}</span>
                         </div>
                       )}
+
+                      {/* Vendedor atribuído - exibir nome em todos os cards */}
+                      {lead.assigned_to && !(isGanho || status === "qualificado") && (() => {
+                        const vendedorName = lead.assigned_profile?.full_name || vendedores?.find(v => v.id === lead.assigned_to)?.full_name;
+                        return vendedorName ? (
+                          <div className="flex items-center gap-1.5 mt-1.5 text-xs text-violet-600">
+                            <UserCheck className="w-3 h-3" />
+                            <span className="truncate">{vendedorName}</span>
+                          </div>
+                        ) : null;
+                      })()}
                       
-                      {/* Vendedor Responsável - in Qualificado and Ganho columns */}
+                      {/* Vendedor Responsável - seletor nas colunas Qualificado e Ganho */}
                       {(isGanho || status === "qualificado") && (
                         <div className="mt-2 pt-2 border-t" onClick={(e) => e.stopPropagation()}>
                           <Select
