@@ -116,6 +116,7 @@ const Dashboard: React.FC = () => {
     creationFilesBreakdown: emptyBreakdown(),
   });
   const [linkFiles, setLinkFiles] = useState<LinkFile[]>([]);
+  const [recentNotifications, setRecentNotifications] = useState<RecentNotification[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
