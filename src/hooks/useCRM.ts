@@ -177,10 +177,10 @@ export function useUpdateLead() {
 
   return useMutation({
     mutationFn: async ({ id, ...data }: Partial<Lead> & { id: string }) => {
-      // Get current lead for status change tracking
+      // Get current lead for status change and assignment tracking
       const { data: currentLead } = await supabase
         .from("leads")
-        .select("status")
+        .select("status, assigned_to, company_name")
         .eq("id", id)
         .single();
 
@@ -196,6 +196,17 @@ export function useUpdateLead() {
           description: `Status alterado de ${LEAD_STATUS_CONFIG[currentLead.status as LeadStatus]?.label} para ${LEAD_STATUS_CONFIG[data.status]?.label}`,
           previous_status: currentLead.status,
           new_status: data.status,
+        });
+      }
+
+      // Notify vendor when assigned
+      if (data.assigned_to && currentLead && data.assigned_to !== currentLead.assigned_to) {
+        const leadName = currentLead.company_name || "Lead";
+        await supabase.from("user_notifications").insert({
+          target_user_id: data.assigned_to,
+          created_by: user!.id,
+          title: "Novo lead atribuído a você",
+          message: `O lead "${leadName}" foi atribuído a você. Acesse o CRM para mais detalhes.`,
         });
       }
     },
