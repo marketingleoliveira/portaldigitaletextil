@@ -66,6 +66,14 @@ interface LinkFile {
   description: string | null;
 }
 
+interface RecentNotification {
+  id: string;
+  title: string;
+  message: string;
+  created_at: string;
+  type: 'group' | 'individual';
+}
+
 const getFileTypeFromName = (fileName: string, isExternalLink?: boolean): keyof FileTypeStats | null => {
   if (isExternalLink) return 'link';
   const ext = fileName.split('.').pop()?.toLowerCase() || '';
