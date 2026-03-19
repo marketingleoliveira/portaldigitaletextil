@@ -111,20 +111,40 @@ export function useVendedores() {
   return useQuery({
     queryKey: ["vendedores-for-crm"],
     queryFn: async () => {
-      const { data, error } = await supabase
+      // First get roles
+      const { data: roles, error: rolesError } = await supabase
         .from("user_roles")
-        .select("user_id, role, profiles:profiles!inner(id, full_name, avatar_url, region, is_active)")
+        .select("user_id, role")
         .in("role", ["vendedor", "dev", "sdr", "gerente"]);
-      if (error) throw error;
-      return data
-        ?.filter((r: any) => r.profiles?.is_active !== false)
-        .map((r: any) => ({
-          id: r.user_id,
-          full_name: r.profiles?.full_name || "Sem nome",
-          avatar_url: r.profiles?.avatar_url,
-          role: r.role,
-          region: r.profiles?.region,
-        })) || [];
+      if (rolesError) throw rolesError;
+      if (!roles || roles.length === 0) return [];
+
+      const userIds = roles.map((r) => r.user_id);
+
+      // Then get profiles
+      const { data: profiles, error: profilesError } = await supabase
+        .from("profiles")
+        .select("id, full_name, avatar_url, region, is_active")
+        .in("id", userIds);
+      if (profilesError) throw profilesError;
+
+      const profileMap = new Map(profiles?.map((p) => [p.id, p]) || []);
+
+      return roles
+        .filter((r) => {
+          const profile = profileMap.get(r.user_id);
+          return profile && profile.is_active !== false;
+        })
+        .map((r) => {
+          const profile = profileMap.get(r.user_id)!;
+          return {
+            id: r.user_id,
+            full_name: profile.full_name || "Sem nome",
+            avatar_url: profile.avatar_url,
+            role: r.role,
+            region: profile.region,
+          };
+        });
     },
   });
 }
