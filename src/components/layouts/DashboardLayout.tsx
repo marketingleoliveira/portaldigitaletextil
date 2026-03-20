@@ -62,6 +62,7 @@ interface NavItem {
   icon: React.ElementType;
   roles: AppRole[];
   highlight?: boolean;
+  showNewBadge?: boolean;
 }
 
 const navItems: NavItem[] = [
