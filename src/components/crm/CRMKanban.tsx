@@ -15,9 +15,10 @@ interface CRMKanbanProps {
 const KANBAN_COLUMNS: LeadStatus[] = ["novo", "fora_de_perfil", "contatado", "qualificado", "proposta", "ganho", "perdido"];
 
 export function CRMKanban({ leads, onSelectLead }: CRMKanbanProps) {
+  const { user } = useAuth();
   const updateLead = useUpdateLead();
   const { data: vendedores } = useVendedores();
-  const [draggedLeadId, setDraggedLeadId] = useState<string | null>(null);
+  const isDev = user?.role === 'dev';
   const [dropTarget, setDropTarget] = useState<LeadStatus | null>(null);
 
   const getLeadsByStatus = (status: LeadStatus) =>
