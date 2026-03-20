@@ -177,21 +177,31 @@ export function CRMKanban({ leads, onSelectLead }: CRMKanbanProps) {
                       {/* Vendedor Responsável - seletor nas colunas Qualificado e Ganho */}
                       {(isGanho || status === "qualificado") && (
                         <div className="mt-2 pt-2 border-t" onClick={(e) => e.stopPropagation()}>
-                          <Select
-                            value={lead.assigned_to || ""}
-                            onValueChange={(v) => handleAssignVendedor(lead.id, v)}
-                          >
-                            <SelectTrigger className="h-7 text-xs">
-                              <SelectValue placeholder="Vendedor responsável..." />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {vendedores?.map((v) => (
-                                <SelectItem key={v.id} value={v.id} className="text-xs">
-                                  {v.full_name} {v.region ? `(${v.region})` : ''}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
+                          {lead.assigned_to && !isDev ? (
+                            <div className="flex items-center gap-1.5 text-xs text-violet-600">
+                              <Lock className="w-3 h-3 text-muted-foreground" />
+                              <UserCheck className="w-3 h-3" />
+                              <span className="truncate">
+                                {lead.assigned_profile?.full_name || vendedores?.find(v => v.id === lead.assigned_to)?.full_name || "Atribuído"}
+                              </span>
+                            </div>
+                          ) : (
+                            <Select
+                              value={lead.assigned_to || ""}
+                              onValueChange={(v) => handleAssignVendedor(lead.id, v)}
+                            >
+                              <SelectTrigger className="h-7 text-xs">
+                                <SelectValue placeholder="Vendedor responsável..." />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {vendedores?.map((v) => (
+                                  <SelectItem key={v.id} value={v.id} className="text-xs">
+                                    {v.full_name} {v.region ? `(${v.region})` : ''}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          )}
                         </div>
                       )}
                     </div>
