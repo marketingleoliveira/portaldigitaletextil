@@ -2731,224 +2731,94 @@ export default function MeetingRoom() {
         )}
       </div>
 
-      {/* Controls bar - Mobile optimized */}
-      <div className="h-16 sm:h-20 bg-gray-800 flex items-center justify-center px-2 sm:px-4 gap-1 sm:gap-2 border-t border-gray-700 shrink-0">
+      {/* Controls bar - Mobile optimized with two rows */}
+      <div className="bg-gray-800 border-t border-gray-700 shrink-0">
         <TooltipProvider>
-          {/* Mic toggle */}
-          <Tooltip>
-            <TooltipTrigger asChild>
+          {/* Mobile: two-row layout / Desktop: single row */}
+          <div className="sm:hidden flex flex-col gap-1 px-2 py-2">
+            {/* Row 1: Primary controls */}
+            <div className="flex items-center justify-center gap-2">
               <Button
                 variant={isMuted ? "destructive" : "secondary"}
-                size="lg"
-                className="rounded-full w-10 h-10 sm:w-12 sm:h-12"
+                size="sm"
+                className="rounded-full w-11 h-11"
                 onClick={toggleMute}
                 disabled={!callObject || (!hasModeratorAccess && !globalAudioEnabled && isMuted)}
               >
-                {isMuted ? <MicOff className="w-4 h-4 sm:w-5 sm:h-5" /> : <Mic className="w-4 h-4 sm:w-5 sm:h-5" />}
+                {isMuted ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
               </Button>
-            </TooltipTrigger>
-            <TooltipContent className="hidden sm:block">{isMuted ? "Ativar microfone" : "Desativar microfone"}</TooltipContent>
-          </Tooltip>
 
-          {/* Video toggle */}
-          <Tooltip>
-            <TooltipTrigger asChild>
               <Button
                 variant={isVideoOn ? "secondary" : "destructive"}
-                size="lg"
-                className="rounded-full w-10 h-10 sm:w-12 sm:h-12"
+                size="sm"
+                className="rounded-full w-11 h-11"
                 onClick={toggleVideo}
                 disabled={!callObject || (!hasModeratorAccess && !globalVideoEnabled && !isVideoOn)}
               >
-                {isVideoOn ? <Video className="w-4 h-4 sm:w-5 sm:h-5" /> : <VideoOff className="w-4 h-4 sm:w-5 sm:h-5" />}
+                {isVideoOn ? <Video className="w-4 h-4" /> : <VideoOff className="w-4 h-4" />}
               </Button>
-            </TooltipTrigger>
-            <TooltipContent className="hidden sm:block">{isVideoOn ? "Desativar câmera" : "Ativar câmera"}</TooltipContent>
-          </Tooltip>
 
-          {/* Screen share - Now visible on all devices */}
-          <Tooltip>
-            <TooltipTrigger asChild>
               <Button
                 variant={isScreenSharing ? "default" : "secondary"}
-                size="lg"
-                className={cn(
-                  "rounded-full w-10 h-10 sm:w-12 sm:h-12",
-                  isScreenSharing && "bg-green-600 hover:bg-green-700"
-                )}
+                size="sm"
+                className={cn("rounded-full w-11 h-11", isScreenSharing && "bg-green-600 hover:bg-green-700")}
                 onClick={toggleScreenShare}
                 disabled={!callObject}
               >
-                {isScreenSharing ? <ScreenShareOff className="w-4 h-4 sm:w-5 sm:h-5" /> : <ScreenShare className="w-4 h-4 sm:w-5 sm:h-5" />}
+                {isScreenSharing ? <ScreenShareOff className="w-4 h-4" /> : <ScreenShare className="w-4 h-4" />}
               </Button>
-            </TooltipTrigger>
-            <TooltipContent className="hidden sm:block">
-              {isScreenSharing ? "Parar compartilhamento" : "Compartilhar tela"}
-            </TooltipContent>
-          </Tooltip>
 
-          {/* Hand raise */}
-          <Tooltip>
-            <TooltipTrigger asChild>
               <Button
                 variant={handRaised ? "default" : "secondary"}
-                size="lg"
-                className={cn(
-                  "rounded-full w-10 h-10 sm:w-12 sm:h-12",
-                  handRaised && "bg-yellow-500 hover:bg-yellow-600"
-                )}
+                size="sm"
+                className={cn("rounded-full w-11 h-11", handRaised && "bg-yellow-500 hover:bg-yellow-600")}
                 onClick={toggleHandRaise}
                 disabled={!callObject}
               >
-                <Hand className={cn("w-4 h-4 sm:w-5 sm:h-5", handRaised && "animate-bounce")} />
+                <Hand className={cn("w-4 h-4", handRaised && "animate-bounce")} />
               </Button>
-            </TooltipTrigger>
-            <TooltipContent className="hidden sm:block">{handRaised ? "Baixar a mão" : "Levantar a mão"}</TooltipContent>
-          </Tooltip>
 
-          {/* Reactions picker */}
-          <Popover>
-            <Tooltip>
-              <TooltipTrigger asChild>
+              <Button
+                variant="destructive"
+                size="sm"
+                className="rounded-full w-11 h-11"
+                onClick={leaveMeeting}
+              >
+                <Phone className="w-4 h-4 rotate-[135deg]" />
+              </Button>
+            </div>
+
+            {/* Row 2: Secondary controls */}
+            <div className="flex items-center justify-center gap-2">
+              <Popover>
                 <PopoverTrigger asChild>
-                  <Button
-                    variant="secondary"
-                    size="lg"
-                    className="rounded-full w-10 h-10 sm:w-12 sm:h-12"
-                    disabled={!callObject}
-                  >
-                    <Sparkles className="w-4 h-4 sm:w-5 sm:h-5" />
+                  <Button variant="secondary" size="sm" className="rounded-full w-11 h-11" disabled={!callObject}>
+                    <Sparkles className="w-4 h-4" />
                   </Button>
                 </PopoverTrigger>
-              </TooltipTrigger>
-              <TooltipContent className="hidden sm:block">Reagir</TooltipContent>
-            </Tooltip>
-            <PopoverContent className="w-auto p-2" side="top">
-              <div className="flex gap-1">
-                {REACTIONS.map((emoji) => (
-                  <button
-                    key={emoji}
-                    onClick={() => sendReaction(emoji)}
-                    className="hover:scale-125 transition-transform text-2xl p-2 rounded-lg hover:bg-muted"
-                  >
-                    {emoji}
-                  </button>
-                ))}
-              </div>
-            </PopoverContent>
-          </Popover>
+                <PopoverContent className="w-auto p-2" side="top">
+                  <div className="flex gap-1">
+                    {REACTIONS.map((emoji) => (
+                      <button key={emoji} onClick={() => sendReaction(emoji)} className="hover:scale-125 transition-transform text-2xl p-2 rounded-lg hover:bg-muted">
+                        {emoji}
+                      </button>
+                    ))}
+                  </div>
+                </PopoverContent>
+              </Popover>
 
-          {/* Recording (Host and Dev) - Hidden on mobile */}
-          {hasModeratorAccess && (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  variant={(isRecording || isLocalRecording) ? "destructive" : "secondary"}
-                  size="lg"
-                  className="rounded-full w-10 h-10 sm:w-12 sm:h-12 hidden sm:flex"
-                  disabled={!callObject}
-                >
-                  {(isRecording || isLocalRecording) ? (
-                    <Square className="w-4 h-4 sm:w-5 sm:h-5" />
-                  ) : (
-                    <Circle className="w-4 h-4 sm:w-5 sm:h-5 fill-current" />
-                  )}
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="center">
-                {(isRecording || isLocalRecording) ? (
-                  <DropdownMenuItem onClick={stopRecording}>
-                    <Square className="w-4 h-4 mr-2" />
-                    Parar gravação
-                  </DropdownMenuItem>
-                ) : (
-                  <>
-                    <DropdownMenuItem onClick={startRecording}>
-                      <Circle className="w-4 h-4 mr-2 fill-current" />
-                      Gravar (nuvem)
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={handleStartLocalRecording}>
-                      <HardDrive className="w-4 h-4 mr-2" />
-                      Gravar localmente
-                    </DropdownMenuItem>
-                  </>
-                )}
-              </DropdownMenuContent>
-            </DropdownMenu>
-          )}
-
-          {/* Moderation button (Host and Dev) */}
-          {hasModeratorAccess && (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="destructive"
-                  size="lg"
-                  className="rounded-full h-10 sm:h-12 px-3 sm:px-4 gap-1 sm:gap-2"
-                  onClick={() => setShowModeration(true)}
-                >
-                  <Shield className="w-4 h-4 sm:w-5 sm:h-5" />
-                  <span className="hidden sm:inline text-sm font-medium">MODERAÇÃO</span>
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent className="hidden sm:block">Controles de moderação</TooltipContent>
-            </Tooltip>
-          )}
-
-          {/* Picture-in-Picture */}
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant={isPiPActive ? "default" : "secondary"}
-                size="lg"
-                className={cn(
-                  "rounded-full w-10 h-10 sm:w-12 sm:h-12 hidden sm:flex",
-                  isPiPActive && "bg-blue-600 hover:bg-blue-700"
-                )}
-                onClick={togglePiP}
-                disabled={!callObject}
-              >
-                <PictureInPicture2 className="w-4 h-4 sm:w-5 sm:h-5" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent className="hidden sm:block">
-              {isPiPActive ? "Sair do Picture-in-Picture" : "Picture-in-Picture"}
-            </TooltipContent>
-          </Tooltip>
-
-          <div className="w-px h-6 sm:h-8 bg-gray-600 mx-1 sm:mx-2 hidden sm:block" />
-
-          {/* Chat with notification badge */}
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant="secondary"
-                size="lg"
-                className="rounded-full w-10 h-10 sm:w-12 sm:h-12 relative"
-                onClick={() => setShowChat(true)}
-              >
-                <MessageSquare className="w-4 h-4 sm:w-5 sm:h-5" />
+              <Button variant="secondary" size="sm" className="rounded-full w-11 h-11 relative" onClick={() => setShowChat(true)}>
+                <MessageSquare className="w-4 h-4" />
                 {unreadMessages > 0 && (
-                  <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-[10px] rounded-full flex items-center justify-center animate-pulse">
+                  <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-[10px] rounded-full flex items-center justify-center animate-pulse">
                     {unreadMessages > 9 ? "9+" : unreadMessages}
                   </span>
                 )}
               </Button>
-            </TooltipTrigger>
-            <TooltipContent className="hidden sm:block">Chat</TooltipContent>
-          </Tooltip>
 
-          {/* Participants */}
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant="secondary"
-                size="lg"
-                className="rounded-full w-10 h-10 sm:w-12 sm:h-12 relative"
-                onClick={() => setShowParticipants(true)}
-              >
-                <Users className="w-4 h-4 sm:w-5 sm:h-5" />
-                <span className="absolute -top-1 -right-1 w-4 h-4 sm:w-5 sm:h-5 bg-primary text-primary-foreground text-[10px] sm:text-xs rounded-full flex items-center justify-center">
+              <Button variant="secondary" size="sm" className="rounded-full w-11 h-11 relative" onClick={() => setShowParticipants(true)}>
+                <Users className="w-4 h-4" />
+                <span className="absolute -top-1 -right-1 w-4 h-4 bg-primary text-primary-foreground text-[10px] rounded-full flex items-center justify-center">
                   {participantCount}
                 </span>
                 {raisedHands.size > 0 && (
@@ -2957,95 +2827,309 @@ export default function MeetingRoom() {
                   </span>
                 )}
               </Button>
-            </TooltipTrigger>
-            <TooltipContent className="hidden sm:block">Participantes</TooltipContent>
-          </Tooltip>
 
-          {/* More options */}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                variant="secondary"
-                size="lg"
-                className="rounded-full w-10 h-10 sm:w-12 sm:h-12"
-              >
-                <MoreVertical className="w-4 h-4 sm:w-5 sm:h-5" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="min-w-[180px]">
-              <DropdownMenuItem onClick={copyMeetingLink}>
-                <Copy className="w-4 h-4 mr-2" />
-                Copiar link
-              </DropdownMenuItem>
-              {/* Recording options for host on mobile */}
-              {isHost && !isRecording && !isLocalRecording && (
-                <>
-                  <DropdownMenuItem onClick={startRecording} className="sm:hidden">
-                    <Circle className="w-4 h-4 mr-2 fill-current" />
-                    Gravar (nuvem)
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={handleStartLocalRecording} className="sm:hidden">
-                    <HardDrive className="w-4 h-4 mr-2" />
-                    Gravar localmente
-                  </DropdownMenuItem>
-                </>
+              {hasModeratorAccess && (
+                <Button variant="destructive" size="sm" className="rounded-full w-11 h-11" onClick={() => setShowModeration(true)}>
+                  <Shield className="w-4 h-4" />
+                </Button>
               )}
-              {isHost && (isRecording || isLocalRecording) && (
-                <DropdownMenuItem onClick={stopRecording} className="sm:hidden">
-                  <Square className="w-4 h-4 mr-2" />
-                  Parar gravação
+
+              {hasModeratorAccess && (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant={(isRecording || isLocalRecording) ? "destructive" : "secondary"}
+                      size="sm"
+                      className="rounded-full w-11 h-11"
+                      disabled={!callObject}
+                    >
+                      {(isRecording || isLocalRecording) ? <Square className="w-4 h-4" /> : <Circle className="w-4 h-4 fill-current" />}
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="center">
+                    {(isRecording || isLocalRecording) ? (
+                      <DropdownMenuItem onClick={stopRecording}>
+                        <Square className="w-4 h-4 mr-2" />
+                        Parar gravação
+                      </DropdownMenuItem>
+                    ) : (
+                      <>
+                        <DropdownMenuItem onClick={startRecording}>
+                          <Circle className="w-4 h-4 mr-2 fill-current" />
+                          Gravar (nuvem)
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={handleStartLocalRecording}>
+                          <HardDrive className="w-4 h-4 mr-2" />
+                          Gravar localmente
+                        </DropdownMenuItem>
+                      </>
+                    )}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              )}
+
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="secondary" size="sm" className="rounded-full w-11 h-11">
+                    <MoreVertical className="w-4 h-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="min-w-[180px]">
+                  <DropdownMenuItem onClick={copyMeetingLink}>
+                    <Copy className="w-4 h-4 mr-2" />
+                    Copiar link
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={toggleFullscreen}>
+                    {isFullscreen ? (
+                      <><Minimize className="w-4 h-4 mr-2" />Sair da tela cheia</>
+                    ) : (
+                      <><Maximize className="w-4 h-4 mr-2" />Tela cheia</>
+                    )}
+                  </DropdownMenuItem>
+                  {isHost && (
+                    <>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem onClick={endMeeting} className="text-destructive">
+                        <Phone className="w-4 h-4 mr-2 rotate-[135deg]" />
+                        Encerrar reunião
+                      </DropdownMenuItem>
+                    </>
+                  )}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          </div>
+
+          {/* Desktop: single row */}
+          <div className="hidden sm:flex h-20 items-center justify-center px-4 gap-2">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant={isMuted ? "destructive" : "secondary"}
+                  size="lg"
+                  className="rounded-full w-12 h-12"
+                  onClick={toggleMute}
+                  disabled={!callObject || (!hasModeratorAccess && !globalAudioEnabled && isMuted)}
+                >
+                  {isMuted ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>{isMuted ? "Ativar microfone" : "Desativar microfone"}</TooltipContent>
+            </Tooltip>
+
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant={isVideoOn ? "secondary" : "destructive"}
+                  size="lg"
+                  className="rounded-full w-12 h-12"
+                  onClick={toggleVideo}
+                  disabled={!callObject || (!hasModeratorAccess && !globalVideoEnabled && !isVideoOn)}
+                >
+                  {isVideoOn ? <Video className="w-5 h-5" /> : <VideoOff className="w-5 h-5" />}
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>{isVideoOn ? "Desativar câmera" : "Ativar câmera"}</TooltipContent>
+            </Tooltip>
+
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant={isScreenSharing ? "default" : "secondary"}
+                  size="lg"
+                  className={cn("rounded-full w-12 h-12", isScreenSharing && "bg-green-600 hover:bg-green-700")}
+                  onClick={toggleScreenShare}
+                  disabled={!callObject}
+                >
+                  {isScreenSharing ? <ScreenShareOff className="w-5 h-5" /> : <ScreenShare className="w-5 h-5" />}
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>{isScreenSharing ? "Parar compartilhamento" : "Compartilhar tela"}</TooltipContent>
+            </Tooltip>
+
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant={handRaised ? "default" : "secondary"}
+                  size="lg"
+                  className={cn("rounded-full w-12 h-12", handRaised && "bg-yellow-500 hover:bg-yellow-600")}
+                  onClick={toggleHandRaise}
+                  disabled={!callObject}
+                >
+                  <Hand className={cn("w-5 h-5", handRaised && "animate-bounce")} />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>{handRaised ? "Baixar a mão" : "Levantar a mão"}</TooltipContent>
+            </Tooltip>
+
+            <Popover>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <PopoverTrigger asChild>
+                    <Button variant="secondary" size="lg" className="rounded-full w-12 h-12" disabled={!callObject}>
+                      <Sparkles className="w-5 h-5" />
+                    </Button>
+                  </PopoverTrigger>
+                </TooltipTrigger>
+                <TooltipContent>Reagir</TooltipContent>
+              </Tooltip>
+              <PopoverContent className="w-auto p-2" side="top">
+                <div className="flex gap-1">
+                  {REACTIONS.map((emoji) => (
+                    <button key={emoji} onClick={() => sendReaction(emoji)} className="hover:scale-125 transition-transform text-2xl p-2 rounded-lg hover:bg-muted">
+                      {emoji}
+                    </button>
+                  ))}
+                </div>
+              </PopoverContent>
+            </Popover>
+
+            {hasModeratorAccess && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant={(isRecording || isLocalRecording) ? "destructive" : "secondary"}
+                    size="lg"
+                    className="rounded-full w-12 h-12"
+                    disabled={!callObject}
+                  >
+                    {(isRecording || isLocalRecording) ? <Square className="w-5 h-5" /> : <Circle className="w-5 h-5 fill-current" />}
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="center">
+                  {(isRecording || isLocalRecording) ? (
+                    <DropdownMenuItem onClick={stopRecording}>
+                      <Square className="w-4 h-4 mr-2" />
+                      Parar gravação
+                    </DropdownMenuItem>
+                  ) : (
+                    <>
+                      <DropdownMenuItem onClick={startRecording}>
+                        <Circle className="w-4 h-4 mr-2 fill-current" />
+                        Gravar (nuvem)
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={handleStartLocalRecording}>
+                        <HardDrive className="w-4 h-4 mr-2" />
+                        Gravar localmente
+                      </DropdownMenuItem>
+                    </>
+                  )}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
+
+            {hasModeratorAccess && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="destructive"
+                    size="lg"
+                    className="rounded-full h-12 px-4 gap-2"
+                    onClick={() => setShowModeration(true)}
+                  >
+                    <Shield className="w-5 h-5" />
+                    <span className="text-sm font-medium">MODERAÇÃO</span>
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Controles de moderação</TooltipContent>
+              </Tooltip>
+            )}
+
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant={isPiPActive ? "default" : "secondary"}
+                  size="lg"
+                  className={cn("rounded-full w-12 h-12", isPiPActive && "bg-blue-600 hover:bg-blue-700")}
+                  onClick={togglePiP}
+                  disabled={!callObject}
+                >
+                  <PictureInPicture2 className="w-5 h-5" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>{isPiPActive ? "Sair do Picture-in-Picture" : "Picture-in-Picture"}</TooltipContent>
+            </Tooltip>
+
+            <div className="w-px h-8 bg-gray-600 mx-2" />
+
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="secondary" size="lg" className="rounded-full w-12 h-12 relative" onClick={() => setShowChat(true)}>
+                  <MessageSquare className="w-5 h-5" />
+                  {unreadMessages > 0 && (
+                    <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-[10px] rounded-full flex items-center justify-center animate-pulse">
+                      {unreadMessages > 9 ? "9+" : unreadMessages}
+                    </span>
+                  )}
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Chat</TooltipContent>
+            </Tooltip>
+
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="secondary" size="lg" className="rounded-full w-12 h-12 relative" onClick={() => setShowParticipants(true)}>
+                  <Users className="w-5 h-5" />
+                  <span className="absolute -top-1 -right-1 w-5 h-5 bg-primary text-primary-foreground text-xs rounded-full flex items-center justify-center">
+                    {participantCount}
+                  </span>
+                  {raisedHands.size > 0 && (
+                    <span className="absolute -top-1 -left-1 w-4 h-4 bg-yellow-500 rounded-full flex items-center justify-center animate-bounce">
+                      <Hand className="w-2.5 h-2.5 text-white" />
+                    </span>
+                  )}
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Participantes</TooltipContent>
+            </Tooltip>
+
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="secondary" size="lg" className="rounded-full w-12 h-12">
+                  <MoreVertical className="w-5 h-5" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="min-w-[180px]">
+                <DropdownMenuItem onClick={copyMeetingLink}>
+                  <Copy className="w-4 h-4 mr-2" />
+                  Copiar link
                 </DropdownMenuItem>
-              )}
-              {/* Fullscreen toggle */}
-              <DropdownMenuItem onClick={toggleFullscreen}>
-                {isFullscreen ? (
+                <DropdownMenuItem onClick={toggleFullscreen}>
+                  {isFullscreen ? (
+                    <><Minimize className="w-4 h-4 mr-2" />Sair da tela cheia</>
+                  ) : (
+                    <><Maximize className="w-4 h-4 mr-2" />Tela cheia</>
+                  )}
+                </DropdownMenuItem>
+                {isHost && (
                   <>
-                    <Minimize className="w-4 h-4 mr-2" />
-                    Sair da tela cheia
-                  </>
-                ) : (
-                  <>
-                    <Maximize className="w-4 h-4 mr-2" />
-                    Tela cheia
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem>
+                      <Settings className="w-4 h-4 mr-2" />
+                      Configurações
+                    </DropdownMenuItem>
                   </>
                 )}
-              </DropdownMenuItem>
-              {isHost && (
-                <>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem>
-                    <Settings className="w-4 h-4 mr-2" />
-                    Configurações
-                  </DropdownMenuItem>
-                </>
-              )}
-            </DropdownMenuContent>
-          </DropdownMenu>
+              </DropdownMenuContent>
+            </DropdownMenu>
 
-          <div className="w-px h-6 sm:h-8 bg-gray-600 mx-1 sm:mx-2" />
+            <div className="w-px h-8 bg-gray-600 mx-2" />
 
-          {/* Leave call */}
-          <Button
-            variant="destructive"
-            size="lg"
-            className="rounded-full w-10 h-10 sm:w-auto sm:px-6 sm:h-12"
-            onClick={leaveMeeting}
-          >
-            <Phone className="w-4 h-4 sm:w-5 sm:h-5 rotate-[135deg]" />
-          </Button>
-
-          {/* End meeting (Host only) - Hidden on very small screens */}
-          {isHost && (
-            <Button
-              variant="outline"
-              size="lg"
-              className="rounded-full px-2 sm:px-4 h-10 sm:h-12 border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground text-xs sm:text-sm hidden xs:flex"
-              onClick={endMeeting}
-            >
-              <span className="hidden sm:inline">Encerrar</span>
-              <span className="sm:hidden">Fim</span>
+            <Button variant="destructive" size="lg" className="rounded-full px-6 h-12" onClick={leaveMeeting}>
+              <Phone className="w-5 h-5 rotate-[135deg]" />
             </Button>
-          )}
+
+            {isHost && (
+              <Button
+                variant="outline"
+                size="lg"
+                className="rounded-full px-4 h-12 border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground text-sm"
+                onClick={endMeeting}
+              >
+                Encerrar
+              </Button>
+            )}
+          </div>
         </TooltipProvider>
       </div>
 
