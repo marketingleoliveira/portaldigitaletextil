@@ -62,10 +62,11 @@ interface NavItem {
   icon: React.ElementType;
   roles: AppRole[];
   highlight?: boolean;
+  showNewBadge?: boolean;
 }
 
 const navItems: NavItem[] = [
-  { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard, roles: ["dev", "admin", "gerente", "vendedor", "criacao", "sdr", "marketing"] },
+  { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard, roles: ["dev", "admin", "gerente", "vendedor", "criacao", "sdr", "marketing"], showNewBadge: true },
   { label: "Ponto", href: "/ponto", icon: Clock, roles: ["dev", "admin", "gerente", "vendedor"] },
   { label: "Reunião", href: "/reunioes", icon: Video, roles: ["dev", "admin", "gerente", "vendedor", "criacao", "sdr", "marketing"] },
   { label: "Localizar", href: "/localizar", icon: MapPin, roles: ["dev"] },
@@ -181,6 +182,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
                   const isNotificationsItem = item.href === "/notificacoes";
                   const isUpdatesItem = item.href === "/atualizacoes";
                   const isMeetingsItem = item.href === "/reunioes";
+                  const isDashboardItem = item.showNewBadge;
 
                   const handleClick = () => {
                     setSidebarOpen(false);
@@ -229,6 +231,13 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
                       {/* Indicator for new updates */}
                       {isUpdatesItem && hasNewUpdates && !isActive && (
                         <span className="absolute right-3 w-2 h-2 bg-destructive rounded-full animate-pulse" />
+                      )}
+
+                      {/* NOVO badge for dashboard when there are unread notifications */}
+                      {isDashboardItem && unreadCount.total > 0 && !isActive && (
+                        <span className="ml-auto px-2 py-0.5 bg-destructive text-destructive-foreground text-[10px] font-bold rounded-full animate-pulse shadow-[0_0_8px_hsl(var(--destructive))]">
+                          NOVO
+                        </span>
                       )}
                     </Link>
                   );
