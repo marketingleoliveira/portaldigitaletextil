@@ -182,6 +182,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
                   const isNotificationsItem = item.href === "/notificacoes";
                   const isUpdatesItem = item.href === "/atualizacoes";
                   const isMeetingsItem = item.href === "/reunioes";
+                  const isDashboardItem = item.showNewBadge;
 
                   const handleClick = () => {
                     setSidebarOpen(false);
