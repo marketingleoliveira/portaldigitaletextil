@@ -19,6 +19,7 @@ export function CRMKanban({ leads, onSelectLead }: CRMKanbanProps) {
   const updateLead = useUpdateLead();
   const { data: vendedores } = useVendedores();
   const isDev = user?.role === 'dev';
+  const [draggedLeadId, setDraggedLeadId] = useState<string | null>(null);
   const [dropTarget, setDropTarget] = useState<LeadStatus | null>(null);
 
   const getLeadsByStatus = (status: LeadStatus) =>
