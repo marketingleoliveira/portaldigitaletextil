@@ -232,6 +232,13 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
                       {isUpdatesItem && hasNewUpdates && !isActive && (
                         <span className="absolute right-3 w-2 h-2 bg-destructive rounded-full animate-pulse" />
                       )}
+
+                      {/* NOVO badge for dashboard when there are unread notifications */}
+                      {isDashboardItem && unreadCount.total > 0 && !isActive && (
+                        <span className="ml-auto px-2 py-0.5 bg-destructive text-destructive-foreground text-[10px] font-bold rounded-full animate-pulse shadow-[0_0_8px_hsl(var(--destructive))]">
+                          NOVO
+                        </span>
+                      )}
                     </Link>
                   );
                 })
