@@ -15,7 +15,7 @@ import {
   useUpdateLead, useDeleteLead, useLeadActivities, useAddActivity, useVendedores,
 } from "@/hooks/useCRM";
 import { useAuth } from "@/contexts/AuthContext";
-import { Building2, User, Phone, Mail, DollarSign, Calendar, Clock, Trash2, Loader2, MessageSquare, PhoneCall, Video, FileText, CalendarPlus } from "lucide-react";
+import { Building2, User, Phone, Mail, DollarSign, Calendar, Clock, Trash2, Loader2, MessageSquare, PhoneCall, Video, FileText, CalendarPlus, UserCheck, Lock } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
