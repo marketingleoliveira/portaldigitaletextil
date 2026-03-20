@@ -15,7 +15,7 @@ import {
   useUpdateLead, useDeleteLead, useLeadActivities, useAddActivity, useVendedores,
 } from "@/hooks/useCRM";
 import { useAuth } from "@/contexts/AuthContext";
-import { Building2, User, Phone, Mail, DollarSign, Calendar, Clock, Trash2, Loader2, MessageSquare, PhoneCall, Video, FileText, CalendarPlus } from "lucide-react";
+import { Building2, User, Phone, Mail, DollarSign, Calendar, Clock, Trash2, Loader2, MessageSquare, PhoneCall, Video, FileText, CalendarPlus, UserCheck, Lock } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
@@ -188,14 +188,22 @@ export function LeadDetailSheet({ lead, open, onOpenChange }: LeadDetailSheetPro
             {(lead.status === "qualificado" || lead.status === "ganho") && (isDev || isSDR) && (
               <div className="space-y-1.5">
                 <Label className="text-xs font-medium text-muted-foreground">Vendedor Responsável</Label>
-                <Select value={lead.assigned_to || ""} onValueChange={handleAssign}>
-                  <SelectTrigger><SelectValue placeholder="Selecionar vendedor..." /></SelectTrigger>
-                  <SelectContent>
-                    {vendedores?.map((v) => (
-                      <SelectItem key={v.id} value={v.id}>{v.full_name} {v.region ? `(${v.region})` : ''}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                {lead.assigned_to && !isDev ? (
+                  <div className="flex items-center gap-2 h-10 px-3 rounded-md border bg-muted/50 text-sm">
+                    <UserCheck className="w-4 h-4 text-violet-600" />
+                    <span>{lead.assigned_profile?.full_name || vendedores?.find(v => v.id === lead.assigned_to)?.full_name || "Atribuído"}</span>
+                    <Lock className="w-3 h-3 text-muted-foreground ml-auto" />
+                  </div>
+                ) : (
+                  <Select value={lead.assigned_to || ""} onValueChange={handleAssign}>
+                    <SelectTrigger><SelectValue placeholder="Selecionar vendedor..." /></SelectTrigger>
+                    <SelectContent>
+                      {vendedores?.map((v) => (
+                        <SelectItem key={v.id} value={v.id}>{v.full_name} {v.region ? `(${v.region})` : ''}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
               </div>
             )}
 
