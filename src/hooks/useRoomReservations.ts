@@ -99,7 +99,7 @@ export function useCreateReservation() {
   return useMutation({
     mutationFn: async (data: CreateReservationData) => {
       // Check for conflicts
-      const { data: conflicts } = await supabase
+      const { data: conflicts } = await (supabase as any)
         .from("room_reservations")
         .select("id")
         .or(`and(start_time.lt.${data.end_time},end_time.gt.${data.start_time})`);
