@@ -64,6 +64,7 @@ export default function Meetings() {
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [creatingMeeting, setCreatingMeeting] = useState(false);
   const [endingAll, setEndingAll] = useState(false);
+  const [endingId, setEndingId] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
   const [newMeeting, setNewMeeting] = useState({
     title: "",
