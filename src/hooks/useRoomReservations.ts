@@ -66,7 +66,7 @@ export function useRoomStatus() {
       }
 
       // Get next reservation
-      const { data: next } = await supabase
+      const { data: next } = await (supabase as any)
         .from("room_reservations")
         .select("*, profile:profiles!room_reservations_user_id_fkey(full_name)")
         .gte("start_time", now)
