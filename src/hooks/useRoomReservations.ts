@@ -108,7 +108,7 @@ export function useCreateReservation() {
         throw new Error("Já existe uma reserva neste horário. Escolha outro horário.");
       }
 
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from("room_reservations")
         .insert({
           user_id: user!.id,
