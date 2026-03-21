@@ -48,7 +48,7 @@ export function useRoomStatus() {
       const now = new Date().toISOString();
 
       // Check if room is currently occupied
-      const { data: current } = await supabase
+      const { data: current } = await (supabase as any)
         .from("room_reservations")
         .select("*, profile:profiles!room_reservations_user_id_fkey(full_name)")
         .lte("start_time", now)
