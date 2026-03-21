@@ -136,7 +136,7 @@ export function useDeleteReservation() {
 
   return useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from("room_reservations")
         .delete()
         .eq("id", id);
