@@ -237,6 +237,33 @@ export default function Meetings() {
     toast.success("Link para convidados copiado!");
   };
 
+  const endSingleMeeting = async (meeting: Meeting) => {
+    if (!isDev) return;
+    setEndingId(meeting.id);
+    try {
+      // Delete Daily room
+      try {
+        await supabase.functions.invoke("daily-room", {
+          body: { action: "delete", roomName: meeting.meeting_code },
+        });
+      } catch {}
+
+      const { error } = await supabase
+        .from("meetings")
+        .update({ ended_at: new Date().toISOString(), is_active: false })
+        .eq("id", meeting.id);
+
+      if (error) throw error;
+      setMeetings((prev) => prev.filter((m) => m.id !== meeting.id));
+      toast.success(`Reunião "${meeting.title}" encerrada!`);
+    } catch (error) {
+      console.error("Error ending meeting:", error);
+      toast.error("Erro ao encerrar reunião");
+    } finally {
+      setEndingId(null);
+    }
+  };
+
   const endAllMeetings = async () => {
     if (!isDev) return;
     
