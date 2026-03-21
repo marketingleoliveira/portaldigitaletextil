@@ -33,6 +33,7 @@ import {
 import RoleBadge from '@/components/RoleBadge';
 import OnlineUsersCard from '@/components/OnlineUsersCard';
 import ActivityRankingCard from '@/components/ActivityRankingCard';
+import RoomStatusCard from '@/components/RoomStatusCard';
 
 interface FileTypeStats {
   pdf: number;
@@ -501,6 +502,11 @@ const Dashboard: React.FC = () => {
               </Link>
             );
           })}
+        </div>
+
+        {/* Room Status */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <RoomStatusCard />
         </div>
 
         {/* Main Content Grid */}
