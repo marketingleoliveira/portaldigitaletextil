@@ -19,7 +19,7 @@ export function useRoomReservations(date?: Date) {
   return useQuery({
     queryKey: ["room-reservations", date?.toISOString()?.slice(0, 10)],
     queryFn: async () => {
-      let query = supabase
+      let query = (supabase as any)
         .from("room_reservations")
         .select("*, profile:profiles!room_reservations_user_id_fkey(full_name, avatar_url)")
         .order("start_time", { ascending: true });
