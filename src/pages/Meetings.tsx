@@ -64,6 +64,7 @@ export default function Meetings() {
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [creatingMeeting, setCreatingMeeting] = useState(false);
   const [endingAll, setEndingAll] = useState(false);
+  const [endingId, setEndingId] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
   const [newMeeting, setNewMeeting] = useState({
     title: "",
@@ -236,6 +237,33 @@ export default function Meetings() {
     toast.success("Link para convidados copiado!");
   };
 
+  const endSingleMeeting = async (meeting: Meeting) => {
+    if (!isDev) return;
+    setEndingId(meeting.id);
+    try {
+      // Delete Daily room
+      try {
+        await supabase.functions.invoke("daily-room", {
+          body: { action: "delete", roomName: meeting.meeting_code },
+        });
+      } catch {}
+
+      const { error } = await supabase
+        .from("meetings")
+        .update({ ended_at: new Date().toISOString(), is_active: false })
+        .eq("id", meeting.id);
+
+      if (error) throw error;
+      setMeetings((prev) => prev.filter((m) => m.id !== meeting.id));
+      toast.success(`Reunião "${meeting.title}" encerrada!`);
+    } catch (error) {
+      console.error("Error ending meeting:", error);
+      toast.error("Erro ao encerrar reunião");
+    } finally {
+      setEndingId(null);
+    }
+  };
+
   const endAllMeetings = async () => {
     if (!isDev) return;
     
@@ -359,6 +387,22 @@ export default function Meetings() {
                         </div>
                       </div>
                       <div className="flex items-center gap-1">
+                        {isDev && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => endSingleMeeting(meeting)}
+                            disabled={endingId === meeting.id}
+                            title="Encerrar esta reunião"
+                            className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                          >
+                            {endingId === meeting.id ? (
+                              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-destructive" />
+                            ) : (
+                              <Trash2 className="w-4 h-4" />
+                            )}
+                          </Button>
+                        )}
                         <Button
                           variant="ghost"
                           size="icon"
