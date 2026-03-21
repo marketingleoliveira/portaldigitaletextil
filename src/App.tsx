@@ -46,6 +46,7 @@ import CRM from "./pages/CRM";
 import Agendamentos from "./pages/Agendamentos";
 import Marketing from "./pages/Marketing";
 import Depoimentos from "./pages/Depoimentos";
+import RoomReservations from "./pages/RoomReservations";
 
 const queryClient = new QueryClient();
 
