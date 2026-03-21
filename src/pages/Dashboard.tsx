@@ -33,6 +33,7 @@ import {
 import RoleBadge from '@/components/RoleBadge';
 import OnlineUsersCard from '@/components/OnlineUsersCard';
 import ActivityRankingCard from '@/components/ActivityRankingCard';
+import RoomStatusCard from '@/components/RoomStatusCard';
 
 interface FileTypeStats {
   pdf: number;
