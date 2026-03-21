@@ -387,6 +387,22 @@ export default function Meetings() {
                         </div>
                       </div>
                       <div className="flex items-center gap-1">
+                        {isDev && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => endSingleMeeting(meeting)}
+                            disabled={endingId === meeting.id}
+                            title="Encerrar esta reunião"
+                            className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                          >
+                            {endingId === meeting.id ? (
+                              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-destructive" />
+                            ) : (
+                              <Trash2 className="w-4 h-4" />
+                            )}
+                          </Button>
+                        )}
                         <Button
                           variant="ghost"
                           size="icon"
