@@ -25,72 +25,12 @@ import OnlineUsersCard from '@/components/OnlineUsersCard';
 import ActivityRankingCard from '@/components/ActivityRankingCard';
 import RoomStatusCard from '@/components/RoomStatusCard';
 
-interface FileTypeStats {
-  pdf: number;
-  word: number;
-  excel: number;
-  powerpoint: number;
-  image: number;
-  video: number;
-  audio: number;
-  zip: number;
-  link: number;
-}
-
 interface DashboardStats {
-  totalProducts: number;
   totalUsers: number;
-  totalCategories: number;
   recentLogs: number;
-  totalFiles: number;
   unreadNotifications: number;
   openTickets: number;
-  totalCreationFiles: number;
-  filesBreakdown: FileTypeStats;
-  creationFilesBreakdown: FileTypeStats;
 }
-
-interface LinkFile {
-  id: string;
-  name: string;
-  file_url: string;
-  description: string | null;
-}
-
-interface RecentNotification {
-  id: string;
-  title: string;
-  message: string;
-  created_at: string;
-  type: 'group' | 'individual';
-}
-
-const getFileTypeFromName = (fileName: string, isExternalLink?: boolean): keyof FileTypeStats | null => {
-  if (isExternalLink) return 'link';
-  const ext = fileName.split('.').pop()?.toLowerCase() || '';
-  if (ext === 'pdf') return 'pdf';
-  if (['doc', 'docx'].includes(ext)) return 'word';
-  if (['xls', 'xlsx', 'csv'].includes(ext)) return 'excel';
-  if (['ppt', 'pptx'].includes(ext)) return 'powerpoint';
-  if (['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'bmp', 'ico'].includes(ext)) return 'image';
-  if (['mp4', 'avi', 'mov', 'wmv', 'webm', 'mkv'].includes(ext)) return 'video';
-  if (['mp3', 'wav', 'ogg', 'aac', 'flac'].includes(ext)) return 'audio';
-  if (['zip', 'rar', '7z', 'tar', 'gz'].includes(ext)) return 'zip';
-  return null;
-};
-
-const emptyBreakdown = (): FileTypeStats => ({ 
-  pdf: 0, word: 0, excel: 0, powerpoint: 0, image: 0, video: 0, audio: 0, zip: 0, link: 0 
-});
-
-const calculateFileBreakdown = (files: { name: string; is_external_link?: boolean }[]): FileTypeStats => {
-  const breakdown = emptyBreakdown();
-  files.forEach(file => {
-    const type = getFileTypeFromName(file.name, file.is_external_link);
-    if (type) breakdown[type]++;
-  });
-  return breakdown;
-};
 
 const Dashboard: React.FC = () => {
   const { user } = useAuth();
