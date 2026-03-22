@@ -16,19 +16,9 @@ import {
   FileText, 
   Bell,
   HelpCircle,
-  TicketIcon,
   ArrowRight,
-  Link2,
   ExternalLink,
   Palette,
-  Image,
-  Video,
-  FileSpreadsheet,
-  File,
-  Presentation,
-  Music,
-  Archive,
-  Link as LinkIcon
 } from 'lucide-react';
 import RoleBadge from '@/components/RoleBadge';
 import OnlineUsersCard from '@/components/OnlineUsersCard';
