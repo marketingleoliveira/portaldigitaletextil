@@ -378,13 +378,12 @@ const Dashboard: React.FC = () => {
         )}
 
         {/* Stats Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {hasFullAccess(user?.role) && (
             <OnlineUsersCard />
           )}
           {filteredStats.map((stat) => {
             const Icon = stat.icon;
-            const hasBreakdown = 'breakdown' in stat && stat.breakdown;
             return (
               <Link key={stat.title} to={stat.href}>
                 <Card className="hover:shadow-md transition-all hover:border-primary/50 cursor-pointer h-full">
@@ -405,75 +404,11 @@ const Dashboard: React.FC = () => {
                         <Icon className={`w-6 h-6 ${stat.color}`} />
                       </div>
                     </div>
-                    {hasBreakdown && !loading && (
-                      <div className="mt-4 pt-3 border-t border-border">
-                        <div className="grid grid-cols-3 gap-2 text-xs">
-                          {stat.breakdown.pdf > 0 && (
-                            <div className="flex items-center gap-1.5">
-                              <FileText className="w-3.5 h-3.5 text-red-500" />
-                              <span className="text-muted-foreground">{stat.breakdown.pdf} PDF</span>
-                            </div>
-                          )}
-                          {stat.breakdown.word > 0 && (
-                            <div className="flex items-center gap-1.5">
-                              <File className="w-3.5 h-3.5 text-blue-500" />
-                              <span className="text-muted-foreground">{stat.breakdown.word} Word</span>
-                            </div>
-                          )}
-                          {stat.breakdown.excel > 0 && (
-                            <div className="flex items-center gap-1.5">
-                              <FileSpreadsheet className="w-3.5 h-3.5 text-green-500" />
-                              <span className="text-muted-foreground">{stat.breakdown.excel} Excel</span>
-                            </div>
-                          )}
-                          {stat.breakdown.powerpoint > 0 && (
-                            <div className="flex items-center gap-1.5">
-                              <Presentation className="w-3.5 h-3.5 text-orange-600" />
-                              <span className="text-muted-foreground">{stat.breakdown.powerpoint} PPT</span>
-                            </div>
-                          )}
-                          {stat.breakdown.image > 0 && (
-                            <div className="flex items-center gap-1.5">
-                              <Image className="w-3.5 h-3.5 text-purple-500" />
-                              <span className="text-muted-foreground">{stat.breakdown.image} Imagem</span>
-                            </div>
-                          )}
-                          {stat.breakdown.video > 0 && (
-                            <div className="flex items-center gap-1.5">
-                              <Video className="w-3.5 h-3.5 text-pink-500" />
-                              <span className="text-muted-foreground">{stat.breakdown.video} Vídeo</span>
-                            </div>
-                          )}
-                          {stat.breakdown.audio > 0 && (
-                            <div className="flex items-center gap-1.5">
-                              <Music className="w-3.5 h-3.5 text-cyan-500" />
-                              <span className="text-muted-foreground">{stat.breakdown.audio} Áudio</span>
-                            </div>
-                          )}
-                          {stat.breakdown.zip > 0 && (
-                            <div className="flex items-center gap-1.5">
-                              <Archive className="w-3.5 h-3.5 text-yellow-600" />
-                              <span className="text-muted-foreground">{stat.breakdown.zip} ZIP</span>
-                            </div>
-                          )}
-                          {stat.breakdown.link > 0 && (
-                            <div className="flex items-center gap-1.5">
-                              <LinkIcon className="w-3.5 h-3.5 text-indigo-500" />
-                              <span className="text-muted-foreground">{stat.breakdown.link} Link</span>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    )}
                   </CardContent>
                 </Card>
               </Link>
             );
           })}
-        </div>
-
-        {/* Room Status */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <RoomStatusCard />
         </div>
 
