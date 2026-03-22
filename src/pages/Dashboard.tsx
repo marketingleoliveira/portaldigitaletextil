@@ -241,38 +241,6 @@ const Dashboard: React.FC = () => {
 
   const statsCards = [
     {
-      title: 'Categorias',
-      value: stats.totalCategories,
-      icon: FolderOpen,
-      description: 'Organizando arquivos',
-      color: 'text-success',
-      bgColor: 'bg-success/10',
-      href: '/categorias',
-      roles: ['dev', 'admin', 'gerente'],
-    },
-    {
-      title: 'Material Comercial',
-      value: stats.totalFiles,
-      icon: FileText,
-      description: 'Materiais disponíveis',
-      color: 'text-role-gerente',
-      bgColor: 'bg-role-gerente/10',
-      href: '/downloads',
-      roles: ['dev', 'admin', 'gerente', 'vendedor', 'criacao'],
-      breakdown: stats.filesBreakdown,
-    },
-    {
-      title: 'Material Criação',
-      value: stats.totalCreationFiles,
-      icon: Palette,
-      description: 'Recursos criativos',
-      color: 'text-role-criacao',
-      bgColor: 'bg-role-criacao/10',
-      href: '/material-criacao',
-      roles: ['dev', 'criacao'],
-      breakdown: stats.creationFilesBreakdown,
-    },
-    {
       title: 'Usuários',
       value: stats.totalUsers,
       icon: Users,
