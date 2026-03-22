@@ -10,15 +10,16 @@ import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { 
   Users, 
-  FolderOpen, 
   Activity, 
   TrendingUp, 
   FileText, 
   Bell,
   HelpCircle,
+  TicketIcon,
   ArrowRight,
   ExternalLink,
   Palette,
+  Link2,
 } from 'lucide-react';
 import RoleBadge from '@/components/RoleBadge';
 import OnlineUsersCard from '@/components/OnlineUsersCard';
@@ -28,23 +29,30 @@ import RoomStatusCard from '@/components/RoomStatusCard';
 interface DashboardStats {
   totalUsers: number;
   recentLogs: number;
-  unreadNotifications: number;
   openTickets: number;
+}
+
+interface LinkFile {
+  id: string;
+  name: string;
+  file_url: string;
+  description: string | null;
+}
+
+interface RecentNotification {
+  id: string;
+  title: string;
+  message: string;
+  created_at: string;
+  type: 'group' | 'individual';
 }
 
 const Dashboard: React.FC = () => {
   const { user } = useAuth();
   const [stats, setStats] = useState<DashboardStats>({
-    totalProducts: 0,
     totalUsers: 0,
-    totalCategories: 0,
     recentLogs: 0,
-    totalFiles: 0,
-    unreadNotifications: 0,
     openTickets: 0,
-    totalCreationFiles: 0,
-    filesBreakdown: emptyBreakdown(),
-    creationFilesBreakdown: emptyBreakdown(),
   });
   const [linkFiles, setLinkFiles] = useState<LinkFile[]>([]);
   const [recentNotifications, setRecentNotifications] = useState<RecentNotification[]>([]);
@@ -53,34 +61,10 @@ const Dashboard: React.FC = () => {
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        const { count: productsCount } = await supabase
-          .from('products')
-          .select('*', { count: 'exact', head: true });
-
-        const { count: categoriesCount } = await supabase
-          .from('categories')
-          .select('*', { count: 'exact', head: true });
-
-        const { data: filesData, count: filesCount } = await supabase
-          .from('files')
-          .select('name, is_external_link', { count: 'exact' });
-        
-        const filesBreakdown = calculateFileBreakdown(filesData || []);
-
         const { count: ticketsCount } = await supabase
           .from('tickets')
           .select('*', { count: 'exact', head: true })
           .eq('status', 'aberto');
-
-        let creationFilesCount = 0;
-        let creationFilesBreakdown: FileTypeStats = emptyBreakdown();
-        if (user?.role === 'criacao' || user?.role === 'dev') {
-          const { data: creationData, count: creationCount } = await supabase
-            .from('creation_files')
-            .select('name', { count: 'exact' });
-          creationFilesCount = creationCount || 0;
-          creationFilesBreakdown = calculateFileBreakdown(creationData || []);
-        }
 
         let usersCount = 0;
         let logsCount = 0;
@@ -109,7 +93,6 @@ const Dashboard: React.FC = () => {
         // Fetch recent notifications for current user
         const allNotifs: RecentNotification[] = [];
 
-        // Group notifications (by role)
         if (user?.role) {
           const { data: groupNotifs } = await supabase
             .from('notifications')
@@ -122,7 +105,6 @@ const Dashboard: React.FC = () => {
           }
         }
 
-        // Individual notifications
         if (user?.id) {
           const { data: userNotifs } = await supabase
             .from('user_notifications')
@@ -136,21 +118,13 @@ const Dashboard: React.FC = () => {
           }
         }
 
-        // Sort by date and take latest 6
         allNotifs.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
         setRecentNotifications(allNotifs.slice(0, 6));
 
         setStats({
-          totalProducts: productsCount || 0,
           totalUsers: usersCount,
-          totalCategories: categoriesCount || 0,
           recentLogs: logsCount,
-          totalFiles: filesCount || 0,
-          unreadNotifications: 0,
           openTickets: ticketsCount || 0,
-          totalCreationFiles: creationFilesCount,
-          filesBreakdown,
-          creationFilesBreakdown,
         });
       } catch (error) {
         console.error('Error fetching stats:', error);
