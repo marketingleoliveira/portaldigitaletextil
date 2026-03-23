@@ -167,46 +167,32 @@ const ActivityRankingCard: React.FC = () => {
   const calculateRanking = () => {
     const now = Date.now();
     const userDurations = new Map<string, number>();
+    const MAX_SESSION_SECONDS = 10 * 60 * 60; // Cap any single session at 10 hours
 
     sessionsRef.current.forEach(session => {
-      // Only count sessions from users in our vendedor profiles list
       if (!profilesRef.current.some(p => p.id === session.user_id)) {
         return;
       }
 
+      const sessionStart = new Date(session.session_start).getTime();
       let duration: number;
 
       if (!session.session_end) {
-        // Active session (no end time)
-        // Check if user was active recently (within last 5 minutes for open sessions)
-        const sessionStart = new Date(session.session_start).getTime();
-        const storedDuration = session.duration_seconds || 0;
-        
+        // Open session
         if (onlineUsersRef.current.has(session.user_id)) {
-          // User is currently online - calculate real-time duration from session start
           duration = Math.floor((now - sessionStart) / 1000);
         } else {
-          // User is offline - use the stored duration_seconds which is updated periodically
-          // If stored duration is 0 or very small, calculate from session time but cap it
-          if (storedDuration > 0) {
-            duration = storedDuration;
-          } else {
-            // Session without proper duration - calculate elapsed time but cap at 8 hours
-            const elapsed = Math.floor((now - sessionStart) / 1000);
-            duration = Math.min(elapsed, 8 * 60 * 60); // Cap at 8 hours max
-          }
+          // Offline with open session - cap at max
+          duration = Math.min(Math.floor((now - sessionStart) / 1000), MAX_SESSION_SECONDS);
         }
       } else {
-        // Completed session - use stored duration or calculate from start/end
-        if (session.duration_seconds && session.duration_seconds > 0) {
-          duration = session.duration_seconds;
-        } else {
-          // Calculate from session times
-          const start = new Date(session.session_start).getTime();
-          const end = new Date(session.session_end).getTime();
-          duration = Math.max(0, Math.floor((end - start) / 1000));
-        }
+        // Closed session - ALWAYS calculate from start/end times (duration_seconds is unreliable)
+        const sessionEnd = new Date(session.session_end).getTime();
+        duration = Math.max(0, Math.floor((sessionEnd - sessionStart) / 1000));
       }
+
+      // Cap any single session duration
+      duration = Math.min(duration, MAX_SESSION_SECONDS);
 
       const current = userDurations.get(session.user_id) || 0;
       userDurations.set(session.user_id, current + duration);
