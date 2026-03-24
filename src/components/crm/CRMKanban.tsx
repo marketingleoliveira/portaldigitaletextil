@@ -20,6 +20,7 @@ export function CRMKanban({ leads, onSelectLead }: CRMKanbanProps) {
   const { user } = useAuth();
   const updateLead = useUpdateLead();
   const { data: vendedores } = useVendedores();
+  const { data: allReminders = [] } = usePendingReminders();
   const isDev = user?.role === 'dev';
   const [draggedLeadId, setDraggedLeadId] = useState<string | null>(null);
   const [dropTarget, setDropTarget] = useState<LeadStatus | null>(null);
