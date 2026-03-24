@@ -213,7 +213,8 @@ export function CRMKanban({ leads, onSelectLead }: CRMKanbanProps) {
                     </div>
                   </div>
                 </Card>
-              ))}
+                );
+              })}
               {columnLeads.length === 0 && (
                 <p className={cn(
                   "text-xs text-center py-8 transition-colors",
