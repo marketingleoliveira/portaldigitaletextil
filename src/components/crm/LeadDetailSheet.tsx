@@ -14,8 +14,9 @@ import {
   LEAD_STATUS_CONFIG, LEAD_SOURCE_CONFIG,
   useUpdateLead, useDeleteLead, useLeadActivities, useAddActivity, useVendedores,
 } from "@/hooks/useCRM";
+import { useLeadReminders, useCreateLeadReminder, useCompleteReminder, useDeleteReminder } from "@/hooks/useLeadReminders";
 import { useAuth } from "@/contexts/AuthContext";
-import { Building2, User, Phone, Mail, DollarSign, Calendar, Clock, Trash2, Loader2, MessageSquare, PhoneCall, Video, FileText, CalendarPlus, UserCheck, Lock } from "lucide-react";
+import { Building2, User, Phone, Mail, DollarSign, Calendar, Clock, Trash2, Loader2, MessageSquare, PhoneCall, Video, FileText, CalendarPlus, UserCheck, Lock, Bell, CheckCircle2, Plus } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
