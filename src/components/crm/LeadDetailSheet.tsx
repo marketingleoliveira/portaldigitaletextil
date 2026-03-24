@@ -146,8 +146,17 @@ export function LeadDetailSheet({ lead, open, onOpenChange }: LeadDetailSheetPro
 
         <Tabs defaultValue="info" className="mt-2">
           <TabsList className="w-full">
-            <TabsTrigger value="info" className="flex-1">Informações</TabsTrigger>
-            <TabsTrigger value="activities" className="flex-1">Atividades</TabsTrigger>
+            <TabsTrigger value="info" className="flex-1 text-xs">Informações</TabsTrigger>
+            <TabsTrigger value="reminders" className="flex-1 text-xs gap-1">
+              <Bell className="w-3 h-3" />
+              Retornos
+              {reminders.filter(r => !r.completed_at).length > 0 && (
+                <span className="ml-1 bg-destructive text-destructive-foreground text-[10px] px-1.5 rounded-full">
+                  {reminders.filter(r => !r.completed_at).length}
+                </span>
+              )}
+            </TabsTrigger>
+            <TabsTrigger value="activities" className="flex-1 text-xs">Atividades</TabsTrigger>
           </TabsList>
 
           <TabsContent value="info" className="space-y-4 mt-4">
