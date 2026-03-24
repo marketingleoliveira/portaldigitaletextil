@@ -308,6 +308,123 @@ export function LeadDetailSheet({ lead, open, onOpenChange }: LeadDetailSheetPro
               <p className="text-sm text-muted-foreground text-center py-4">Nenhuma atividade registrada</p>
             )}
           </TabsContent>
+
+          {/* Reminders Tab */}
+          <TabsContent value="reminders" className="mt-4 space-y-4">
+            {/* Add Reminder */}
+            <div className="space-y-3 p-3 bg-muted/30 rounded-lg">
+              <p className="text-xs font-semibold flex items-center gap-1.5">
+                <Plus className="w-3.5 h-3.5" />
+                Agendar Retorno de Ligação
+              </p>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <Label className="text-xs">Data</Label>
+                  <Input
+                    type="date"
+                    value={reminderDate}
+                    onChange={(e) => setReminderDate(e.target.value)}
+                    className="h-8 text-xs"
+                    min={new Date().toISOString().split("T")[0]}
+                  />
+                </div>
+                <div>
+                  <Label className="text-xs">Horário</Label>
+                  <Input
+                    type="time"
+                    value={reminderTime}
+                    onChange={(e) => setReminderTime(e.target.value)}
+                    className="h-8 text-xs"
+                  />
+                </div>
+              </div>
+              <Textarea
+                value={reminderDesc}
+                onChange={(e) => setReminderDesc(e.target.value)}
+                placeholder="Ex: Retornar ligação sobre proposta comercial..."
+                rows={2}
+                className="text-xs"
+              />
+              <Button
+                size="sm"
+                onClick={handleAddReminder}
+                disabled={createReminder.isPending || !reminderDate || !reminderDesc.trim()}
+                className="w-full gap-1.5"
+              >
+                {createReminder.isPending && <Loader2 className="w-3 h-3 animate-spin" />}
+                <Bell className="w-3 h-3" />
+                Agendar Lembrete
+              </Button>
+            </div>
+
+            <Separator />
+
+            {/* Reminder List */}
+            {loadingReminders ? (
+              <div className="flex justify-center py-4"><Loader2 className="w-5 h-5 animate-spin" /></div>
+            ) : reminders.length > 0 ? (
+              <div className="space-y-2">
+                {reminders.map((rem) => {
+                  const isPast = new Date(rem.reminder_date) <= new Date();
+                  const isCompleted = !!rem.completed_at;
+                  return (
+                    <div
+                      key={rem.id}
+                      className={`flex items-start gap-2 p-2.5 rounded-lg border text-sm ${
+                        isCompleted
+                          ? "bg-muted/30 opacity-60"
+                          : isPast
+                            ? "bg-destructive/5 border-destructive/30"
+                            : "bg-amber-50 border-amber-200 dark:bg-amber-950/20 dark:border-amber-800"
+                      }`}
+                    >
+                      <Bell className={`w-4 h-4 mt-0.5 flex-shrink-0 ${
+                        isCompleted ? "text-muted-foreground" : isPast ? "text-destructive animate-pulse" : "text-amber-600"
+                      }`} />
+                      <div className="flex-1 min-w-0">
+                        <p className={`text-xs font-medium ${isCompleted ? "line-through" : ""}`}>
+                          {rem.description}
+                        </p>
+                        <p className="text-[11px] text-muted-foreground mt-0.5">
+                          {format(new Date(rem.reminder_date), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                          {rem.created_by_profile && ` • ${rem.created_by_profile.full_name}`}
+                        </p>
+                        {isCompleted && rem.completed_at && (
+                          <p className="text-[11px] text-emerald-600 mt-0.5">
+                            ✓ Concluído em {format(new Date(rem.completed_at), "dd/MM HH:mm", { locale: ptBR })}
+                          </p>
+                        )}
+                      </div>
+                      <div className="flex gap-1 flex-shrink-0">
+                        {!isCompleted && (
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="h-6 w-6"
+                            title="Marcar como concluído"
+                            onClick={() => completeReminder.mutate(rem.id)}
+                          >
+                            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                          </Button>
+                        )}
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="h-6 w-6"
+                          title="Remover"
+                          onClick={() => deleteReminder.mutate(rem.id)}
+                        >
+                          <Trash2 className="w-3.5 h-3.5 text-destructive" />
+                        </Button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground text-center py-4">Nenhum retorno agendado</p>
+            )}
+          </TabsContent>
         </Tabs>
       </SheetContent>
     </Sheet>
