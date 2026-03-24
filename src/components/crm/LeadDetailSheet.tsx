@@ -85,6 +85,19 @@ export function LeadDetailSheet({ lead, open, onOpenChange }: LeadDetailSheetPro
     setActivityDesc("");
   };
 
+  const handleAddReminder = async () => {
+    if (!reminderDate || !reminderDesc.trim()) return;
+    const dateTime = `${reminderDate}T${reminderTime}:00`;
+    await createReminder.mutateAsync({
+      lead_id: lead.id,
+      reminder_date: new Date(dateTime).toISOString(),
+      description: reminderDesc.trim(),
+    });
+    setReminderDate("");
+    setReminderTime("09:00");
+    setReminderDesc("");
+  };
+
   const formatCurrency = (v: number) =>
     new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v);
 
