@@ -48,10 +48,17 @@ export function LeadDetailSheet({ lead, open, onOpenChange }: LeadDetailSheetPro
   const addActivity = useAddActivity();
   const { data: activities, isLoading: loadingActivities } = useLeadActivities(lead?.id || "");
   const { data: vendedores } = useVendedores();
+  const { data: reminders = [], isLoading: loadingReminders } = useLeadReminders(lead?.id || "");
+  const createReminder = useCreateLeadReminder();
+  const completeReminder = useCompleteReminder();
+  const deleteReminder = useDeleteReminder();
 
   const [activityType, setActivityType] = useState("note");
   const [activityDesc, setActivityDesc] = useState("");
   const [showSchedule, setShowSchedule] = useState(false);
+  const [reminderDate, setReminderDate] = useState("");
+  const [reminderTime, setReminderTime] = useState("09:00");
+  const [reminderDesc, setReminderDesc] = useState("");
 
   if (!lead) return null;
 
