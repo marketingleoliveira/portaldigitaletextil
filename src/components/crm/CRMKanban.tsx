@@ -2,10 +2,12 @@ import { useState, type DragEvent } from "react";
 import { type Lead, type LeadStatus, LEAD_STATUS_CONFIG, useUpdateLead, useVendedores } from "@/hooks/useCRM";
 import { useAuth } from "@/contexts/AuthContext";
 import { LeadStatusBadge } from "./LeadStatusBadge";
+import { LeadReminderBadge } from "./LeadReminderBadge";
 import { Card } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { User, Phone, DollarSign, Trophy, GripVertical, UserCheck, Lock } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { usePendingReminders } from "@/hooks/useLeadReminders";
 
 interface CRMKanbanProps {
   leads: Lead[];
@@ -18,6 +20,7 @@ export function CRMKanban({ leads, onSelectLead }: CRMKanbanProps) {
   const { user } = useAuth();
   const updateLead = useUpdateLead();
   const { data: vendedores } = useVendedores();
+  const { data: allReminders = [] } = usePendingReminders();
   const isDev = user?.role === 'dev';
   const [draggedLeadId, setDraggedLeadId] = useState<string | null>(null);
   const [dropTarget, setDropTarget] = useState<LeadStatus | null>(null);
@@ -115,18 +118,21 @@ export function CRMKanban({ leads, onSelectLead }: CRMKanbanProps) {
                   : "bg-muted/30"
               )}
             >
-              {columnLeads.map((lead) => (
+              {columnLeads.map((lead) => {
+                const leadReminders = allReminders.filter(r => r.lead_id === lead.id);
+                return (
                 <Card
                   key={lead.id}
                   draggable
                   onDragStart={(e) => handleDragStart(e, lead.id)}
                   onDragEnd={handleDragEnd}
                   className={cn(
-                    "p-3 cursor-grab active:cursor-grabbing hover:shadow-md transition-all border group",
+                    "p-3 cursor-grab active:cursor-grabbing hover:shadow-md transition-all border group relative",
                     draggedLeadId === lead.id && "opacity-40 scale-95"
                   )}
                   onClick={() => onSelectLead(lead)}
                 >
+                  <LeadReminderBadge reminders={leadReminders} />
                   <div className="flex items-start gap-1.5">
                     <GripVertical className="w-3.5 h-3.5 mt-0.5 text-muted-foreground/40 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" />
                     <div className="flex-1 min-w-0">
@@ -207,7 +213,8 @@ export function CRMKanban({ leads, onSelectLead }: CRMKanbanProps) {
                     </div>
                   </div>
                 </Card>
-              ))}
+                );
+              })}
               {columnLeads.length === 0 && (
                 <p className={cn(
                   "text-xs text-center py-8 transition-colors",
