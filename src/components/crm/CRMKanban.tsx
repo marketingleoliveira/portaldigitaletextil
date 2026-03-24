@@ -2,10 +2,12 @@ import { useState, type DragEvent } from "react";
 import { type Lead, type LeadStatus, LEAD_STATUS_CONFIG, useUpdateLead, useVendedores } from "@/hooks/useCRM";
 import { useAuth } from "@/contexts/AuthContext";
 import { LeadStatusBadge } from "./LeadStatusBadge";
+import { LeadReminderBadge } from "./LeadReminderBadge";
 import { Card } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { User, Phone, DollarSign, Trophy, GripVertical, UserCheck, Lock } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { usePendingReminders } from "@/hooks/useLeadReminders";
 
 interface CRMKanbanProps {
   leads: Lead[];
