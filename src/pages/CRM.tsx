@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import DashboardLayout from "@/components/layouts/DashboardLayout";
 import { useLeads, type Lead, type LeadStatus, LEAD_STATUS_CONFIG } from "@/hooks/useCRM";
+import { usePendingReminders } from "@/hooks/useLeadReminders";
 import { useAuth } from "@/contexts/AuthContext";
 import { CRMStats } from "@/components/crm/CRMStats";
 import { CRMKanban } from "@/components/crm/CRMKanban";
@@ -27,17 +28,29 @@ const CRM = () => {
   const [showDetail, setShowDetail] = useState(false);
 
   const { data: leads = [], isLoading } = useLeads(statusFilter === "all" ? null : statusFilter);
+  const { data: pendingReminders = [] } = usePendingReminders();
 
-  const filteredLeads = leads.filter((lead) => {
-    if (!searchTerm) return true;
-    const q = searchTerm.toLowerCase();
-    return (
-      lead.company_name.toLowerCase().includes(q) ||
-      lead.contact_name.toLowerCase().includes(q) ||
-      lead.contact_email?.toLowerCase().includes(q) ||
-      lead.contact_phone?.includes(q)
-    );
-  });
+  const filteredLeads = useMemo(() => {
+    const filtered = leads.filter((lead) => {
+      if (!searchTerm) return true;
+      const q = searchTerm.toLowerCase();
+      return (
+        lead.company_name.toLowerCase().includes(q) ||
+        lead.contact_name.toLowerCase().includes(q) ||
+        lead.contact_email?.toLowerCase().includes(q) ||
+        lead.contact_phone?.includes(q)
+      );
+    });
+
+    // Sort: leads with pending reminders first
+    return filtered.sort((a, b) => {
+      const aR = pendingReminders.filter(r => r.lead_id === a.id).length;
+      const bR = pendingReminders.filter(r => r.lead_id === b.id).length;
+      if (aR > 0 && bR === 0) return -1;
+      if (aR === 0 && bR > 0) return 1;
+      return 0;
+    });
+  }, [leads, searchTerm, pendingReminders]);
 
   const handleSelectLead = (lead: Lead) => {
     setSelectedLead(lead);

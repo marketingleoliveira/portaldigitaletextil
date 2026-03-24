@@ -26,7 +26,21 @@ export function CRMKanban({ leads, onSelectLead }: CRMKanbanProps) {
   const [dropTarget, setDropTarget] = useState<LeadStatus | null>(null);
 
   const getLeadsByStatus = (status: LeadStatus) =>
-    leads.filter((l) => l.status === status);
+    leads
+      .filter((l) => l.status === status)
+      .sort((a, b) => {
+        const aReminders = allReminders.filter(r => r.lead_id === a.id).length;
+        const bReminders = allReminders.filter(r => r.lead_id === b.id).length;
+        if (aReminders > 0 && bReminders === 0) return -1;
+        if (aReminders === 0 && bReminders > 0) return 1;
+        // Among leads with reminders, prioritize overdue ones
+        const now = new Date();
+        const aOverdue = allReminders.filter(r => r.lead_id === a.id && new Date(r.reminder_date) <= now).length;
+        const bOverdue = allReminders.filter(r => r.lead_id === b.id && new Date(r.reminder_date) <= now).length;
+        if (aOverdue > 0 && bOverdue === 0) return -1;
+        if (aOverdue === 0 && bOverdue > 0) return 1;
+        return 0;
+      });
 
   const formatCurrency = (value: number) =>
     new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value);
