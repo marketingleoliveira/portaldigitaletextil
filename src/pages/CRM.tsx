@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import DashboardLayout from "@/components/layouts/DashboardLayout";
 import { useLeads, type Lead, type LeadStatus, LEAD_STATUS_CONFIG } from "@/hooks/useCRM";
+import { usePendingReminders } from "@/hooks/useLeadReminders";
 import { useAuth } from "@/contexts/AuthContext";
 import { CRMStats } from "@/components/crm/CRMStats";
 import { CRMKanban } from "@/components/crm/CRMKanban";
