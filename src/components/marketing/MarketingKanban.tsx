@@ -1,8 +1,10 @@
 import { useState, type DragEvent } from "react";
 import { type MarketingLead, type MarketingLeadStatus, MARKETING_STATUS_CONFIG, useUpdateMarketingLead } from "@/hooks/useMarketingLeads";
+import { useAllMarketingContacts } from "@/hooks/useMarketingContacts";
+import { MarketingLeadContactSheet } from "./MarketingLeadContactSheet";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { User, Phone, GripVertical, Trophy } from "lucide-react";
+import { User, Phone, GripVertical, Trophy, MessageCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { startOfWeek, endOfWeek, isWithinInterval, parseISO } from "date-fns";
 
