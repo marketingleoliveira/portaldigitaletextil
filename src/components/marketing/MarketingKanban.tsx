@@ -209,9 +209,15 @@ export function MarketingKanban({ leads }: MarketingKanbanProps) {
                     {isOver && draggedLeadId ? "Soltar aqui" : "Nenhum lead"}
                   </p>
                 )}
-              </div>
-            </div>
-          );
+      </div>
+
+      <MarketingLeadContactSheet
+        lead={selectedLead}
+        open={contactSheetOpen}
+        onOpenChange={setContactSheetOpen}
+      />
+    </div>
+  );
         })}
       </div>
     </div>
