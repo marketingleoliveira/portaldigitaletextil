@@ -16,8 +16,19 @@ const COLUMNS: MarketingLeadStatus[] = ["lead", "contato_inicial", "resposta", "
 
 export function MarketingKanban({ leads }: MarketingKanbanProps) {
   const updateLead = useUpdateMarketingLead();
+  const { data: allContacts = [] } = useAllMarketingContacts();
   const [draggedLeadId, setDraggedLeadId] = useState<string | null>(null);
   const [dropTarget, setDropTarget] = useState<MarketingLeadStatus | null>(null);
+  const [selectedLead, setSelectedLead] = useState<MarketingLead | null>(null);
+  const [contactSheetOpen, setContactSheetOpen] = useState(false);
+
+  const getContactCounts = (leadId: string) => {
+    const leadContacts = allContacts.filter((c) => c.lead_id === leadId);
+    return {
+      calls: leadContacts.filter((c) => c.contact_type === "ligacao").length,
+      whatsapps: leadContacts.filter((c) => c.contact_type === "whatsapp").length,
+    };
+  };
 
   const getLeadsByStatus = (status: MarketingLeadStatus) => leads.filter((l) => l.status === status);
 
