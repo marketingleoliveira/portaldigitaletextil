@@ -137,50 +137,70 @@ export function MarketingKanban({ leads }: MarketingKanbanProps) {
                   isOver && draggedLeadId ? "bg-primary/10 ring-2 ring-primary/30" : "bg-muted/30"
                 )}
               >
-                {columnLeads.map((lead) => (
-                  <Card
-                    key={lead.id}
-                    draggable
-                    onDragStart={(e) => handleDragStart(e, lead.id)}
-                    onDragEnd={handleDragEnd}
-                    className={cn(
-                      "p-3 cursor-grab active:cursor-grabbing hover:shadow-md transition-all border group",
-                      draggedLeadId === lead.id && "opacity-40 scale-95"
-                    )}
-                  >
-                    <div className="flex items-start gap-1.5">
-                      <GripVertical className="w-3.5 h-3.5 mt-0.5 text-muted-foreground/40 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" />
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center justify-between gap-1">
-                          <p className="font-semibold text-sm truncate">{lead.company_name}</p>
-                          {status === "agendado" && (
-                            <button
-                              type="button"
-                              title="Marcar como Depoimento Realizado"
-                              className="p-1 rounded-md hover:bg-amber-100 text-amber-500 hover:text-amber-600 transition-colors opacity-0 group-hover:opacity-100 flex-shrink-0"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                updateLead.mutate({ id: lead.id, status: "depoimento_realizado" });
-                              }}
-                            >
-                              <Trophy className="w-3.5 h-3.5" />
-                            </button>
+                {columnLeads.map((lead) => {
+                  const counts = getContactCounts(lead.id);
+                  return (
+                    <Card
+                      key={lead.id}
+                      draggable
+                      onDragStart={(e) => handleDragStart(e, lead.id)}
+                      onDragEnd={handleDragEnd}
+                      onClick={() => { setSelectedLead(lead); setContactSheetOpen(true); }}
+                      className={cn(
+                        "p-3 cursor-grab active:cursor-grabbing hover:shadow-md transition-all border group",
+                        draggedLeadId === lead.id && "opacity-40 scale-95"
+                      )}
+                    >
+                      <div className="flex items-start gap-1.5">
+                        <GripVertical className="w-3.5 h-3.5 mt-0.5 text-muted-foreground/40 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between gap-1">
+                            <p className="font-semibold text-sm truncate">{lead.company_name}</p>
+                            {status === "agendado" && (
+                              <button
+                                type="button"
+                                title="Marcar como Depoimento Realizado"
+                                className="p-1 rounded-md hover:bg-amber-100 text-amber-500 hover:text-amber-600 transition-colors opacity-0 group-hover:opacity-100 flex-shrink-0"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  updateLead.mutate({ id: lead.id, status: "depoimento_realizado" });
+                                }}
+                              >
+                                <Trophy className="w-3.5 h-3.5" />
+                              </button>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-1.5 mt-1.5 text-xs text-muted-foreground">
+                            <User className="w-3 h-3" />
+                            <span className="truncate">{lead.contact_name}</span>
+                          </div>
+                          {lead.contact_phone && (
+                            <div className="flex items-center gap-1.5 mt-1 text-xs text-muted-foreground">
+                              <Phone className="w-3 h-3" />
+                              <span>{lead.contact_phone}</span>
+                            </div>
+                          )}
+                          {(counts.calls > 0 || counts.whatsapps > 0) && (
+                            <div className="flex items-center gap-2 mt-2 pt-2 border-t">
+                              {counts.calls > 0 && (
+                                <Badge variant="outline" className="text-[10px] gap-1 px-1.5 py-0.5">
+                                  <Phone className="w-2.5 h-2.5" />
+                                  {counts.calls}
+                                </Badge>
+                              )}
+                              {counts.whatsapps > 0 && (
+                                <Badge variant="outline" className="text-[10px] gap-1 px-1.5 py-0.5">
+                                  <MessageCircle className="w-2.5 h-2.5" />
+                                  {counts.whatsapps}
+                                </Badge>
+                              )}
+                            </div>
                           )}
                         </div>
-                        <div className="flex items-center gap-1.5 mt-1.5 text-xs text-muted-foreground">
-                          <User className="w-3 h-3" />
-                          <span className="truncate">{lead.contact_name}</span>
-                        </div>
-                        {lead.contact_phone && (
-                          <div className="flex items-center gap-1.5 mt-1 text-xs text-muted-foreground">
-                            <Phone className="w-3 h-3" />
-                            <span>{lead.contact_phone}</span>
-                          </div>
-                        )}
                       </div>
-                    </div>
-                  </Card>
-                ))}
+                    </Card>
+                  );
+                })}
                 {columnLeads.length === 0 && (
                   <p className={cn(
                     "text-xs text-center py-8 transition-colors",
