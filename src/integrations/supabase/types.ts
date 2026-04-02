@@ -677,6 +677,44 @@ export type Database = {
           },
         ]
       }
+      marketing_lead_contacts: {
+        Row: {
+          contact_type: string
+          created_at: string
+          created_by: string
+          id: string
+          lead_id: string
+          message: string | null
+          result: string | null
+        }
+        Insert: {
+          contact_type: string
+          created_at?: string
+          created_by: string
+          id?: string
+          lead_id: string
+          message?: string | null
+          result?: string | null
+        }
+        Update: {
+          contact_type?: string
+          created_at?: string
+          created_by?: string
+          id?: string
+          lead_id?: string
+          message?: string | null
+          result?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marketing_lead_contacts_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "marketing_leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       marketing_leads: {
         Row: {
           company_name: string
