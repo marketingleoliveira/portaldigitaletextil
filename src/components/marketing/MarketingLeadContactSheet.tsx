@@ -31,12 +31,14 @@ export function MarketingLeadContactSheet({ lead, open, onOpenChange }: Props) {
 
   const handleSubmit = () => {
     if (!lead) return;
+    if (tab === "ligacao" && !result.trim()) return;
+    if (tab === "whatsapp" && !message.trim()) return;
     createContact.mutate(
       {
         lead_id: lead.id,
         contact_type: tab,
-        result: tab === "ligacao" ? result || undefined : undefined,
-        message: tab === "whatsapp" ? message || undefined : undefined,
+        result: tab === "ligacao" ? result.trim() : undefined,
+        message: tab === "whatsapp" ? message.trim() : undefined,
       },
       {
         onSuccess: () => {
