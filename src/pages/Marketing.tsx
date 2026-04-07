@@ -19,6 +19,7 @@ const Marketing: React.FC = () => {
   const { data: marketingLeads = [], isLoading: leadsLoading } = useMarketingLeads();
   const navigate = useNavigate();
   const [showImport, setShowImport] = useState(false);
+  const [showNewLead, setShowNewLead] = useState(false);
   const [activeTab, setActiveTab] = useState('kanban');
 
   const stats = {
