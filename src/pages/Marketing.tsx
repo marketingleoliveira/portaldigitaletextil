@@ -196,6 +196,7 @@ const Marketing: React.FC = () => {
       </div>
 
       <MarketingImportDialog open={showImport} onOpenChange={setShowImport} />
+      <MarketingLeadFormDialog open={showNewLead} onOpenChange={setShowNewLead} />
     </DashboardLayout>
   );
 };
