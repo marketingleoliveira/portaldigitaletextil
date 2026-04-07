@@ -5,9 +5,10 @@ import { useTestimonials } from '@/hooks/useTestimonials';
 import { useMarketingLeads } from '@/hooks/useMarketingLeads';
 import { MarketingKanban } from '@/components/marketing/MarketingKanban';
 import { MarketingImportDialog } from '@/components/marketing/MarketingImportDialog';
+import { MarketingLeadFormDialog } from '@/components/marketing/MarketingLeadFormDialog';
 import { format, parseISO, isToday, isFuture, startOfWeek, endOfWeek, isWithinInterval } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { BarChart3, CalendarCheck, Clock, CheckCircle2, TrendingUp, FileVideo, AlertCircle, Upload, Loader2 } from 'lucide-react';
+import { BarChart3, CalendarCheck, Clock, CheckCircle2, TrendingUp, FileVideo, AlertCircle, Upload, Loader2, Plus } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { useNavigate } from 'react-router-dom';
@@ -19,6 +20,7 @@ const Marketing: React.FC = () => {
   const { data: marketingLeads = [], isLoading: leadsLoading } = useMarketingLeads();
   const navigate = useNavigate();
   const [showImport, setShowImport] = useState(false);
+  const [showNewLead, setShowNewLead] = useState(false);
   const [activeTab, setActiveTab] = useState('kanban');
 
   const stats = {
@@ -58,6 +60,10 @@ const Marketing: React.FC = () => {
             <p className="text-muted-foreground">Visão geral das atividades de marketing</p>
           </div>
           <div className="flex gap-2">
+            <Button onClick={() => setShowNewLead(true)} className="gap-2">
+              <Plus className="w-4 h-4" />
+              Novo Lead
+            </Button>
             <Button variant="outline" onClick={() => setShowImport(true)} className="gap-2">
               <Upload className="w-4 h-4" />
               Importar
@@ -190,6 +196,7 @@ const Marketing: React.FC = () => {
       </div>
 
       <MarketingImportDialog open={showImport} onOpenChange={setShowImport} />
+      <MarketingLeadFormDialog open={showNewLead} onOpenChange={setShowNewLead} />
     </DashboardLayout>
   );
 };
