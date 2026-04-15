@@ -6,6 +6,7 @@ import { useMarketingLeads } from '@/hooks/useMarketingLeads';
 import { MarketingKanban } from '@/components/marketing/MarketingKanban';
 import { MarketingImportDialog } from '@/components/marketing/MarketingImportDialog';
 import { MarketingLeadFormDialog } from '@/components/marketing/MarketingLeadFormDialog';
+import { MarketingActivityStats } from '@/components/marketing/MarketingActivityStats';
 import { format, parseISO, isToday, isFuture, startOfWeek, endOfWeek, isWithinInterval } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { BarChart3, CalendarCheck, Clock, CheckCircle2, TrendingUp, FileVideo, AlertCircle, Upload, Loader2, Plus } from 'lucide-react';
