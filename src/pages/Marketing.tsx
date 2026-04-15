@@ -197,6 +197,10 @@ const Marketing: React.FC = () => {
               </Card>
             )}
           </TabsContent>
+
+          <TabsContent value="report" className="mt-4">
+            <MarketingReport />
+          </TabsContent>
         </Tabs>
       </div>
 
