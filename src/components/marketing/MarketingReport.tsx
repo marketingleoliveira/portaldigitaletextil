@@ -199,7 +199,7 @@ export function MarketingReport() {
         doc.setFontSize(8);
         doc.setFont("helvetica", "normal");
         doc.setTextColor(100, 116, 139);
-        doc.text(`📞 ${group.calls}  💬 ${group.whatsapps}  |  Total: ${group.contacts.length}`, pageW - margin - 4, y + 6.5, { align: "right" });
+        doc.text(`Lig: ${group.calls}  |  WA: ${group.whatsapps}  |  Total: ${group.contacts.length}`, pageW - margin - 4, y + 6.5, { align: "right" });
         y += 14;
 
         // Contact rows
