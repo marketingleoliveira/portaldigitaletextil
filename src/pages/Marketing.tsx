@@ -93,6 +93,8 @@ const Marketing: React.FC = () => {
           </TabsContent>
 
           <TabsContent value="overview" className="mt-4 space-y-6">
+            {/* Activity Stats & Recent Logs */}
+            <MarketingActivityStats />
             {/* KPI Cards */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
               {kpiCards.map((kpi) => (
