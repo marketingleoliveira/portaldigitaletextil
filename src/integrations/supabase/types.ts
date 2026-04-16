@@ -754,6 +754,33 @@ export type Database = {
         }
         Relationships: []
       }
+      marketing_quick_responses: {
+        Row: {
+          created_at: string | null
+          created_by: string
+          id: string
+          label: string
+          response_type: string
+          shortcut_key: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by: string
+          id?: string
+          label: string
+          response_type?: string
+          shortcut_key?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string
+          id?: string
+          label?: string
+          response_type?: string
+          shortcut_key?: string | null
+        }
+        Relationships: []
+      }
       meeting_messages: {
         Row: {
           created_at: string
