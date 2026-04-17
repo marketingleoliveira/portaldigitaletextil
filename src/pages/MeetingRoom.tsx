@@ -2249,9 +2249,9 @@ export default function MeetingRoom() {
                     speakingParticipants.has(participants.local?.session_id || "") && "ring-4 ring-green-500",
                     paperBallActive && "animate-paper-ball-impact"
                   )}
-                  style={{ width: '300px', height: '250px' }}
-                >
-                  {/* Paper ball effect overlay */}
+                   style={{ width: '800px', height: '800px', maxWidth: '100%', maxHeight: '80vh' }}
+                 >
+                   {/* Paper ball effect overlay */}
                   <PaperBallEffect 
                     isActive={paperBallActive} 
                     senderName={paperBallSender}
@@ -2307,10 +2307,10 @@ export default function MeetingRoom() {
                         "relative bg-gray-800 rounded-xl overflow-hidden transition-all duration-300 shrink-0",
                         isSpeaking && "ring-4 ring-green-500"
                       )}
-                      style={{ width: '300px', height: '250px' }}
-                    >
-                      <video
-                        ref={el => { participantRefs.current[sessionId] = el; }}
+                       style={{ width: '800px', height: '800px', maxWidth: '100%', maxHeight: '80vh' }}
+                     >
+                       <video
+                         ref={el => { participantRefs.current[sessionId] = el; }}
                         autoPlay
                         playsInline
                         className={cn(
