@@ -1879,35 +1879,25 @@ export default function MeetingRoom() {
     }
   };
 
-  // Recording functions - using edge function for cloud recording with local fallback
+  // Recording functions - local recording is the primary path (works without Daily.co paid plan)
   const startRecording = async () => {
-    if (!meeting || !hasModeratorAccess) return;
-    
-    try {
-      const roomName = meeting.meeting_code.replace(/-/g, "");
-      const { data, error } = await supabase.functions.invoke("daily-room", {
-        body: { action: "start-recording", roomName }
-      });
-      
-      if (error) throw error;
-      
+    if (!meeting || !hasModeratorAccess) {
+      toast.error("Apenas o anfitrião pode gravar a reunião");
+      return;
+    }
+
+    if (!callObject) {
+      toast.error("Reunião ainda não está pronta. Aguarde alguns segundos.");
+      return;
+    }
+
+    toast.info("Selecione a aba/tela da reunião na próxima janela para iniciar a gravação...");
+
+    const success = await startLocalRecording(callObject);
+    if (success) {
       setIsRecording(true);
-      setIsLocalRecordingMode(false);
+      setIsLocalRecordingMode(true);
       setRecordingStartTime(new Date());
-      toast.success("Gravação na nuvem iniciada!");
-      console.log("Cloud recording started:", data);
-    } catch (err) {
-      console.error("Error starting cloud recording:", err);
-      
-      // Fallback to local recording - pass callObject to capture meeting directly
-      toast.info("Gravação na nuvem não disponível, iniciando gravação local...");
-      
-      const success = await startLocalRecording(callObject || undefined);
-      if (success) {
-        setIsRecording(true);
-        setIsLocalRecordingMode(true);
-        setRecordingStartTime(new Date());
-      }
     }
   };
 
@@ -2249,9 +2239,9 @@ export default function MeetingRoom() {
                     speakingParticipants.has(participants.local?.session_id || "") && "ring-4 ring-green-500",
                     paperBallActive && "animate-paper-ball-impact"
                   )}
-                  style={{ width: '300px', height: '250px' }}
-                >
-                  {/* Paper ball effect overlay */}
+                   style={{ width: '800px', height: '800px', maxWidth: '100%', maxHeight: '80vh' }}
+                 >
+                   {/* Paper ball effect overlay */}
                   <PaperBallEffect 
                     isActive={paperBallActive} 
                     senderName={paperBallSender}
@@ -2307,10 +2297,10 @@ export default function MeetingRoom() {
                         "relative bg-gray-800 rounded-xl overflow-hidden transition-all duration-300 shrink-0",
                         isSpeaking && "ring-4 ring-green-500"
                       )}
-                      style={{ width: '300px', height: '250px' }}
-                    >
-                      <video
-                        ref={el => { participantRefs.current[sessionId] = el; }}
+                       style={{ width: '800px', height: '800px', maxWidth: '100%', maxHeight: '80vh' }}
+                     >
+                       <video
+                         ref={el => { participantRefs.current[sessionId] = el; }}
                         autoPlay
                         playsInline
                         className={cn(
