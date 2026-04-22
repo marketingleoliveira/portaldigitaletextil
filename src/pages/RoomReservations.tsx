@@ -17,7 +17,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import {
   useRoomReservations, useRoomStatus, useCreateReservation, useDeleteReservation,
 } from "@/hooks/useRoomReservations";
-import { format, isSameDay, isToday, isBefore } from "date-fns";
+import { format, isToday, isBefore, startOfDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
   DoorOpen, Plus, Clock, User, Trash2, CalendarIcon, CheckCircle2, XCircle,
@@ -30,6 +30,7 @@ const HOURS = Array.from({ length: 13 }, (_, i) => i + 7); // 7h to 19h
 export default function RoomReservations() {
   const { user } = useAuth();
   const isDev = user?.role === "dev";
+  const today = startOfDay(new Date());
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [dialogOpen, setDialogOpen] = useState(false);
   const [formTitle, setFormTitle] = useState("");
@@ -160,9 +161,13 @@ export default function RoomReservations() {
                   mode="single"
                   selected={selectedDate}
                   onSelect={(d) => d && setSelectedDate(d)}
+                  disabled={(date) => isBefore(startOfDay(date), today)}
                   locale={ptBR}
                   className={cn("p-3 pointer-events-auto")}
                 />
+                <p className="px-3 pb-2 text-xs text-muted-foreground">
+                  Você pode agendar para hoje ou qualquer data futura.
+                </p>
               </CardContent>
             </Card>
 
@@ -170,7 +175,7 @@ export default function RoomReservations() {
               onClick={() => setDialogOpen(true)}
               className="w-full gap-2"
               size="lg"
-              disabled={isBefore(selectedDate, new Date()) && !isToday(selectedDate)}
+              disabled={isBefore(startOfDay(selectedDate), today) && !isToday(selectedDate)}
             >
               <Plus className="w-5 h-5" />
               Reservar Sala
