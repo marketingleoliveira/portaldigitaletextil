@@ -3,18 +3,10 @@ import { useNavigate } from 'react-router-dom';
 import { Bell, TicketIcon, X, ArrowRight, MessageCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-
-interface NewNotification {
-  id: string;
-  type: 'notification' | 'user_notification' | 'ticket_message' | 'new_ticket';
-  title: string;
-  message: string;
-  createdAt: string;
-  ticketId?: string;
-}
+import { NotificationAlert } from '@/types/notifications';
 
 interface PersistentNotificationAlertProps {
-  alerts: NewNotification[];
+  alerts: NotificationAlert[];
   onDismiss: (id: string) => void;
   onDismissAll: () => void;
 }
@@ -112,6 +104,16 @@ const PersistentNotificationAlert: React.FC<PersistentNotificationAlertProps> = 
           
           {/* Content */}
           <div className="p-6">
+            {currentAlert.image_url && (
+              <div className="mb-4 overflow-hidden rounded-xl border border-border bg-muted/30">
+                <img
+                  src={currentAlert.image_url}
+                  alt={currentAlert.title}
+                  className="h-56 w-full object-cover"
+                  loading="lazy"
+                />
+              </div>
+            )}
             <p className="text-foreground text-lg mb-6 line-clamp-3">
               {currentAlert.message}
             </p>
