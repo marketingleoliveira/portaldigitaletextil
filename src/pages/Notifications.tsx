@@ -29,7 +29,8 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Bell, Plus, Loader2, Users, User, Trash2 } from 'lucide-react';
+import { Bell, Plus, Loader2, Users, User, Trash2, ImagePlus, X } from 'lucide-react';
+import { UserNotificationRecord } from '@/types/notifications';
 
 interface UserProfile {
   id: string;
@@ -37,20 +38,12 @@ interface UserProfile {
   email: string;
 }
 
-interface UserNotification {
-  id: string;
-  title: string;
-  message: string;
-  created_at: string;
-  target_user_id: string;
-}
-
 const Notifications: React.FC = () => {
   const { user } = useAuth();
   const { toast } = useToast();
   const { markAllAsRead } = useUnreadNotifications();
   const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [userNotifications, setUserNotifications] = useState<UserNotification[]>([]);
+  const [userNotifications, setUserNotifications] = useState<UserNotificationRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -63,7 +56,11 @@ const Notifications: React.FC = () => {
     message: '',
     visible_to_roles: ['vendedor', 'gerente', 'admin'] as AppRole[],
     target_user_id: '',
+    image_url: null as string | null,
+    image_path: null as string | null,
   });
+  const [selectedImage, setSelectedImage] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
   const canCreateNotifications = isManagerOrAbove(user?.role);
   const isDev = user?.role === 'dev';
@@ -74,6 +71,14 @@ const Notifications: React.FC = () => {
       fetchUsers();
     }
   }, [canCreateNotifications]);
+
+  useEffect(() => {
+    return () => {
+      if (previewUrl) {
+        URL.revokeObjectURL(previewUrl);
+      }
+    };
+  }, [previewUrl]);
 
   // Mark all notifications as read when visiting this page
   useEffect(() => {
@@ -148,12 +153,34 @@ const Notifications: React.FC = () => {
     setSaving(true);
 
     try {
+      let imageUrl: string | null = null;
+      let imagePath: string | null = null;
+
+      if (selectedImage) {
+        const extension = selectedImage.name.split('.').pop()?.toLowerCase() || 'jpg';
+        imagePath = `${user?.id}/${crypto.randomUUID()}.${extension}`;
+
+        const { error: uploadError } = await supabase.storage
+          .from('notification-images')
+          .upload(imagePath, selectedImage, { upsert: false });
+
+        if (uploadError) throw uploadError;
+
+        const { data } = supabase.storage
+          .from('notification-images')
+          .getPublicUrl(imagePath);
+
+        imageUrl = data.publicUrl;
+      }
+
       if (notificationType === 'group') {
         const { error } = await supabase.from('notifications').insert({
           title: newNotification.title,
           message: newNotification.message,
           visible_to_roles: newNotification.visible_to_roles,
           created_by: user?.id,
+          image_url: imageUrl,
+          image_path: imagePath,
         });
 
         if (error) throw error;
@@ -163,6 +190,8 @@ const Notifications: React.FC = () => {
           message: newNotification.message,
           target_user_id: newNotification.target_user_id,
           created_by: user?.id,
+          image_url: imageUrl,
+          image_path: imagePath,
         });
 
         if (error) throw error;
@@ -179,7 +208,14 @@ const Notifications: React.FC = () => {
         message: '',
         visible_to_roles: ['vendedor', 'gerente', 'admin'],
         target_user_id: '',
+        image_url: null,
+        image_path: null,
       });
+      if (previewUrl) {
+        URL.revokeObjectURL(previewUrl);
+      }
+      setSelectedImage(null);
+      setPreviewUrl(null);
       setNotificationType('group');
       fetchNotifications();
     } catch (error) {
@@ -200,6 +236,7 @@ const Notifications: React.FC = () => {
     setDeleting(id);
     try {
       if (type === 'group') {
+        const targetNotification = notifications.find((item) => item.id === id);
         // First delete related notification reads
         await supabase
           .from('notification_reads')
@@ -213,7 +250,12 @@ const Notifications: React.FC = () => {
           .eq('id', id);
 
         if (error) throw error;
+
+        if (targetNotification?.image_path) {
+          await supabase.storage.from('notification-images').remove([targetNotification.image_path]);
+        }
       } else {
+        const targetNotification = userNotifications.find((item) => item.id === id);
         // First delete related notification reads
         await supabase
           .from('notification_reads')
@@ -227,6 +269,10 @@ const Notifications: React.FC = () => {
           .eq('id', id);
 
         if (error) throw error;
+
+        if (targetNotification?.image_path) {
+          await supabase.storage.from('notification-images').remove([targetNotification.image_path]);
+        }
       }
 
       toast({
@@ -255,6 +301,45 @@ const Notifications: React.FC = () => {
       hour: '2-digit',
       minute: '2-digit',
     });
+  };
+
+  const handleImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      toast({
+        title: 'Arquivo inválido',
+        description: 'Selecione apenas imagens',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast({
+        title: 'Imagem muito grande',
+        description: 'Use uma imagem de até 5MB',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    if (previewUrl) {
+      URL.revokeObjectURL(previewUrl);
+    }
+
+    const objectUrl = URL.createObjectURL(file);
+    setSelectedImage(file);
+    setPreviewUrl(objectUrl);
+  };
+
+  const clearSelectedImage = () => {
+    if (previewUrl) {
+      URL.revokeObjectURL(previewUrl);
+    }
+    setSelectedImage(null);
+    setPreviewUrl(null);
   };
 
   const allNotifications = [
@@ -381,6 +466,40 @@ const Notifications: React.FC = () => {
                       rows={4}
                     />
                   </div>
+                  <div className="space-y-3">
+                    <Label htmlFor="notification-image">Imagem (opcional)</Label>
+                    <div className="flex items-center gap-3">
+                      <Label
+                        htmlFor="notification-image"
+                        className="flex h-10 cursor-pointer items-center gap-2 rounded-md border border-border bg-muted/40 px-4 text-sm font-medium text-foreground transition-colors hover:bg-muted"
+                      >
+                        <ImagePlus className="h-4 w-4" />
+                        Selecionar imagem
+                      </Label>
+                      <Input
+                        id="notification-image"
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={handleImageChange}
+                      />
+                      {selectedImage && (
+                        <Button type="button" variant="ghost" size="sm" onClick={clearSelectedImage}>
+                          <X className="mr-1 h-4 w-4" />
+                          Remover
+                        </Button>
+                      )}
+                    </div>
+                    {previewUrl && (
+                      <div className="overflow-hidden rounded-lg border border-border bg-muted/20">
+                        <img
+                          src={previewUrl}
+                          alt="Pré-visualização da notificação"
+                          className="h-48 w-full object-cover"
+                        />
+                      </div>
+                    )}
+                  </div>
                 </div>
                 <DialogFooter>
                   <Button variant="outline" onClick={() => setDialogOpen(false)}>
@@ -465,6 +584,16 @@ const Notifications: React.FC = () => {
                   </div>
                 </CardHeader>
                 <CardContent>
+                  {notification.image_url && (
+                    <div className="mb-4 overflow-hidden rounded-lg border border-border bg-muted/20">
+                      <img
+                        src={notification.image_url}
+                        alt={notification.title}
+                        className="max-h-72 w-full object-cover"
+                        loading="lazy"
+                      />
+                    </div>
+                  )}
                   <p className="text-sm text-muted-foreground whitespace-pre-wrap">
                     {notification.message}
                   </p>

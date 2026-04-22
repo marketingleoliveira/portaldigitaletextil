@@ -1,6 +1,7 @@
 import React, { createContext, useContext, ReactNode, useState, useCallback } from 'react';
 import { useRealtimeNotifications } from '@/hooks/useRealtimeNotifications';
 import { useAuth } from '@/contexts/AuthContext';
+import { NotificationAlert } from '@/types/notifications';
 
 interface NotificationContextType {
   unreadCount: {
@@ -9,14 +10,7 @@ interface NotificationContextType {
     ticketMessages: number;
     total: number;
   };
-  newAlerts: Array<{
-    id: string;
-    type: 'notification' | 'user_notification' | 'ticket_message' | 'new_ticket';
-    title: string;
-    message: string;
-    createdAt: string;
-    ticketId?: string;
-  }>;
+  newAlerts: NotificationAlert[];
   loading: boolean;
   showBanner: boolean;
   setShowBanner: (show: boolean) => void;

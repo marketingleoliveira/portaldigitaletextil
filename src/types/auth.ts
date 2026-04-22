@@ -73,6 +73,8 @@ export interface Notification {
   visible_to_roles: AppRole[];
   created_by: string | null;
   created_at: string;
+  image_url?: string | null;
+  image_path?: string | null;
 }
 
 export interface AccessLog {
