@@ -1051,6 +1051,8 @@ export type Database = {
           created_at: string | null
           created_by: string | null
           id: string
+          image_path: string | null
+          image_url: string | null
           message: string
           title: string
           visible_to_roles: Database["public"]["Enums"]["app_role"][]
@@ -1059,6 +1061,8 @@ export type Database = {
           created_at?: string | null
           created_by?: string | null
           id?: string
+          image_path?: string | null
+          image_url?: string | null
           message: string
           title: string
           visible_to_roles?: Database["public"]["Enums"]["app_role"][]
@@ -1067,6 +1071,8 @@ export type Database = {
           created_at?: string | null
           created_by?: string | null
           id?: string
+          image_path?: string | null
+          image_url?: string | null
           message?: string
           title?: string
           visible_to_roles?: Database["public"]["Enums"]["app_role"][]
@@ -1640,6 +1646,8 @@ export type Database = {
           created_at: string | null
           created_by: string | null
           id: string
+          image_path: string | null
+          image_url: string | null
           message: string
           target_user_id: string | null
           title: string
@@ -1648,6 +1656,8 @@ export type Database = {
           created_at?: string | null
           created_by?: string | null
           id?: string
+          image_path?: string | null
+          image_url?: string | null
           message: string
           target_user_id?: string | null
           title: string
@@ -1656,6 +1666,8 @@ export type Database = {
           created_at?: string | null
           created_by?: string | null
           id?: string
+          image_path?: string | null
+          image_url?: string | null
           message?: string
           target_user_id?: string | null
           title?: string
