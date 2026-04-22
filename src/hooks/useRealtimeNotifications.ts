@@ -1,15 +1,7 @@
 import { useState, useEffect, useCallback, useRef, useContext } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { AuthUser } from '@/types/auth';
-
-interface NewNotification {
-  id: string;
-  type: 'notification' | 'user_notification' | 'ticket_message' | 'new_ticket';
-  title: string;
-  message: string;
-  createdAt: string;
-  ticketId?: string;
-}
+import { NotificationAlert } from '@/types/notifications';
 
 interface UnreadCount {
   groupNotifications: number;
@@ -25,7 +17,7 @@ export const useRealtimeNotifications = (user: AuthUser | null) => {
     ticketMessages: 0,
     total: 0,
   });
-  const [newAlerts, setNewAlerts] = useState<NewNotification[]>([]);
+  const [newAlerts, setNewAlerts] = useState<NotificationAlert[]>([]);
   const [loading, setLoading] = useState(true);
   
   // Track dismissed alerts to prevent them from reappearing
@@ -119,7 +111,7 @@ export const useRealtimeNotifications = (user: AuthUser | null) => {
     }
   }, [user?.id, user?.role]);
 
-  const addNewAlert = useCallback((notification: NewNotification) => {
+  const addNewAlert = useCallback((notification: NotificationAlert) => {
     // Don't add if already dismissed
     if (dismissedAlertIds.current.has(notification.id)) return;
     
@@ -244,6 +236,8 @@ export const useRealtimeNotifications = (user: AuthUser | null) => {
               title: newNotif.title,
               message: newNotif.message,
               createdAt: newNotif.created_at,
+              image_url: newNotif.image_url,
+              image_path: newNotif.image_path,
             });
             fetchUnreadCount();
           }
@@ -270,6 +264,8 @@ export const useRealtimeNotifications = (user: AuthUser | null) => {
               title: newNotif.title,
               message: newNotif.message,
               createdAt: newNotif.created_at,
+              image_url: newNotif.image_url,
+              image_path: newNotif.image_path,
             });
             fetchUnreadCount();
           }
