@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Bell, TicketIcon, X, ArrowRight, MessageCircle } from 'lucide-react';
+import { Bell, TicketIcon, ArrowRight, MessageCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { cn } from '@/lib/utils';
 import { NotificationAlert } from '@/types/notifications';
 
 interface PersistentNotificationAlertProps {

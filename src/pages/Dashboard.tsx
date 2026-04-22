@@ -44,6 +44,7 @@ interface RecentNotification {
   title: string;
   message: string;
   created_at: string;
+  image_url?: string | null;
   type: 'group' | 'individual';
 }
 
@@ -96,7 +97,7 @@ const Dashboard: React.FC = () => {
         if (user?.role) {
           const { data: groupNotifs } = await supabase
             .from('notifications')
-            .select('id, title, message, created_at')
+            .select('id, title, message, created_at, image_url')
             .order('created_at', { ascending: false })
             .limit(5);
           
@@ -108,7 +109,7 @@ const Dashboard: React.FC = () => {
         if (user?.id) {
           const { data: userNotifs } = await supabase
             .from('user_notifications')
-            .select('id, title, message, created_at')
+            .select('id, title, message, created_at, image_url')
             .eq('target_user_id', user.id)
             .order('created_at', { ascending: false })
             .limit(5);
@@ -268,6 +269,16 @@ const Dashboard: React.FC = () => {
                       <Bell className={`w-4 h-4 ${notif.type === 'individual' ? 'text-primary' : 'text-warning'}`} />
                     </div>
                     <div className="flex-1 min-w-0">
+                      {notif.image_url && (
+                        <div className="mb-2 overflow-hidden rounded-md border border-border bg-muted/30">
+                          <img
+                            src={notif.image_url}
+                            alt={notif.title}
+                            className="h-24 w-full object-cover"
+                            loading="lazy"
+                          />
+                        </div>
+                      )}
                       <p className="font-medium text-sm truncate">{notif.title}</p>
                       <p className="text-xs text-muted-foreground line-clamp-2 mt-0.5">{notif.message}</p>
                       <p className="text-xs text-muted-foreground/70 mt-1">
