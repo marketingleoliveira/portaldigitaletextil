@@ -120,6 +120,35 @@
 
   body {
     @apply bg-background text-foreground antialiased;
+    scrollbar-color: hsl(var(--sidebar-primary) / 0.7) hsl(var(--muted));
+    scrollbar-width: thin;
+  }
+
+  ::selection {
+    background: hsl(var(--sidebar-primary) / 0.18);
+  }
+
+  ::-webkit-scrollbar {
+    width: 12px;
+    height: 12px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: hsl(var(--muted));
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: linear-gradient(180deg, hsl(var(--sidebar-primary) / 0.9) 0%, hsl(var(--sidebar-ring) / 0.75) 100%);
+    border: 2px solid hsl(var(--muted));
+    border-radius: 9999px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(180deg, hsl(var(--sidebar-primary)) 0%, hsl(var(--sidebar-ring) / 0.9) 100%);
+  }
+
+  ::-webkit-scrollbar-corner {
+    background: hsl(var(--muted));
   }
 }
 
