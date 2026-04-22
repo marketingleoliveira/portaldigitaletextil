@@ -21,6 +21,18 @@ interface ProfileWithRole {
   role?: AppRole;
 }
 
+const getWeekStart = () => {
+  const now = new Date();
+  const weekStart = new Date(now);
+  const day = weekStart.getDay();
+  const diffToMonday = day === 0 ? -6 : 1 - day;
+
+  weekStart.setDate(weekStart.getDate() + diffToMonday);
+  weekStart.setHours(0, 0, 0, 0);
+
+  return weekStart;
+};
+
 const ActivityRankingCard: React.FC = () => {
   const [ranking, setRanking] = useState<UserActivity[]>([]);
   const [loading, setLoading] = useState(true);
@@ -105,9 +117,7 @@ const ActivityRankingCard: React.FC = () => {
 
   const fetchData = async () => {
     try {
-      // Get last 30 days
-      const thirtyDaysAgo = new Date();
-      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+      const weekStart = getWeekStart();
 
       // Consider users online only if last_seen is within the last 30 seconds
       const thirtySecondsAgo = new Date(Date.now() - 30 * 1000).toISOString();
@@ -123,7 +133,7 @@ const ActivityRankingCard: React.FC = () => {
         supabase
           .from('user_activity_sessions')
           .select('user_id, session_start, session_end, duration_seconds')
-          .gte('session_start', thirtyDaysAgo.toISOString()),
+          .gte('session_start', weekStart.toISOString()),
         supabase
           .from('user_presence')
           .select('user_id, is_online, last_seen')
@@ -266,7 +276,7 @@ const ActivityRankingCard: React.FC = () => {
         <CardHeader className="pb-3">
           <CardTitle className="flex items-center gap-2 text-base">
             <Trophy className="w-5 h-5 text-yellow-500" />
-            Top 3 Mais Ativos
+            Top 3 Mais Ativos da Semana
           </CardTitle>
         </CardHeader>
         <CardContent className="flex justify-center py-8">
@@ -281,13 +291,13 @@ const ActivityRankingCard: React.FC = () => {
       <CardHeader className="pb-3">
         <CardTitle className="flex items-center gap-2 text-base">
           <Trophy className="w-5 h-5 text-yellow-500" />
-          Top 3 Mais Ativos
+          Top 3 Mais Ativos da Semana
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-3">
         {ranking.length === 0 ? (
           <p className="text-sm text-muted-foreground text-center py-4">
-            Nenhuma atividade registrada
+            Nenhuma atividade registrada nesta semana
           </p>
         ) : (
           ranking.map((user, index) => {
