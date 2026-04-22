@@ -141,20 +141,20 @@ const ActivityRankingCard: React.FC = () => {
           .gte('last_seen', thirtySecondsAgo),
       ]);
 
-      // Filter only vendedores (exclude admin, dev, gerente, criacao)
-      const vendedorUserIds = new Set(
+      // Include every active role except desenvolvedor
+      const eligibleUserIds = new Set(
         (rolesRes.data || [])
-          .filter(r => r.role === 'vendedor')
+          .filter(r => r.role !== 'dev')
           .map(r => r.user_id)
       );
 
       // Create a map of user_id to role
       const roleMap = new Map((rolesRes.data || []).map(r => [r.user_id, r.role]));
 
-      // Filter profiles to only include vendedores
+      // Filter profiles to include all eligible roles except desenvolvedor
       if (profilesRes.data) {
         profilesRef.current = profilesRes.data
-          .filter(p => vendedorUserIds.has(p.id))
+          .filter(p => eligibleUserIds.has(p.id))
           .map(p => ({
             ...p,
             role: roleMap.get(p.id) as AppRole
