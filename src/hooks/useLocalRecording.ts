@@ -350,6 +350,11 @@ export function useLocalRecording({ meetingTitle, autoDownload = true, meetingId
         if (isStoppingRef.current && blob.size > 0 && autoDownload) {
           downloadRecording(blob);
         }
+
+        // Always upload to cloud (so admins can recover even if local download fails)
+        if (blob.size > 0) {
+          uploadRecordingToCloud(blob, savedTitle, savedMeetingId, savedStartTime);
+        }
       };
 
       globalRecordingState.mediaRecorder = mediaRecorder;
