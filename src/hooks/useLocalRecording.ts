@@ -375,6 +375,13 @@ export function useLocalRecording({ meetingTitle, autoDownload = true, meetingId
         globalRecordingState.isRecording = false;
         globalRecordingState.callObject = null;
         
+        // Notify based on blob status
+        if (blob.size === 0) {
+          toast.error('Gravação finalizada SEM dados — verifique se você compartilhou a tela ao iniciar.');
+        } else if (isStoppingRef.current) {
+          toast.success(`Gravação finalizada (${(blob.size / 1024 / 1024).toFixed(1)} MB)`);
+        }
+
         // Download locally when stopped manually
         if (isStoppingRef.current && blob.size > 0 && autoDownload) {
           downloadRecording(blob);
@@ -382,7 +389,7 @@ export function useLocalRecording({ meetingTitle, autoDownload = true, meetingId
 
         // Always upload to cloud (so admins can recover even if local download fails)
         if (blob.size > 0) {
-          uploadRecordingToCloud(blob, savedTitle, savedMeetingId, savedStartTime);
+          await uploadRecordingToCloud(blob, savedTitle, savedMeetingId, savedStartTime);
         }
       };
 
