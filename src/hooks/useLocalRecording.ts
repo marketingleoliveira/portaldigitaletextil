@@ -1,6 +1,56 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { toast } from 'sonner';
 import { DailyCall } from '@daily-co/daily-js';
+import { supabase } from '@/integrations/supabase/client';
+
+async function uploadRecordingToCloud(
+  blob: Blob,
+  meetingTitle: string,
+  meetingId: string | null,
+  startTime: Date | null,
+) {
+  try {
+    if (!blob || blob.size === 0) return;
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      console.warn('No user for recording upload');
+      return;
+    }
+    const safeName = (meetingTitle || 'reuniao').replace(/[^a-zA-Z0-9]/g, '_');
+    const ts = Date.now();
+    const path = `${user.id}/${safeName}_${ts}.webm`;
+
+    const { error: upErr } = await supabase.storage
+      .from('meeting-recordings')
+      .upload(path, blob, { contentType: blob.type || 'video/webm', upsert: false });
+    if (upErr) {
+      console.error('Recording upload error:', upErr);
+      toast.error('Gravação salva localmente, mas falhou ao enviar para a nuvem');
+      return;
+    }
+
+    const { data: pub } = supabase.storage.from('meeting-recordings').getPublicUrl(path);
+
+    const startedAt = startTime || new Date();
+    const durationSec = Math.max(1, Math.round((Date.now() - startedAt.getTime()) / 1000));
+
+    const { error: insErr } = await supabase.from('meeting_recordings').insert({
+      meeting_id: meetingId,
+      meeting_title: meetingTitle || 'Reunião sem título',
+      meeting_date: startedAt.toISOString(),
+      recording_id: `local_${ts}`,
+      download_url: pub.publicUrl,
+      duration_seconds: durationSec,
+    });
+    if (insErr) {
+      console.error('Recording metadata insert error:', insErr);
+    } else {
+      toast.success('Gravação enviada para a Nuvem');
+    }
+  } catch (err) {
+    console.error('uploadRecordingToCloud failed:', err);
+  }
+}
 
 interface UseLocalRecordingOptions {
   meetingTitle?: string;
