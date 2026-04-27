@@ -8,29 +8,52 @@ async function uploadRecordingToCloud(
   meetingTitle: string,
   meetingId: string | null,
   startTime: Date | null,
-) {
+): Promise<boolean> {
+  const uploadToastId = `recording-upload-${Date.now()}`;
   try {
-    if (!blob || blob.size === 0) return;
+    if (!blob || blob.size === 0) {
+      console.warn('Skipping upload: empty blob');
+      return false;
+    }
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
       console.warn('No user for recording upload');
-      return;
+      toast.error('Usuário não autenticado — gravação não foi enviada à nuvem');
+      return false;
     }
-    const safeName = (meetingTitle || 'reuniao').replace(/[^a-zA-Z0-9]/g, '_');
+
+    const sizeMb = (blob.size / 1024 / 1024).toFixed(1);
+    toast.loading(`Enviando gravação (${sizeMb} MB) para a nuvem...`, { id: uploadToastId });
+
+    const safeName = (meetingTitle || 'reuniao').replace(/[^a-zA-Z0-9]/g, '_').slice(0, 60);
     const ts = Date.now();
     const path = `${user.id}/${safeName}_${ts}.webm`;
 
-    const { error: upErr } = await supabase.storage
-      .from('meeting-recordings')
-      .upload(path, blob, { contentType: blob.type || 'video/webm', upsert: false });
-    if (upErr) {
-      console.error('Recording upload error:', upErr);
-      toast.error('Gravação salva localmente, mas falhou ao enviar para a nuvem');
-      return;
+    // Upload with one retry on failure
+    let lastErr: any = null;
+    for (let attempt = 1; attempt <= 2; attempt++) {
+      const { error: upErr } = await supabase.storage
+        .from('meeting-recordings')
+        .upload(path, blob, {
+          contentType: blob.type || 'video/webm',
+          upsert: false,
+          cacheControl: '3600',
+        });
+      if (!upErr) {
+        lastErr = null;
+        break;
+      }
+      lastErr = upErr;
+      console.error(`Upload attempt ${attempt} failed:`, upErr);
+      if (attempt < 2) await new Promise(r => setTimeout(r, 1500));
+    }
+
+    if (lastErr) {
+      toast.error(`Falha ao enviar gravação à nuvem: ${lastErr.message || 'erro desconhecido'}`, { id: uploadToastId });
+      return false;
     }
 
     const { data: pub } = supabase.storage.from('meeting-recordings').getPublicUrl(path);
-
     const startedAt = startTime || new Date();
     const durationSec = Math.max(1, Math.round((Date.now() - startedAt.getTime()) / 1000));
 
@@ -42,13 +65,19 @@ async function uploadRecordingToCloud(
       download_url: pub.publicUrl,
       duration_seconds: durationSec,
     });
+
     if (insErr) {
       console.error('Recording metadata insert error:', insErr);
-    } else {
-      toast.success('Gravação enviada para a Nuvem');
+      toast.warning('Gravação salva na nuvem mas não foi indexada — verifique a página Gravações', { id: uploadToastId });
+      return true; // file is there, just no metadata
     }
-  } catch (err) {
+
+    toast.success(`Gravação (${sizeMb} MB) salva na nuvem com sucesso`, { id: uploadToastId });
+    return true;
+  } catch (err: any) {
     console.error('uploadRecordingToCloud failed:', err);
+    toast.error(`Erro ao enviar gravação: ${err?.message || 'desconhecido'}`, { id: uploadToastId });
+    return false;
   }
 }
 
