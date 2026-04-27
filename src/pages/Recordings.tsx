@@ -213,7 +213,7 @@ export default function Recordings() {
           </CardHeader>
           <CardContent>
             <Input
-              placeholder="Buscar por título da reunião..."
+              placeholder="Buscar por título ou data (ex: 23/04/2026, abril, 23/04)..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
