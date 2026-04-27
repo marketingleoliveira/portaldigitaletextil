@@ -26,12 +26,12 @@ interface RecordingRow {
 }
 
 export default function Recordings() {
-  const { authUser } = useAuth();
+  const { user } = useAuth();
   const [recordings, setRecordings] = useState<RecordingRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
 
-  const isDev = authUser?.role === "dev";
+  const isDev = user?.role === "dev";
 
   const load = async () => {
     setLoading(true);
