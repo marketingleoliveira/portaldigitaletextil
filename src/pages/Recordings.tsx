@@ -124,9 +124,29 @@ export default function Recordings() {
     load();
   }, []);
 
-  const filtered = recordings.filter((r) =>
-    r.meeting_title.toLowerCase().includes(search.toLowerCase()),
-  );
+  const normalize = (s: string) => s.toLowerCase().trim();
+  const filtered = recordings.filter((r) => {
+    const q = normalize(search);
+    if (!q) return true;
+    if (normalize(r.meeting_title).includes(q)) return true;
+    try {
+      const d = new Date(r.meeting_date);
+      const formats = [
+        format(d, "dd/MM/yyyy", { locale: ptBR }),
+        format(d, "dd/MM/yy", { locale: ptBR }),
+        format(d, "dd-MM-yyyy", { locale: ptBR }),
+        format(d, "yyyy-MM-dd", { locale: ptBR }),
+        format(d, "dd 'de' MMMM 'de' yyyy", { locale: ptBR }),
+        format(d, "MMMM yyyy", { locale: ptBR }),
+        format(d, "MMMM", { locale: ptBR }),
+        format(d, "dd/MM", { locale: ptBR }),
+        format(d, "HH:mm", { locale: ptBR }),
+      ];
+      return formats.some((f) => normalize(f).includes(q));
+    } catch {
+      return false;
+    }
+  });
 
   const formatDuration = (sec: number | null) => {
     if (!sec) return "—";
@@ -193,7 +213,7 @@ export default function Recordings() {
           </CardHeader>
           <CardContent>
             <Input
-              placeholder="Buscar por título da reunião..."
+              placeholder="Buscar por título ou data (ex: 23/04/2026, abril, 23/04)..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
