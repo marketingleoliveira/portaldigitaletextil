@@ -47,6 +47,7 @@ import Agendamentos from "./pages/Agendamentos";
 import Marketing from "./pages/Marketing";
 import Depoimentos from "./pages/Depoimentos";
 import RoomReservations from "./pages/RoomReservations";
+import Recordings from "./pages/Recordings";
 
 const queryClient = new QueryClient();
 
@@ -105,6 +106,7 @@ const App = () => (
                   <Route path="/depoimentos" element={<ProtectedRoute allowedRoles={['dev', 'marketing']}><Depoimentos /></ProtectedRoute>} />
                   <Route path="/reunioes" element={<ProtectedRoute><Meetings /></ProtectedRoute>} />
                   <Route path="/reserva-salas" element={<ProtectedRoute><RoomReservations /></ProtectedRoute>} />
+                  <Route path="/gravacoes" element={<ProtectedRoute allowedRoles={['dev', 'marketing']}><Recordings /></ProtectedRoute>} />
                   <Route path="/reuniao/:code" element={<ProtectedRoute><MeetingErrorBoundary><MeetingRoom /></MeetingErrorBoundary></ProtectedRoute>} />
                   
                   <Route path="/entrar/:code" element={<GuestJoin />} />
