@@ -8,29 +8,52 @@ async function uploadRecordingToCloud(
   meetingTitle: string,
   meetingId: string | null,
   startTime: Date | null,
-) {
+): Promise<boolean> {
+  const uploadToastId = `recording-upload-${Date.now()}`;
   try {
-    if (!blob || blob.size === 0) return;
+    if (!blob || blob.size === 0) {
+      console.warn('Skipping upload: empty blob');
+      return false;
+    }
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
       console.warn('No user for recording upload');
-      return;
+      toast.error('Usuário não autenticado — gravação não foi enviada à nuvem');
+      return false;
     }
-    const safeName = (meetingTitle || 'reuniao').replace(/[^a-zA-Z0-9]/g, '_');
+
+    const sizeMb = (blob.size / 1024 / 1024).toFixed(1);
+    toast.loading(`Enviando gravação (${sizeMb} MB) para a nuvem...`, { id: uploadToastId });
+
+    const safeName = (meetingTitle || 'reuniao').replace(/[^a-zA-Z0-9]/g, '_').slice(0, 60);
     const ts = Date.now();
     const path = `${user.id}/${safeName}_${ts}.webm`;
 
-    const { error: upErr } = await supabase.storage
-      .from('meeting-recordings')
-      .upload(path, blob, { contentType: blob.type || 'video/webm', upsert: false });
-    if (upErr) {
-      console.error('Recording upload error:', upErr);
-      toast.error('Gravação salva localmente, mas falhou ao enviar para a nuvem');
-      return;
+    // Upload with one retry on failure
+    let lastErr: any = null;
+    for (let attempt = 1; attempt <= 2; attempt++) {
+      const { error: upErr } = await supabase.storage
+        .from('meeting-recordings')
+        .upload(path, blob, {
+          contentType: blob.type || 'video/webm',
+          upsert: false,
+          cacheControl: '3600',
+        });
+      if (!upErr) {
+        lastErr = null;
+        break;
+      }
+      lastErr = upErr;
+      console.error(`Upload attempt ${attempt} failed:`, upErr);
+      if (attempt < 2) await new Promise(r => setTimeout(r, 1500));
+    }
+
+    if (lastErr) {
+      toast.error(`Falha ao enviar gravação à nuvem: ${lastErr.message || 'erro desconhecido'}`, { id: uploadToastId });
+      return false;
     }
 
     const { data: pub } = supabase.storage.from('meeting-recordings').getPublicUrl(path);
-
     const startedAt = startTime || new Date();
     const durationSec = Math.max(1, Math.round((Date.now() - startedAt.getTime()) / 1000));
 
@@ -42,13 +65,19 @@ async function uploadRecordingToCloud(
       download_url: pub.publicUrl,
       duration_seconds: durationSec,
     });
+
     if (insErr) {
       console.error('Recording metadata insert error:', insErr);
-    } else {
-      toast.success('Gravação enviada para a Nuvem');
+      toast.warning('Gravação salva na nuvem mas não foi indexada — verifique a página Gravações', { id: uploadToastId });
+      return true; // file is there, just no metadata
     }
-  } catch (err) {
+
+    toast.success(`Gravação (${sizeMb} MB) salva na nuvem com sucesso`, { id: uploadToastId });
+    return true;
+  } catch (err: any) {
     console.error('uploadRecordingToCloud failed:', err);
+    toast.error(`Erro ao enviar gravação: ${err?.message || 'desconhecido'}`, { id: uploadToastId });
+    return false;
   }
 }
 
@@ -346,6 +375,13 @@ export function useLocalRecording({ meetingTitle, autoDownload = true, meetingId
         globalRecordingState.isRecording = false;
         globalRecordingState.callObject = null;
         
+        // Notify based on blob status
+        if (blob.size === 0) {
+          toast.error('Gravação finalizada SEM dados — verifique se você compartilhou a tela ao iniciar.');
+        } else if (isStoppingRef.current) {
+          toast.success(`Gravação finalizada (${(blob.size / 1024 / 1024).toFixed(1)} MB)`);
+        }
+
         // Download locally when stopped manually
         if (isStoppingRef.current && blob.size > 0 && autoDownload) {
           downloadRecording(blob);
@@ -353,7 +389,7 @@ export function useLocalRecording({ meetingTitle, autoDownload = true, meetingId
 
         // Always upload to cloud (so admins can recover even if local download fails)
         if (blob.size > 0) {
-          uploadRecordingToCloud(blob, savedTitle, savedMeetingId, savedStartTime);
+          await uploadRecordingToCloud(blob, savedTitle, savedMeetingId, savedStartTime);
         }
       };
 
@@ -394,14 +430,16 @@ export function useLocalRecording({ meetingTitle, autoDownload = true, meetingId
     return new Promise((resolve) => {
       console.log('Stopping local recording...');
       isStoppingRef.current = true;
-      
+
       // Clear track sync interval
       if (globalRecordingState.trackSyncInterval) {
         clearInterval(globalRecordingState.trackSyncInterval);
         globalRecordingState.trackSyncInterval = null;
       }
-      
-      if (!globalRecordingState.mediaRecorder || globalRecordingState.mediaRecorder.state === 'inactive') {
+
+      const recorder = globalRecordingState.mediaRecorder;
+      if (!recorder || recorder.state === 'inactive') {
+        console.warn('No active MediaRecorder to stop');
         globalRecordingState.isRecording = false;
         globalRecordingState.startTime = null;
         setIsLocalRecording(false);
@@ -410,66 +448,53 @@ export function useLocalRecording({ meetingTitle, autoDownload = true, meetingId
         return;
       }
 
-      const currentMimeType = globalRecordingState.mediaRecorder.mimeType || 'video/webm';
-      
-      // Capture values BEFORE async onstop fires (component may unmount)
-      const savedChunks = [...globalRecordingState.chunks];
-      const savedTitle = globalRecordingState.meetingTitle || 'Reunião';
-      const shouldAutoDownload = autoDownload;
+      // We rely on the existing onstop handler defined in startLocalRecording,
+      // which already handles: blob assembly, cleanup, local download (when isStoppingRef=true)
+      // AND cloud upload. We just need to add a hook to resolve this promise.
+      const originalOnStop = recorder.onstop;
+      recorder.onstop = async (ev) => {
+        // Build blob from current chunks BEFORE the original handler resets state
+        const currentChunks = [...globalRecordingState.chunks];
+        const mimeType = recorder.mimeType || 'video/webm';
+        const blob = new Blob(currentChunks, { type: mimeType });
+        console.log('stopLocalRecording: blob size =', blob.size, 'chunks =', currentChunks.length);
 
-      globalRecordingState.mediaRecorder.onstop = () => {
-        // Request final data and build blob from all accumulated chunks
-        const allChunks = [...savedChunks, ...globalRecordingState.chunks.slice(savedChunks.length)];
-        const blob = new Blob(allChunks, { type: currentMimeType });
-        console.log('Final recording blob size:', blob.size);
-        
-        try { setRecordedBlob(blob); } catch (e) { /* component may be unmounted */ }
-        try { setIsLocalRecording(false); } catch (e) { /* component may be unmounted */ }
-        try { setLocalRecordingStartTime(null); } catch (e) { /* component may be unmounted */ }
-        
-        // Stop all tracks
-        if (globalRecordingState.stream) {
-          globalRecordingState.stream.getTracks().forEach(track => track.stop());
+        // Run the original handler (which uploads to cloud + downloads locally + resets state)
+        if (originalOnStop) {
+          try {
+            await (originalOnStop as any).call(recorder, ev);
+          } catch (err) {
+            console.error('Error in original onstop handler:', err);
+          }
         }
-        
-        // Close audio context
-        if (globalRecordingState.audioContext) {
-          globalRecordingState.audioContext.close();
-          globalRecordingState.audioContext = null;
+
+        if (blob.size === 0) {
+          toast.error('Gravação vazia — nenhum dado capturado. Verifique se a tela foi compartilhada corretamente.');
         }
-        
-        // Reset global state
-        globalRecordingState.mediaRecorder = null;
-        globalRecordingState.stream = null;
-        globalRecordingState.chunks = [];
-        globalRecordingState.startTime = null;
-        globalRecordingState.isRecording = false;
-        globalRecordingState.callObject = null;
-        
-        toast.success('Gravação local finalizada!');
-        
-        // Download locally - use inline logic to avoid stale closure
-        if (blob.size > 0 && shouldAutoDownload) {
-          const url = URL.createObjectURL(blob);
-          const a = document.createElement('a');
-          a.href = url;
-          const date = new Date().toISOString().split('T')[0];
-          const time = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }).replace(':', '-');
-          const safeName = savedTitle.replace(/[^a-zA-Z0-9]/g, '_');
-          a.download = `${safeName}_${date}_${time}.webm`;
-          document.body.appendChild(a);
-          a.click();
-          document.body.removeChild(a);
-          URL.revokeObjectURL(url);
-          toast.success('Gravação baixada com sucesso!');
-        }
-        
-        resolve(blob);
+        resolve(blob.size > 0 ? blob : null);
       };
 
-      globalRecordingState.mediaRecorder.stop();
+      // CRITICAL: Force MediaRecorder to flush its internal buffer before stopping.
+      // Without this, the last chunk (up to 1s of recording) can be lost.
+      try {
+        if (recorder.state === 'recording') {
+          recorder.requestData();
+        }
+      } catch (err) {
+        console.warn('requestData failed:', err);
+      }
+
+      // Small delay so the flushed dataavailable event fires before stop()
+      setTimeout(() => {
+        try {
+          recorder.stop();
+        } catch (err) {
+          console.error('recorder.stop() failed:', err);
+          resolve(null);
+        }
+      }, 250);
     });
-  }, [autoDownload, downloadRecording]);
+  }, []);
 
   // Cleanup on unmount - but don't stop recording!
   useEffect(() => {
