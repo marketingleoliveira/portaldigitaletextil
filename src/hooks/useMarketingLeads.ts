@@ -24,6 +24,7 @@ export const MARKETING_STATUS_CONFIG: Record<MarketingLeadStatus, { label: strin
   resposta: { label: "Resposta", color: "bg-violet-500/15 text-violet-700 border-violet-300" },
   agendado: { label: "Agendado", color: "bg-amber-500/15 text-amber-700 border-amber-300" },
   depoimento_realizado: { label: "Depoimento Realizado", color: "bg-emerald-500/15 text-emerald-700 border-emerald-300" },
+  recusado: { label: "Recusado", color: "bg-rose-500/15 text-rose-700 border-rose-300" },
 };
 
 export function useMarketingLeads() {
