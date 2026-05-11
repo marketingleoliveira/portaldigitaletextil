@@ -1,0 +1,1 @@
+ALTER TYPE public.marketing_lead_status ADD VALUE IF NOT EXISTS 'recusado';

@@ -12,7 +12,7 @@ interface MarketingKanbanProps {
   leads: MarketingLead[];
 }
 
-const COLUMNS: MarketingLeadStatus[] = ["lead", "contato_inicial", "resposta", "agendado", "depoimento_realizado"];
+const COLUMNS: MarketingLeadStatus[] = ["lead", "contato_inicial", "resposta", "agendado", "depoimento_realizado", "recusado"];
 
 export function MarketingKanban({ leads }: MarketingKanbanProps) {
   const updateLead = useUpdateMarketingLead();
