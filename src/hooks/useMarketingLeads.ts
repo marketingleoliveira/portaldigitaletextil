@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 
-export type MarketingLeadStatus = "lead" | "contato_inicial" | "resposta" | "agendado" | "depoimento_realizado";
+export type MarketingLeadStatus = "lead" | "contato_inicial" | "resposta" | "agendado" | "depoimento_realizado" | "recusado";
 
 export interface MarketingLead {
   id: string;
