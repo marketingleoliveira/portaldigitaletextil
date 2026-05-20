@@ -55,7 +55,6 @@ import {
   Clock,
   CheckCircle2,
   FileText,
-  Image as ImageIcon,
   Loader2,
 } from "lucide-react";
 import { format, formatDistanceToNow, isAfter, isBefore } from "date-fns";
