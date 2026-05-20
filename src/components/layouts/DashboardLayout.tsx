@@ -47,6 +47,7 @@ import {
   Megaphone,
   FileVideo,
   DoorOpen,
+  ClipboardList,
 } from "lucide-react";
 import { useTimeClockReminder } from "@/hooks/useTimeClockReminder";
 import { useLocationTracking } from "@/hooks/useLocationTracking";
