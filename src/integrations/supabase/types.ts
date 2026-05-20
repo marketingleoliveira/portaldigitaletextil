@@ -781,6 +781,89 @@ export type Database = {
         }
         Relationships: []
       }
+      marketing_request_attachments: {
+        Row: {
+          created_at: string
+          file_name: string
+          file_size: number | null
+          file_type: string | null
+          file_url: string
+          id: string
+          request_id: string
+          uploaded_by: string
+        }
+        Insert: {
+          created_at?: string
+          file_name: string
+          file_size?: number | null
+          file_type?: string | null
+          file_url: string
+          id?: string
+          request_id: string
+          uploaded_by: string
+        }
+        Update: {
+          created_at?: string
+          file_name?: string
+          file_size?: number | null
+          file_type?: string | null
+          file_url?: string
+          id?: string
+          request_id?: string
+          uploaded_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marketing_request_attachments_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "marketing_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      marketing_requests: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          created_by: string
+          description: string | null
+          due_date: string
+          id: string
+          priority: Database["public"]["Enums"]["marketing_request_priority"]
+          start_date: string
+          status: Database["public"]["Enums"]["marketing_request_status"]
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          created_by: string
+          description?: string | null
+          due_date: string
+          id?: string
+          priority?: Database["public"]["Enums"]["marketing_request_priority"]
+          start_date?: string
+          status?: Database["public"]["Enums"]["marketing_request_status"]
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          due_date?: string
+          id?: string
+          priority?: Database["public"]["Enums"]["marketing_request_priority"]
+          start_date?: string
+          status?: Database["public"]["Enums"]["marketing_request_status"]
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       meeting_messages: {
         Row: {
           created_at: string
@@ -1789,6 +1872,12 @@ export type Database = {
         | "agendado"
         | "depoimento_realizado"
         | "recusado"
+      marketing_request_priority: "baixa" | "media" | "alta" | "urgente"
+      marketing_request_status:
+        | "pendente"
+        | "em_andamento"
+        | "concluida"
+        | "cancelada"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1951,6 +2040,13 @@ export const Constants = {
         "agendado",
         "depoimento_realizado",
         "recusado",
+      ],
+      marketing_request_priority: ["baixa", "media", "alta", "urgente"],
+      marketing_request_status: [
+        "pendente",
+        "em_andamento",
+        "concluida",
+        "cancelada",
       ],
     },
   },
