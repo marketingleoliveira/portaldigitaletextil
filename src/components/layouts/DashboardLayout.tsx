@@ -47,6 +47,7 @@ import {
   Megaphone,
   FileVideo,
   DoorOpen,
+  ClipboardList,
 } from "lucide-react";
 import { useTimeClockReminder } from "@/hooks/useTimeClockReminder";
 import { useLocationTracking } from "@/hooks/useLocationTracking";
@@ -77,6 +78,7 @@ const navItems: NavItem[] = [
   { label: "Agendamentos", href: "/agendamentos", icon: CalendarCheck, roles: ["dev", "vendedor", "sdr", "marketing"] },
   { label: "Marketing", href: "/marketing", icon: Megaphone, roles: ["dev", "marketing"] },
   { label: "Depoimentos", href: "/depoimentos", icon: FileVideo, roles: ["dev", "marketing"] },
+  { label: "Solicitações", href: "/solicitacoes", icon: ClipboardList, roles: ["dev", "marketing"] },
   { label: "Gravações", href: "/gravacoes", icon: Film, roles: ["dev", "marketing"] },
   { label: "Categorias", href: "/categorias", icon: FolderOpen, roles: ["dev", "admin", "criacao"] },
   { label: "Usuários", href: "/usuarios", icon: Users, roles: ["dev", "admin"] },
