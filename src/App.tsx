@@ -48,6 +48,7 @@ import Marketing from "./pages/Marketing";
 import Depoimentos from "./pages/Depoimentos";
 import RoomReservations from "./pages/RoomReservations";
 import Recordings from "./pages/Recordings";
+import Solicitacoes from "./pages/Solicitacoes";
 
 const queryClient = new QueryClient();
 
