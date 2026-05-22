@@ -181,6 +181,20 @@ export function useMarketingRequests() {
     if (error) toast({ title: "Erro ao excluir anexo", description: error.message, variant: "destructive" });
   };
 
+  const reorderRequests = async (orderedIds: string[]) => {
+    // Optimistic update
+    setRequests((prev) => {
+      const map = new Map(prev.map((r) => [r.id, r]));
+      return orderedIds.map((id, idx) => ({ ...(map.get(id) as MarketingRequest), sort_order: idx }));
+    });
+    const updates = orderedIds.map((id, idx) =>
+      supabase.from("marketing_requests").update({ sort_order: idx }).eq("id", id),
+    );
+    const results = await Promise.all(updates);
+    const err = results.find((r) => r.error)?.error;
+    if (err) toast({ title: "Erro ao reordenar", description: err.message, variant: "destructive" });
+  };
+
   return {
     requests,
     loading,
@@ -190,6 +204,7 @@ export function useMarketingRequests() {
     deleteRequest,
     uploadAttachment,
     deleteAttachment,
+    reorderRequests,
     refetch: fetchRequests,
   };
 }
