@@ -29,6 +29,7 @@ export interface MarketingRequest {
   completed_at: string | null;
   created_at: string;
   updated_at: string;
+  sort_order: number;
   attachments?: MarketingRequestAttachment[];
   creator?: { full_name: string; avatar_url: string | null } | null;
 }
@@ -71,6 +72,7 @@ export function useMarketingRequests() {
     const { data: rs, error } = await supabase
       .from("marketing_requests")
       .select("*")
+      .order("sort_order", { ascending: true })
       .order("due_date", { ascending: true });
     if (error) {
       toast({ title: "Erro ao carregar solicitações", description: error.message, variant: "destructive" });
@@ -179,6 +181,20 @@ export function useMarketingRequests() {
     if (error) toast({ title: "Erro ao excluir anexo", description: error.message, variant: "destructive" });
   };
 
+  const reorderRequests = async (orderedIds: string[]) => {
+    // Optimistic update
+    setRequests((prev) => {
+      const map = new Map(prev.map((r) => [r.id, r]));
+      return orderedIds.map((id, idx) => ({ ...(map.get(id) as MarketingRequest), sort_order: idx }));
+    });
+    const updates = orderedIds.map((id, idx) =>
+      supabase.from("marketing_requests").update({ sort_order: idx }).eq("id", id),
+    );
+    const results = await Promise.all(updates);
+    const err = results.find((r) => r.error)?.error;
+    if (err) toast({ title: "Erro ao reordenar", description: err.message, variant: "destructive" });
+  };
+
   return {
     requests,
     loading,
@@ -188,6 +204,7 @@ export function useMarketingRequests() {
     deleteRequest,
     uploadAttachment,
     deleteAttachment,
+    reorderRequests,
     refetch: fetchRequests,
   };
 }

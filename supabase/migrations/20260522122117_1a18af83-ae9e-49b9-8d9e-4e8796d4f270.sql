@@ -1,0 +1,3 @@
+ALTER TABLE public.marketing_requests ADD COLUMN IF NOT EXISTS sort_order INTEGER NOT NULL DEFAULT 0;
+UPDATE public.marketing_requests SET sort_order = sub.rn FROM (SELECT id, ROW_NUMBER() OVER (ORDER BY created_at DESC) AS rn FROM public.marketing_requests) sub WHERE marketing_requests.id = sub.id;
+CREATE INDEX IF NOT EXISTS idx_marketing_requests_sort_order ON public.marketing_requests(sort_order);

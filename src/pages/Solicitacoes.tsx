@@ -56,6 +56,8 @@ import {
   CheckCircle2,
   FileText,
   Loader2,
+  GripVertical,
+  X as XIcon,
 } from "lucide-react";
 import { format, formatDistanceToNow, isAfter, isBefore } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -72,6 +74,7 @@ export default function Solicitacoes() {
     deleteRequest,
     uploadAttachment,
     deleteAttachment,
+    reorderRequests,
   } = useMarketingRequests();
   useMarketingRequestReminders(requests);
 
@@ -81,6 +84,8 @@ export default function Solicitacoes() {
   const [creating, setCreating] = useState(false);
   const [filter, setFilter] = useState<"todas" | MarketingRequestStatus>("todas");
   const [selected, setSelected] = useState<MarketingRequest | null>(null);
+  const [draggedId, setDraggedId] = useState<string | null>(null);
+  const [dragOverId, setDragOverId] = useState<string | null>(null);
 
   const filtered = useMemo(() => {
     if (filter === "todas") return requests;
@@ -162,12 +167,37 @@ export default function Solicitacoes() {
           </Card>
         ) : (
           <div className="grid gap-3">
+            {filter !== "todas" && (
+              <p className="text-xs text-muted-foreground -mb-1">
+                Limpe o filtro (Todas) para reordenar as solicitações.
+              </p>
+            )}
             {filtered.map((r) => (
               <RequestCard
                 key={r.id}
                 request={r}
                 isDev={isDev}
                 isMarketing={isMarketing}
+                draggable={filter === "todas"}
+                isDragging={draggedId === r.id}
+                isDragOver={dragOverId === r.id && draggedId !== r.id}
+                onDragStart={() => setDraggedId(r.id)}
+                onDragOver={() => setDragOverId(r.id)}
+                onDragEnd={() => {
+                  setDraggedId(null);
+                  setDragOverId(null);
+                }}
+                onDrop={() => {
+                  if (!draggedId || draggedId === r.id) return;
+                  const ids = requests.map((x) => x.id);
+                  const from = ids.indexOf(draggedId);
+                  const to = ids.indexOf(r.id);
+                  if (from === -1 || to === -1) return;
+                  ids.splice(to, 0, ids.splice(from, 1)[0]);
+                  reorderRequests(ids);
+                  setDraggedId(null);
+                  setDragOverId(null);
+                }}
                 onOpen={() => setSelected(r)}
                 onStatusChange={(s) => updateStatus(r.id, s)}
                 onDelete={() => deleteRequest(r.id)}
@@ -247,6 +277,13 @@ function RequestCard({
   onOpen,
   onStatusChange,
   onDelete,
+  draggable = false,
+  isDragging = false,
+  isDragOver = false,
+  onDragStart,
+  onDragOver,
+  onDragEnd,
+  onDrop,
 }: {
   request: MarketingRequest;
   isDev: boolean;
@@ -254,6 +291,13 @@ function RequestCard({
   onOpen: () => void;
   onStatusChange: (s: MarketingRequestStatus) => void;
   onDelete: () => void;
+  draggable?: boolean;
+  isDragging?: boolean;
+  isDragOver?: boolean;
+  onDragStart?: () => void;
+  onDragOver?: () => void;
+  onDragEnd?: () => void;
+  onDrop?: () => void;
 }) {
   const due = new Date(request.due_date);
   const isOverdue =
@@ -263,13 +307,36 @@ function RequestCard({
 
   return (
     <Card
+      draggable={draggable}
+      onDragStart={(e) => {
+        if (!draggable) return;
+        e.dataTransfer.effectAllowed = "move";
+        onDragStart?.();
+      }}
+      onDragOver={(e) => {
+        if (!draggable) return;
+        e.preventDefault();
+        e.dataTransfer.dropEffect = "move";
+        onDragOver?.();
+      }}
+      onDragEnd={() => onDragEnd?.()}
+      onDrop={(e) => {
+        if (!draggable) return;
+        e.preventDefault();
+        onDrop?.();
+      }}
       className={cn(
-        "p-4 hover:shadow-md transition-shadow cursor-pointer",
+        "p-4 hover:shadow-md transition-all cursor-pointer",
         isOverdue && "border-red-500/40 bg-red-500/5",
+        isDragging && "opacity-40 scale-[0.98]",
+        isDragOver && "ring-2 ring-primary border-primary",
       )}
       onClick={onOpen}
     >
       <div className="flex items-start justify-between gap-4 flex-wrap">
+        {draggable && (
+          <GripVertical className="h-5 w-5 text-muted-foreground/40 mt-1 cursor-grab active:cursor-grabbing shrink-0" />
+        )}
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap mb-1">
             <h3 className="font-semibold text-lg">{request.title}</h3>
@@ -520,6 +587,8 @@ function RequestDetailDialog({
   onUpdate: (patch: Partial<MarketingRequest>) => void;
 }) {
   const [uploading, setUploading] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [previewName, setPreviewName] = useState<string>("");
   const isImage = (t?: string | null) => t?.startsWith("image/");
 
   return (
@@ -596,11 +665,21 @@ function RequestDetailDialog({
                 className="flex items-center gap-2 border rounded-md p-2 hover:bg-muted/50"
               >
                 {isImage(a.file_type) ? (
-                  <img
-                    src={a.file_url}
-                    alt={a.file_name}
-                    className="h-10 w-10 object-cover rounded"
-                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setPreviewUrl(a.file_url);
+                      setPreviewName(a.file_name);
+                    }}
+                    className="shrink-0 rounded overflow-hidden ring-1 ring-border hover:ring-primary transition"
+                    title="Clique para ampliar"
+                  >
+                    <img
+                      src={a.file_url}
+                      alt={a.file_name}
+                      className="h-16 w-16 object-cover"
+                    />
+                  </button>
                 ) : (
                   <FileText className="h-8 w-8 text-muted-foreground shrink-0" />
                 )}
@@ -652,6 +731,31 @@ function RequestDetailDialog({
           </div>
         )}
       </DialogContent>
+
+      {/* Image preview lightbox */}
+      <Dialog open={!!previewUrl} onOpenChange={(o) => !o && setPreviewUrl(null)}>
+        <DialogContent className="max-w-5xl p-2 bg-background">
+          <DialogHeader className="px-3 pt-2">
+            <DialogTitle className="text-sm truncate pr-8">{previewName}</DialogTitle>
+          </DialogHeader>
+          {previewUrl && (
+            <div className="flex items-center justify-center bg-black/80 rounded-md max-h-[80vh] overflow-auto">
+              <img
+                src={previewUrl}
+                alt={previewName}
+                className="max-h-[80vh] w-auto object-contain"
+              />
+            </div>
+          )}
+          <DialogFooter className="px-3 pb-2">
+            <Button asChild variant="outline" size="sm">
+              <a href={previewUrl ?? "#"} target="_blank" rel="noreferrer" download={previewName}>
+                <Download className="h-4 w-4 mr-2" /> Baixar
+              </a>
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Dialog>
   );
 }
