@@ -277,6 +277,13 @@ function RequestCard({
   onOpen,
   onStatusChange,
   onDelete,
+  draggable = false,
+  isDragging = false,
+  isDragOver = false,
+  onDragStart,
+  onDragOver,
+  onDragEnd,
+  onDrop,
 }: {
   request: MarketingRequest;
   isDev: boolean;
@@ -284,6 +291,13 @@ function RequestCard({
   onOpen: () => void;
   onStatusChange: (s: MarketingRequestStatus) => void;
   onDelete: () => void;
+  draggable?: boolean;
+  isDragging?: boolean;
+  isDragOver?: boolean;
+  onDragStart?: () => void;
+  onDragOver?: () => void;
+  onDragEnd?: () => void;
+  onDrop?: () => void;
 }) {
   const due = new Date(request.due_date);
   const isOverdue =
@@ -293,9 +307,29 @@ function RequestCard({
 
   return (
     <Card
+      draggable={draggable}
+      onDragStart={(e) => {
+        if (!draggable) return;
+        e.dataTransfer.effectAllowed = "move";
+        onDragStart?.();
+      }}
+      onDragOver={(e) => {
+        if (!draggable) return;
+        e.preventDefault();
+        e.dataTransfer.dropEffect = "move";
+        onDragOver?.();
+      }}
+      onDragEnd={() => onDragEnd?.()}
+      onDrop={(e) => {
+        if (!draggable) return;
+        e.preventDefault();
+        onDrop?.();
+      }}
       className={cn(
-        "p-4 hover:shadow-md transition-shadow cursor-pointer",
+        "p-4 hover:shadow-md transition-all cursor-pointer",
         isOverdue && "border-red-500/40 bg-red-500/5",
+        isDragging && "opacity-40 scale-[0.98]",
+        isDragOver && "ring-2 ring-primary border-primary",
       )}
       onClick={onOpen}
     >
