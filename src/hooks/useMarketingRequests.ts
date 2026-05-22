@@ -72,6 +72,7 @@ export function useMarketingRequests() {
     const { data: rs, error } = await supabase
       .from("marketing_requests")
       .select("*")
+      .order("sort_order", { ascending: true })
       .order("due_date", { ascending: true });
     if (error) {
       toast({ title: "Erro ao carregar solicitações", description: error.message, variant: "destructive" });
