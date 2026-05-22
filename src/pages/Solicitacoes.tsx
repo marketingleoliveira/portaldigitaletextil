@@ -74,6 +74,7 @@ export default function Solicitacoes() {
     deleteRequest,
     uploadAttachment,
     deleteAttachment,
+    reorderRequests,
   } = useMarketingRequests();
   useMarketingRequestReminders(requests);
 
