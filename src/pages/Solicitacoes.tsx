@@ -587,6 +587,8 @@ function RequestDetailDialog({
   onUpdate: (patch: Partial<MarketingRequest>) => void;
 }) {
   const [uploading, setUploading] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [previewName, setPreviewName] = useState<string>("");
   const isImage = (t?: string | null) => t?.startsWith("image/");
 
   return (
