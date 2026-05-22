@@ -167,12 +167,37 @@ export default function Solicitacoes() {
           </Card>
         ) : (
           <div className="grid gap-3">
+            {filter !== "todas" && (
+              <p className="text-xs text-muted-foreground -mb-1">
+                Limpe o filtro (Todas) para reordenar as solicitações.
+              </p>
+            )}
             {filtered.map((r) => (
               <RequestCard
                 key={r.id}
                 request={r}
                 isDev={isDev}
                 isMarketing={isMarketing}
+                draggable={filter === "todas"}
+                isDragging={draggedId === r.id}
+                isDragOver={dragOverId === r.id && draggedId !== r.id}
+                onDragStart={() => setDraggedId(r.id)}
+                onDragOver={() => setDragOverId(r.id)}
+                onDragEnd={() => {
+                  setDraggedId(null);
+                  setDragOverId(null);
+                }}
+                onDrop={() => {
+                  if (!draggedId || draggedId === r.id) return;
+                  const ids = requests.map((x) => x.id);
+                  const from = ids.indexOf(draggedId);
+                  const to = ids.indexOf(r.id);
+                  if (from === -1 || to === -1) return;
+                  ids.splice(to, 0, ids.splice(from, 1)[0]);
+                  reorderRequests(ids);
+                  setDraggedId(null);
+                  setDragOverId(null);
+                }}
                 onOpen={() => setSelected(r)}
                 onStatusChange={(s) => updateStatus(r.id, s)}
                 onDelete={() => deleteRequest(r.id)}
