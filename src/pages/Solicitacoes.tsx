@@ -665,11 +665,21 @@ function RequestDetailDialog({
                 className="flex items-center gap-2 border rounded-md p-2 hover:bg-muted/50"
               >
                 {isImage(a.file_type) ? (
-                  <img
-                    src={a.file_url}
-                    alt={a.file_name}
-                    className="h-10 w-10 object-cover rounded"
-                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setPreviewUrl(a.file_url);
+                      setPreviewName(a.file_name);
+                    }}
+                    className="shrink-0 rounded overflow-hidden ring-1 ring-border hover:ring-primary transition"
+                    title="Clique para ampliar"
+                  >
+                    <img
+                      src={a.file_url}
+                      alt={a.file_name}
+                      className="h-16 w-16 object-cover"
+                    />
+                  </button>
                 ) : (
                   <FileText className="h-8 w-8 text-muted-foreground shrink-0" />
                 )}
