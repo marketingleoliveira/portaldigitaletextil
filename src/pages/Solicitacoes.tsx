@@ -84,6 +84,8 @@ export default function Solicitacoes() {
   const [creating, setCreating] = useState(false);
   const [filter, setFilter] = useState<"todas" | MarketingRequestStatus>("todas");
   const [selected, setSelected] = useState<MarketingRequest | null>(null);
+  const [draggedId, setDraggedId] = useState<string | null>(null);
+  const [dragOverId, setDragOverId] = useState<string | null>(null);
 
   const filtered = useMemo(() => {
     if (filter === "todas") return requests;
