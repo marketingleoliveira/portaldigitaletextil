@@ -831,6 +831,7 @@ export type Database = {
           due_date: string
           id: string
           priority: Database["public"]["Enums"]["marketing_request_priority"]
+          sort_order: number
           start_date: string
           status: Database["public"]["Enums"]["marketing_request_status"]
           title: string
@@ -844,6 +845,7 @@ export type Database = {
           due_date: string
           id?: string
           priority?: Database["public"]["Enums"]["marketing_request_priority"]
+          sort_order?: number
           start_date?: string
           status?: Database["public"]["Enums"]["marketing_request_status"]
           title: string
@@ -857,6 +859,7 @@ export type Database = {
           due_date?: string
           id?: string
           priority?: Database["public"]["Enums"]["marketing_request_priority"]
+          sort_order?: number
           start_date?: string
           status?: Database["public"]["Enums"]["marketing_request_status"]
           title?: string
