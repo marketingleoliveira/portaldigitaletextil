@@ -29,6 +29,7 @@ export interface MarketingRequest {
   completed_at: string | null;
   created_at: string;
   updated_at: string;
+  sort_order: number;
   attachments?: MarketingRequestAttachment[];
   creator?: { full_name: string; avatar_url: string | null } | null;
 }
