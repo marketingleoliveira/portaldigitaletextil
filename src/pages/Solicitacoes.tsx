@@ -731,6 +731,31 @@ function RequestDetailDialog({
           </div>
         )}
       </DialogContent>
+
+      {/* Image preview lightbox */}
+      <Dialog open={!!previewUrl} onOpenChange={(o) => !o && setPreviewUrl(null)}>
+        <DialogContent className="max-w-5xl p-2 bg-background">
+          <DialogHeader className="px-3 pt-2">
+            <DialogTitle className="text-sm truncate pr-8">{previewName}</DialogTitle>
+          </DialogHeader>
+          {previewUrl && (
+            <div className="flex items-center justify-center bg-black/80 rounded-md max-h-[80vh] overflow-auto">
+              <img
+                src={previewUrl}
+                alt={previewName}
+                className="max-h-[80vh] w-auto object-contain"
+              />
+            </div>
+          )}
+          <DialogFooter className="px-3 pb-2">
+            <Button asChild variant="outline" size="sm">
+              <a href={previewUrl ?? "#"} target="_blank" rel="noreferrer" download={previewName}>
+                <Download className="h-4 w-4 mr-2" /> Baixar
+              </a>
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Dialog>
   );
 }
