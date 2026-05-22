@@ -56,6 +56,8 @@ import {
   CheckCircle2,
   FileText,
   Loader2,
+  GripVertical,
+  X as XIcon,
 } from "lucide-react";
 import { format, formatDistanceToNow, isAfter, isBefore } from "date-fns";
 import { ptBR } from "date-fns/locale";
