@@ -74,7 +74,7 @@ const navItems: NavItem[] = [
   { label: "Reserva de Salas", href: "/reserva-salas", icon: DoorOpen, roles: ["dev", "admin", "gerente", "vendedor", "criacao", "sdr", "marketing"] },
   { label: "Localizar", href: "/localizar", icon: MapPin, roles: ["dev"] },
   { label: "Metas", href: "/metas", icon: Target, roles: ["dev", "admin", "gerente", "vendedor"] },
-  { label: "CRM", href: "/crm", icon: Handshake, roles: ["dev", "vendedor", "sdr"] },
+  { label: "Atendimento EAD", href: "/crm", icon: Handshake, roles: ["dev", "vendedor", "sdr"] },
   { label: "Agendamentos", href: "/agendamentos", icon: CalendarCheck, roles: ["dev", "vendedor", "sdr", "marketing"] },
   { label: "Marketing", href: "/marketing", icon: Megaphone, roles: ["dev", "marketing"] },
   { label: "Depoimentos", href: "/depoimentos", icon: FileVideo, roles: ["dev", "marketing"] },

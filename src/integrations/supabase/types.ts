@@ -615,6 +615,63 @@ export type Database = {
           },
         ]
       }
+      lead_service_sessions: {
+        Row: {
+          created_at: string
+          end_accuracy: number | null
+          end_address: string | null
+          end_latitude: number | null
+          end_longitude: number | null
+          ended_at: string | null
+          id: string
+          lead_id: string
+          notes: string | null
+          start_accuracy: number | null
+          start_address: string | null
+          start_latitude: number | null
+          start_longitude: number | null
+          started_at: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          end_accuracy?: number | null
+          end_address?: string | null
+          end_latitude?: number | null
+          end_longitude?: number | null
+          ended_at?: string | null
+          id?: string
+          lead_id: string
+          notes?: string | null
+          start_accuracy?: number | null
+          start_address?: string | null
+          start_latitude?: number | null
+          start_longitude?: number | null
+          started_at?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          end_accuracy?: number | null
+          end_address?: string | null
+          end_latitude?: number | null
+          end_longitude?: number | null
+          ended_at?: string | null
+          id?: string
+          lead_id?: string
+          notes?: string | null
+          start_accuracy?: number | null
+          start_address?: string | null
+          start_latitude?: number | null
+          start_longitude?: number | null
+          started_at?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       leads: {
         Row: {
           assigned_to: string | null
