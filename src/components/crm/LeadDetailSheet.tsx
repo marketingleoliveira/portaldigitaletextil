@@ -145,8 +145,12 @@ export function LeadDetailSheet({ lead, open, onOpenChange }: LeadDetailSheetPro
           </div>
         </SheetHeader>
 
-        <Tabs defaultValue="info" className="mt-2">
+        <Tabs defaultValue="atendimento" className="mt-2">
           <TabsList className="w-full">
+            <TabsTrigger value="atendimento" className="flex-1 text-xs gap-1">
+              <MapPin className="w-3 h-3" />
+              Atendimento
+            </TabsTrigger>
             <TabsTrigger value="info" className="flex-1 text-xs">Informações</TabsTrigger>
             <TabsTrigger value="reminders" className="flex-1 text-xs gap-1">
               <Bell className="w-3 h-3" />
@@ -159,6 +163,11 @@ export function LeadDetailSheet({ lead, open, onOpenChange }: LeadDetailSheetPro
             </TabsTrigger>
             <TabsTrigger value="activities" className="flex-1 text-xs">Atividades</TabsTrigger>
           </TabsList>
+
+          <TabsContent value="atendimento" className="mt-4">
+            <ServiceSessionPanel leadId={lead.id} />
+          </TabsContent>
+
 
           <TabsContent value="info" className="space-y-4 mt-4">
             {/* Contact Info */}
