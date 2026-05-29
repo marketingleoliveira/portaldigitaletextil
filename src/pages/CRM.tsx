@@ -63,13 +63,13 @@ const CRM = () => {
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold">CRM</h1>
+            <h1 className="text-2xl font-bold">Atendimento EAD</h1>
             <p className="text-sm text-muted-foreground">
             {isDev
-              ? "Gerencie leads e atribua vendedores"
+              ? "Gerencie atendimentos externos e localização"
               : user?.role === "sdr"
-                ? "Prospecte leads e agende reuniões"
-                : "Acompanhe seus leads"}
+                ? "Prospecte leads e agende atendimentos"
+                : "Cadastre leads e registre seus atendimentos com localização"}
             </p>
           </div>
           {canManageCRM && (
