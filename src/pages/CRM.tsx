@@ -18,7 +18,7 @@ import { Plus, Search, LayoutGrid, List, Loader2, Upload } from "lucide-react";
 const CRM = () => {
   const { user } = useAuth();
   const isDev = user?.role === "dev";
-  const canManageCRM = user?.role === "dev" || user?.role === "sdr";
+  const canManageCRM = user?.role === "dev" || user?.role === "sdr" || user?.role === "vendedor";
   const [viewMode, setViewMode] = useState<"kanban" | "table">("kanban");
   const [statusFilter, setStatusFilter] = useState<LeadStatus | "all">("all");
   const [searchTerm, setSearchTerm] = useState("");
