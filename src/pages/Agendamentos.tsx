@@ -55,8 +55,7 @@ export default function AgendamentosEAD({
   const isLoading = loadingTrophy || loadingReminders;
 
   const handleLeadClick = (leadId: string) => {
-    navigate("/crm");
-    // Use a small timeout to let the CRM page load, then open the lead
+    navigate(redirectTo);
     setTimeout(() => {
       window.dispatchEvent(new CustomEvent("open-lead-detail", { detail: leadId }));
     }, 300);
@@ -65,14 +64,12 @@ export default function AgendamentosEAD({
   return (
     <DashboardLayout>
       <div className="space-y-6 max-w-6xl mx-auto">
-        {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold">Agendamentos EAD</h1>
-            <p className="text-sm text-muted-foreground">
-              Leads marcados como Troféu e com Lembretes de Retorno
-            </p>
+            <h1 className="text-2xl font-bold">{title}</h1>
+            <p className="text-sm text-muted-foreground">{subtitle}</p>
           </div>
+
           <div className="relative w-full sm:max-w-xs">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <input
