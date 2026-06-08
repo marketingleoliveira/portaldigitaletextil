@@ -160,12 +160,54 @@ export function useCreateLead() {
 
   return useMutation({
     mutationFn: async (data: CreateLeadData & { scope?: LeadScope }) => {
-      const { error } = await supabase.from("leads").insert({
-        ...data,
-        scope: data.scope || 'atendimento',
-        created_by: user!.id,
-      } as any);
+      const scope = data.scope || 'atendimento';
+      const { data: inserted, error } = await supabase
+        .from("leads")
+        .insert({
+          ...data,
+          scope,
+          created_by: user!.id,
+        } as any)
+        .select()
+        .single();
       if (error) throw error;
+
+      // If created in CRM with a vendor assigned, duplicate to Atendimento EAD
+      if (scope === 'crm' && data.assigned_to && inserted) {
+        const curr = inserted as any;
+        const dup: any = {
+          company_name: curr.company_name,
+          contact_name: curr.contact_name,
+          contact_email: curr.contact_email,
+          contact_phone: curr.contact_phone,
+          source: curr.source,
+          estimated_value: curr.estimated_value,
+          notes: curr.notes,
+          cnpj: curr.cnpj,
+          razao_social: curr.razao_social,
+          categoria: curr.categoria,
+          setor: curr.setor,
+          responsavel: curr.responsavel,
+          compra_tecido_mensal: curr.compra_tecido_mensal,
+          rua: curr.rua,
+          bairro: curr.bairro,
+          cep: curr.cep,
+          expected_close_date: curr.expected_close_date,
+          status: 'novo',
+          scope: 'atendimento',
+          source_lead_id: curr.id,
+          assigned_to: data.assigned_to,
+          created_by: user!.id,
+        };
+        await supabase.from("leads").insert(dup);
+
+        await supabase.from("user_notifications").insert({
+          target_user_id: data.assigned_to,
+          created_by: user!.id,
+          title: "Novo lead atribuído a você",
+          message: `O lead "${curr.company_name}" foi atribuído a você. Acesse o Atendimento EAD para mais detalhes.`,
+        });
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["leads"] });
