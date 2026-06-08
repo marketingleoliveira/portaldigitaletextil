@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import DashboardLayout from "@/components/layouts/DashboardLayout";
 import { useLeads, type Lead, type LeadStatus, LEAD_STATUS_CONFIG } from "@/hooks/useCRM";
 import { usePendingReminders } from "@/hooks/useLeadReminders";
