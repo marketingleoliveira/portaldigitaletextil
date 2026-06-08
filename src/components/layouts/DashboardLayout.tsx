@@ -208,69 +208,103 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
                 </div>
               ) : (
                 filteredNavItems.map((item) => {
-                  const Icon = item.icon;
-                  const isActive = location.pathname === item.href || location.pathname.startsWith(item.href + "/");
-                  const isNotificationsItem = item.href === "/notificacoes";
-                  const isUpdatesItem = item.href === "/atualizacoes";
-                  const isMeetingsItem = item.href === "/reunioes";
-                  const isDashboardItem = item.showNewBadge;
+                  const visibleChildren = (item.children || []).filter((c) =>
+                    user?.role ? c.roles.includes(user.role) : c.roles.includes("vendedor"),
+                  );
+                  const hasChildren = visibleChildren.length > 0;
+                  const childActive = visibleChildren.some(
+                    (c) => location.pathname === c.href || location.pathname.startsWith(c.href + "/"),
+                  );
+                  const isExpanded = expandedItems.includes(item.href) || childActive;
 
-                  const handleClick = () => {
-                    setSidebarOpen(false);
-                    if (isUpdatesItem && hasNewUpdates) {
-                      markAsViewed();
-                    }
+                  const renderRow = (entry: NavItem, opts?: { nested?: boolean; showChevron?: boolean }) => {
+                    const Icon = entry.icon;
+                    const isActive =
+                      location.pathname === entry.href || location.pathname.startsWith(entry.href + "/");
+                    const isNotificationsItem = entry.href === "/notificacoes";
+                    const isUpdatesItem = entry.href === "/atualizacoes";
+                    const isMeetingsItem = entry.href === "/reunioes";
+                    const isDashboardItem = entry.showNewBadge;
+
+                    const handleClick = () => {
+                      setSidebarOpen(false);
+                      if (isUpdatesItem && hasNewUpdates) markAsViewed();
+                      if (opts?.showChevron) {
+                        setExpandedItems((prev) =>
+                          prev.includes(entry.href)
+                            ? prev.filter((h) => h !== entry.href)
+                            : [...prev, entry.href],
+                        );
+                      }
+                    };
+
+                    return (
+                      <Link
+                        key={entry.href}
+                        to={entry.href}
+                        onClick={handleClick}
+                        className={cn(
+                          "flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 relative",
+                          opts?.nested && "ml-6 py-2 text-sm",
+                          isActive
+                            ? "bg-sidebar-primary text-sidebar-primary-foreground shadow-md"
+                            : entry.highlight
+                              ? "bg-gradient-to-r from-amber-500/20 to-orange-500/20 text-amber-300 hover:from-amber-500/30 hover:to-orange-500/30 border border-amber-500/30"
+                              : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground",
+                        )}
+                      >
+                        <Icon
+                          className={cn(
+                            "w-5 h-5",
+                            opts?.nested && "w-4 h-4",
+                            entry.highlight && !isActive && "text-amber-400",
+                            isUpdatesItem && hasNewUpdates && !isActive && "text-destructive animate-pulse",
+                            isMeetingsItem && hasActiveMeetings && "text-red-500",
+                          )}
+                        />
+                        <span className="font-medium flex-1">{entry.label}</span>
+
+                        {opts?.showChevron && (
+                          <ChevronDown
+                            className={cn(
+                              "w-4 h-4 transition-transform",
+                              isExpanded && "rotate-180",
+                            )}
+                          />
+                        )}
+
+                        {isMeetingsItem && hasActiveMeetings && (
+                          <span className="ml-auto flex items-center gap-1 px-1.5 py-0.5 bg-red-500/20 text-red-400 text-[10px] font-bold rounded animate-pulse">
+                            <span className="w-1.5 h-1.5 bg-red-500 rounded-full animate-pulse" />
+                            AO VIVO
+                          </span>
+                        )}
+                        {isNotificationsItem && unreadCount.total > 0 && (
+                          <span className="absolute right-3 w-5 h-5 bg-destructive text-destructive-foreground text-xs rounded-full flex items-center justify-center animate-pulse-glow">
+                            {unreadCount.total > 9 ? "9+" : unreadCount.total}
+                          </span>
+                        )}
+                        {isUpdatesItem && hasNewUpdates && !isActive && (
+                          <span className="absolute right-3 w-2 h-2 bg-destructive rounded-full animate-pulse" />
+                        )}
+                        {isDashboardItem && unreadCount.total > 0 && !isActive && (
+                          <span className="ml-auto px-2 py-0.5 bg-destructive text-destructive-foreground text-[10px] font-bold rounded-full animate-pulse shadow-[0_0_8px_hsl(var(--destructive))]">
+                            NOVO
+                          </span>
+                        )}
+                      </Link>
+                    );
                   };
 
                   return (
-                    <Link
-                      key={item.href}
-                      to={item.href}
-                      onClick={handleClick}
-                      className={cn(
-                        "flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 relative",
-                        isActive
-                          ? "bg-sidebar-primary text-sidebar-primary-foreground shadow-md"
-                          : item.highlight
-                            ? "bg-gradient-to-r from-amber-500/20 to-orange-500/20 text-amber-300 hover:from-amber-500/30 hover:to-orange-500/30 border border-amber-500/30"
-                            : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground",
+                    <div key={item.href} className="space-y-1">
+                      {renderRow(item, { showChevron: hasChildren })}
+                      {hasChildren && isExpanded && (
+                        <div className="space-y-1">
+                          {visibleChildren.map((child) => renderRow(child, { nested: true }))}
+                        </div>
                       )}
-                    >
-                      <Icon className={cn(
-                        "w-5 h-5", 
-                        item.highlight && !isActive && "text-amber-400",
-                        isUpdatesItem && hasNewUpdates && !isActive && "text-destructive animate-pulse",
-                        isMeetingsItem && hasActiveMeetings && "text-red-500"
-                      )} />
-                      <span className="font-medium">{item.label}</span>
-
-                      {/* Live indicator for active meetings */}
-                      {isMeetingsItem && hasActiveMeetings && (
-                        <span className="ml-auto flex items-center gap-1 px-1.5 py-0.5 bg-red-500/20 text-red-400 text-[10px] font-bold rounded animate-pulse">
-                          <span className="w-1.5 h-1.5 bg-red-500 rounded-full animate-pulse" />
-                          AO VIVO
-                        </span>
-                      )}
-
-                      {/* Badge for notifications */}
-                      {isNotificationsItem && unreadCount.total > 0 && (
-                        <span className="absolute right-3 w-5 h-5 bg-destructive text-destructive-foreground text-xs rounded-full flex items-center justify-center animate-pulse-glow">
-                          {unreadCount.total > 9 ? "9+" : unreadCount.total}
-                        </span>
-                      )}
-
-                      {/* Indicator for new updates */}
-                      {isUpdatesItem && hasNewUpdates && !isActive && (
-                        <span className="absolute right-3 w-2 h-2 bg-destructive rounded-full animate-pulse" />
-                      )}
-
-                      {/* NOVO badge for dashboard when there are unread notifications */}
-                      {isDashboardItem && unreadCount.total > 0 && !isActive && (
-                        <span className="ml-auto px-2 py-0.5 bg-destructive text-destructive-foreground text-[10px] font-bold rounded-full animate-pulse shadow-[0_0_8px_hsl(var(--destructive))]">
-                          NOVO
-                        </span>
-                      )}
-                    </Link>
+                    </div>
                   );
                 })
               )}
