@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { AppRole, ROLE_LABELS } from '@/types/auth';
 import RoleBadge from '@/components/RoleBadge';
-import { Loader2, Users, Code, Shield, UserCog, User, Palette, Mail, X, Linkedin } from 'lucide-react';
+import { Loader2, Users, Code, Shield, UserCog, User, Palette, Mail, X, Linkedin, Megaphone, Target } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import WhatsAppIcon from '@/components/icons/WhatsAppIcon';
 import {
@@ -90,6 +90,8 @@ const Team: React.FC = () => {
   const admins = orgMembers.filter((m) => m.role === 'admin');
   const gerentes = orgMembers.filter((m) => m.role === 'gerente');
   const criacao = orgMembers.filter((m) => m.role === 'criacao');
+  const marketing = orgMembers.filter((m) => m.role === 'marketing');
+  const sdrs = orgMembers.filter((m) => m.role === 'sdr');
   const vendedores = orgMembers.filter((m) => m.role === 'vendedor');
 
   const handleMemberClick = (member: TeamMember) => {
@@ -278,13 +280,53 @@ const Team: React.FC = () => {
                 </div>
 
                 {/* Connector Line */}
-                {(criacao.length > 0 || vendedores.length > 0) && (
+                {(criacao.length > 0 || marketing.length > 0 || sdrs.length > 0 || vendedores.length > 0) && (
                   <div className="flex justify-center">
                     <div className="w-px h-8 bg-border" />
                   </div>
                 )}
               </div>
             )}
+
+            {/* Marketing */}
+            {marketing.length > 0 && (
+              <div className="space-y-4">
+                <div className="flex items-center gap-2">
+                  <Megaphone className="w-5 h-5 text-role-marketing" />
+                  <h3 className="font-semibold text-lg">Marketing</h3>
+                  <Badge variant="secondary" className="ml-2">{marketing.length}</Badge>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+                  {marketing.map((member) => (
+                    <MemberCard key={member.id} member={member} size="sm" />
+                  ))}
+                </div>
+                {(criacao.length > 0 || sdrs.length > 0 || vendedores.length > 0) && (
+                  <div className="flex justify-center">
+                    <div className="w-px h-8 bg-border" />
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* SDR - Prospecção de Leads */}
+            {sdrs.length > 0 && (
+              <div className="space-y-4">
+                <div className="flex items-center gap-2">
+                  <Target className="w-5 h-5 text-role-sdr" />
+                  <h3 className="font-semibold text-lg">SDR — Prospecção de Leads</h3>
+                  <Badge variant="secondary" className="ml-2">{sdrs.length}</Badge>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+                  {sdrs.map((member) => (
+                    <MemberCard key={member.id} member={member} size="sm" />
+                  ))}
+                </div>
+                {(criacao.length > 0 || vendedores.length > 0) && (
+                  <div className="flex justify-center">
+                    <div className="w-px h-8 bg-border" />
+                  </div>
+                )}
 
             {/* Criação - Above Vendedores */}
             {criacao.length > 0 && (
@@ -336,7 +378,7 @@ const Team: React.FC = () => {
         </Card>
 
         {/* Stats */}
-        <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-4">
           <Card>
             <CardContent className="pt-6 text-center">
               <p className="text-3xl font-bold text-primary">{members.length}</p>
