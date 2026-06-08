@@ -46,6 +46,8 @@ import CRM from "./pages/CRM";
 import CRMFeeder from "./pages/CRMFeeder";
 
 import Agendamentos from "./pages/Agendamentos";
+import AgendamentosCRM from "./pages/AgendamentosCRM";
+
 import Marketing from "./pages/Marketing";
 import Depoimentos from "./pages/Depoimentos";
 import RoomReservations from "./pages/RoomReservations";
