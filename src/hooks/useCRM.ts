@@ -271,6 +271,15 @@ export function useUpdateLead() {
         // CRM feeder: duplicate to Atendimento EAD scope so the vendor can work it
         const curr = currentLead as any;
         if (curr.scope === 'crm') {
+          // If reassigning from another vendor, remove the previous vendor's duplicate
+          if (curr.assigned_to && curr.assigned_to !== data.assigned_to) {
+            await (supabase as any)
+              .from("leads")
+              .delete()
+              .eq("source_lead_id", id)
+              .eq("assigned_to", curr.assigned_to)
+              .eq("scope", "atendimento");
+          }
           // Check if a duplicate already exists for this vendor
           const { data: existing } = await (supabase as any)
             .from("leads")
