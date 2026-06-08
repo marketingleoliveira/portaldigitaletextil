@@ -675,7 +675,12 @@ export type Database = {
       leads: {
         Row: {
           assigned_to: string | null
+          bairro: string | null
+          categoria: string | null
+          cep: string | null
+          cnpj: string | null
           company_name: string
+          compra_tecido_mensal: number | null
           contact_email: string | null
           contact_name: string
           contact_phone: string | null
@@ -686,13 +691,22 @@ export type Database = {
           id: string
           last_contact_at: string | null
           notes: string | null
+          razao_social: string | null
+          responsavel: string | null
+          rua: string | null
+          setor: string | null
           source: Database["public"]["Enums"]["lead_source"]
           status: Database["public"]["Enums"]["lead_status"]
           updated_at: string
         }
         Insert: {
           assigned_to?: string | null
+          bairro?: string | null
+          categoria?: string | null
+          cep?: string | null
+          cnpj?: string | null
           company_name: string
+          compra_tecido_mensal?: number | null
           contact_email?: string | null
           contact_name: string
           contact_phone?: string | null
@@ -703,13 +717,22 @@ export type Database = {
           id?: string
           last_contact_at?: string | null
           notes?: string | null
+          razao_social?: string | null
+          responsavel?: string | null
+          rua?: string | null
+          setor?: string | null
           source?: Database["public"]["Enums"]["lead_source"]
           status?: Database["public"]["Enums"]["lead_status"]
           updated_at?: string
         }
         Update: {
           assigned_to?: string | null
+          bairro?: string | null
+          categoria?: string | null
+          cep?: string | null
+          cnpj?: string | null
           company_name?: string
+          compra_tecido_mensal?: number | null
           contact_email?: string | null
           contact_name?: string
           contact_phone?: string | null
@@ -720,6 +743,10 @@ export type Database = {
           id?: string
           last_contact_at?: string | null
           notes?: string | null
+          razao_social?: string | null
+          responsavel?: string | null
+          rua?: string | null
+          setor?: string | null
           source?: Database["public"]["Enums"]["lead_source"]
           status?: Database["public"]["Enums"]["lead_status"]
           updated_at?: string
