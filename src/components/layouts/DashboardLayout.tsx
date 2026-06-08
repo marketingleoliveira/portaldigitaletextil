@@ -67,6 +67,7 @@ interface NavItem {
   roles: AppRole[];
   highlight?: boolean;
   showNewBadge?: boolean;
+  children?: NavItem[];
 }
 
 const navItems: NavItem[] = [
@@ -76,15 +77,34 @@ const navItems: NavItem[] = [
   { label: "Reserva de Salas", href: "/reserva-salas", icon: DoorOpen, roles: ["dev", "admin", "gerente", "vendedor", "criacao", "sdr", "marketing"] },
   { label: "Localizar", href: "/localizar", icon: MapPin, roles: ["dev"] },
   { label: "Metas", href: "/metas", icon: Target, roles: ["dev", "admin", "gerente", "vendedor"] },
-  { label: "CRM", href: "/crm-alimentador", icon: Briefcase, roles: ["dev", "sdr"] },
-  { label: "Agendamentos CRM", href: "/agendamentos-crm", icon: CalendarCheck, roles: ["dev", "sdr"] },
-  { label: "Atendimento EAD", href: "/crm", icon: Handshake, roles: ["dev", "vendedor", "sdr"] },
-  { label: "Agendamentos EAD", href: "/agendamentos", icon: CalendarCheck, roles: ["dev", "vendedor", "sdr", "marketing"] },
-
-
-  { label: "Marketing", href: "/marketing", icon: Megaphone, roles: ["dev", "marketing"] },
-  { label: "Depoimentos", href: "/depoimentos", icon: FileVideo, roles: ["dev", "marketing"] },
-  { label: "Solicitações", href: "/solicitacoes", icon: ClipboardList, roles: ["dev", "marketing"] },
+  {
+    label: "CRM",
+    href: "/crm-alimentador",
+    icon: Briefcase,
+    roles: ["dev", "sdr"],
+    children: [
+      { label: "Agendamentos CRM", href: "/agendamentos-crm", icon: CalendarCheck, roles: ["dev", "sdr"] },
+    ],
+  },
+  {
+    label: "Atendimento EAD",
+    href: "/crm",
+    icon: Handshake,
+    roles: ["dev", "vendedor", "sdr"],
+    children: [
+      { label: "Agendamentos EAD", href: "/agendamentos", icon: CalendarCheck, roles: ["dev", "vendedor", "sdr", "marketing"] },
+    ],
+  },
+  {
+    label: "Marketing",
+    href: "/marketing",
+    icon: Megaphone,
+    roles: ["dev", "marketing"],
+    children: [
+      { label: "Depoimentos", href: "/depoimentos", icon: FileVideo, roles: ["dev", "marketing"] },
+      { label: "Solicitações", href: "/solicitacoes", icon: ClipboardList, roles: ["dev", "marketing"] },
+    ],
+  },
   { label: "Gravações", href: "/gravacoes", icon: Film, roles: ["dev", "marketing"] },
   { label: "Categorias", href: "/categorias", icon: FolderOpen, roles: ["dev", "admin", "criacao"] },
   { label: "Usuários", href: "/usuarios", icon: Users, roles: ["dev", "admin"] },
