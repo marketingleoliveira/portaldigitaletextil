@@ -107,6 +107,8 @@ const App = () => (
                   <Route path="/crm" element={<ProtectedRoute allowedRoles={['dev', 'vendedor', 'sdr']}><CRM /></ProtectedRoute>} />
 
                   <Route path="/agendamentos" element={<ProtectedRoute allowedRoles={['dev', 'vendedor', 'sdr', 'marketing']}><Agendamentos /></ProtectedRoute>} />
+                  <Route path="/agendamentos-crm" element={<ProtectedRoute allowedRoles={['dev', 'sdr']}><AgendamentosCRM /></ProtectedRoute>} />
+
                   <Route path="/precos" element={<ProtectedRoute><Prices /></ProtectedRoute>} />
                   <Route path="/atualizacoes" element={<ProtectedRoute><Updates /></ProtectedRoute>} />
                   <Route path="/marketing" element={<ProtectedRoute allowedRoles={['dev', 'marketing']}><Marketing /></ProtectedRoute>} />
