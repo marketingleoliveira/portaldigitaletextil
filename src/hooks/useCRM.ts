@@ -219,12 +219,13 @@ export function useUpdateLead() {
         const curr = currentLead as any;
         if (curr.scope === 'crm') {
           // Check if a duplicate already exists for this vendor
-          const { data: existing } = await supabase
+          const { data: existing } = await (supabase as any)
             .from("leads")
             .select("id")
-            .eq("source_lead_id" as any, id)
+            .eq("source_lead_id", id)
             .eq("assigned_to", data.assigned_to)
             .maybeSingle();
+
 
           if (!existing) {
             const dup: any = {
