@@ -13,12 +13,25 @@ import { format, isPast, isToday } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 
-export default function AgendamentosEAD() {
+interface AgendamentosProps {
+  scope?: 'atendimento' | 'crm';
+  title?: string;
+  subtitle?: string;
+  redirectTo?: string;
+}
+
+export default function AgendamentosEAD({
+  scope = 'atendimento',
+  title = 'Agendamentos EAD',
+  subtitle = 'Leads marcados como Troféu e com Lembretes de Retorno',
+  redirectTo = '/crm',
+}: AgendamentosProps = {}) {
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState("");
 
-  const { data: trophyLeads = [], isLoading: loadingTrophy } = useTrophyLeads();
-  const { data: reminderLeads = [], isLoading: loadingReminders } = useReminderLeads();
+  const { data: trophyLeads = [], isLoading: loadingTrophy } = useTrophyLeads(scope);
+  const { data: reminderLeads = [], isLoading: loadingReminders } = useReminderLeads(scope);
+
 
   const filteredTrophy = trophyLeads.filter((lead) => {
     if (!searchTerm) return true;
