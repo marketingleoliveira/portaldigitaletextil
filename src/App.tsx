@@ -43,6 +43,8 @@ import GuestMeetingRoom from "./pages/GuestMeetingRoom";
 
 import CreationMaterials from "./pages/CreationMaterials";
 import CRM from "./pages/CRM";
+import CRMFeeder from "./pages/CRMFeeder";
+
 import Agendamentos from "./pages/Agendamentos";
 import Marketing from "./pages/Marketing";
 import Depoimentos from "./pages/Depoimentos";
@@ -99,7 +101,9 @@ const App = () => (
                   <Route path="/ponto" element={<ProtectedRoute><TimeClock /></ProtectedRoute>} />
                   <Route path="/localizar" element={<ProtectedRoute allowedRoles={['dev']}><Localizar /></ProtectedRoute>} />
                   <Route path="/metas" element={<ProtectedRoute><Goals /></ProtectedRoute>} />
+                  <Route path="/crm-alimentador" element={<ProtectedRoute allowedRoles={['dev', 'sdr']}><CRMFeeder /></ProtectedRoute>} />
                   <Route path="/crm" element={<ProtectedRoute allowedRoles={['dev', 'vendedor', 'sdr']}><CRM /></ProtectedRoute>} />
+
                   <Route path="/agendamentos" element={<ProtectedRoute allowedRoles={['dev', 'vendedor', 'sdr', 'marketing']}><Agendamentos /></ProtectedRoute>} />
                   <Route path="/precos" element={<ProtectedRoute><Prices /></ProtectedRoute>} />
                   <Route path="/atualizacoes" element={<ProtectedRoute><Updates /></ProtectedRoute>} />

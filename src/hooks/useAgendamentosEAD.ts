@@ -27,12 +27,14 @@ export function useTrophyLeads() {
   return useQuery({
     queryKey: ["agendamentos-trophy-leads"],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from("leads")
         .select("*, assigned_profile:profiles!leads_assigned_to_fkey(full_name, avatar_url)")
         .eq("status", "ganho")
+        .eq("scope", "atendimento")
         .order("created_at", { ascending: false });
       if (error) throw error;
+
       return data as unknown as AgendamentosLead[];
     },
   });

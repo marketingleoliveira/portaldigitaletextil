@@ -5,13 +5,15 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useCreateLead, useVendedores, LEAD_SOURCE_CONFIG, type LeadSource } from "@/hooks/useCRM";
+import { useCreateLead, useVendedores, LEAD_SOURCE_CONFIG, type LeadSource, type LeadScope } from "@/hooks/useCRM";
 import { Loader2 } from "lucide-react";
 
 interface LeadFormDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  scope?: LeadScope;
 }
+
 
 const initialForm = {
   // Empresa
@@ -34,7 +36,7 @@ const initialForm = {
   notes: "",
 };
 
-export function LeadFormDialog({ open, onOpenChange }: LeadFormDialogProps) {
+export function LeadFormDialog({ open, onOpenChange, scope = 'atendimento' }: LeadFormDialogProps) {
   const createLead = useCreateLead();
   const { data: vendedores } = useVendedores();
   const [form, setForm] = useState(initialForm);
@@ -60,10 +62,12 @@ export function LeadFormDialog({ open, onOpenChange }: LeadFormDialogProps) {
       bairro: form.bairro.trim() || undefined,
       cep: form.cep.trim() || undefined,
       notes: form.notes.trim() || undefined,
+      scope,
     } as any);
     setForm(initialForm);
     onOpenChange(false);
   };
+
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>

@@ -1,7 +1,6 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo } from "react";
 import DashboardLayout from "@/components/layouts/DashboardLayout";
 import { useLeads, type Lead, type LeadStatus, LEAD_STATUS_CONFIG } from "@/hooks/useCRM";
-import { usePendingReminders } from "@/hooks/useLeadReminders";
 import { useAuth } from "@/contexts/AuthContext";
 import { CRMStats } from "@/components/crm/CRMStats";
 import { CRMKanban } from "@/components/crm/CRMKanban";
@@ -13,12 +12,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Search, LayoutGrid, List, Loader2, Upload } from "lucide-react";
+import { Plus, Search, LayoutGrid, List, Loader2, Upload, Info } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
-const CRM = () => {
+const CRMFeeder = () => {
   const { user } = useAuth();
   const isDev = user?.role === "dev";
-  const canManageCRM = user?.role === "dev" || user?.role === "sdr" || user?.role === "vendedor";
+  const canManage = isDev || user?.role === "sdr";
   const [viewMode, setViewMode] = useState<"kanban" | "table">("kanban");
   const [statusFilter, setStatusFilter] = useState<LeadStatus | "all">("all");
   const [searchTerm, setSearchTerm] = useState("");
@@ -27,11 +27,10 @@ const CRM = () => {
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
   const [showDetail, setShowDetail] = useState(false);
 
-  const { data: leads = [], isLoading } = useLeads(statusFilter === "all" ? null : statusFilter, 'atendimento');
-  const { data: pendingReminders = [] } = usePendingReminders();
+  const { data: leads = [], isLoading } = useLeads(statusFilter === "all" ? null : statusFilter, 'crm');
 
   const filteredLeads = useMemo(() => {
-    const filtered = leads.filter((lead) => {
+    return leads.filter((lead) => {
       if (!searchTerm) return true;
       const q = searchTerm.toLowerCase();
       return (
@@ -41,51 +40,24 @@ const CRM = () => {
         lead.contact_phone?.includes(q)
       );
     });
-
-    // Sort: leads with pending reminders first
-    return filtered.sort((a, b) => {
-      const aR = pendingReminders.filter(r => r.lead_id === a.id).length;
-      const bR = pendingReminders.filter(r => r.lead_id === b.id).length;
-      if (aR > 0 && bR === 0) return -1;
-      if (aR === 0 && bR > 0) return 1;
-      return 0;
-    });
-  }, [leads, searchTerm, pendingReminders]);
+  }, [leads, searchTerm]);
 
   const handleSelectLead = (lead: Lead) => {
     setSelectedLead(lead);
     setShowDetail(true);
   };
 
-  // Listen for external open-lead-detail events (e.g., from Agendamentos EAD)
-  useEffect(() => {
-    const handler = (e: CustomEvent<string>) => {
-      const leadId = e.detail;
-      const found = leads.find((l) => l.id === leadId);
-      if (found) {
-        handleSelectLead(found);
-      }
-    };
-    window.addEventListener("open-lead-detail", handler as EventListener);
-    return () => window.removeEventListener("open-lead-detail", handler as EventListener);
-  }, [leads]);
-
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold">Atendimento EAD</h1>
+            <h1 className="text-2xl font-bold">CRM</h1>
             <p className="text-sm text-muted-foreground">
-            {isDev
-              ? "Gerencie atendimentos externos e localização"
-              : user?.role === "sdr"
-                ? "Prospecte leads e agende atendimentos"
-                : "Cadastre leads e registre seus atendimentos com localização"}
+              Alimentador de leads. Ao atribuir um vendedor, o lead é duplicado no Atendimento EAD do vendedor.
             </p>
           </div>
-          {canManageCRM && (
+          {canManage && (
             <div className="flex gap-2">
               {isDev && (
                 <Button variant="outline" onClick={() => setShowImport(true)} className="gap-2">
@@ -101,10 +73,15 @@ const CRM = () => {
           )}
         </div>
 
-        {/* Stats */}
+        <Alert>
+          <Info className="w-4 h-4" />
+          <AlertDescription>
+            Selecione um vendedor em cada lead para enviá-lo ao Atendimento EAD. O lead original permanece neste menu.
+          </AlertDescription>
+        </Alert>
+
         <CRMStats leads={leads} />
 
-        {/* Filters & View Toggle */}
         <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
           <div className="flex gap-2 flex-1 w-full sm:w-auto">
             <div className="relative flex-1 sm:max-w-xs">
@@ -143,7 +120,6 @@ const CRM = () => {
           </Tabs>
         </div>
 
-        {/* Content */}
         {isLoading ? (
           <div className="flex justify-center py-16">
             <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
@@ -155,12 +131,11 @@ const CRM = () => {
         )}
       </div>
 
-      {/* Dialogs */}
-      <LeadFormDialog open={showForm} onOpenChange={setShowForm} />
+      <LeadFormDialog open={showForm} onOpenChange={setShowForm} scope="crm" />
       <CRMImportDialog open={showImport} onOpenChange={setShowImport} />
       <LeadDetailSheet lead={selectedLead} open={showDetail} onOpenChange={setShowDetail} />
     </DashboardLayout>
   );
 };
 
-export default CRM;
+export default CRMFeeder;
