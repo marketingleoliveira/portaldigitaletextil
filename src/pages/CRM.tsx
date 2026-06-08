@@ -57,6 +57,19 @@ const CRM = () => {
     setShowDetail(true);
   };
 
+  // Listen for external open-lead-detail events (e.g., from Agendamentos EAD)
+  useEffect(() => {
+    const handler = (e: CustomEvent<string>) => {
+      const leadId = e.detail;
+      const found = leads.find((l) => l.id === leadId);
+      if (found) {
+        handleSelectLead(found);
+      }
+    };
+    window.addEventListener("open-lead-detail", handler as EventListener);
+    return () => window.removeEventListener("open-lead-detail", handler as EventListener);
+  }, [leads]);
+
   return (
     <DashboardLayout>
       <div className="space-y-6">
