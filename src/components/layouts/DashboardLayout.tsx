@@ -77,8 +77,10 @@ const navItems: NavItem[] = [
   { label: "Localizar", href: "/localizar", icon: MapPin, roles: ["dev"] },
   { label: "Metas", href: "/metas", icon: Target, roles: ["dev", "admin", "gerente", "vendedor"] },
   { label: "CRM", href: "/crm-alimentador", icon: Briefcase, roles: ["dev", "sdr"] },
+  { label: "Agendamentos CRM", href: "/agendamentos-crm", icon: CalendarCheck, roles: ["dev", "sdr"] },
   { label: "Atendimento EAD", href: "/crm", icon: Handshake, roles: ["dev", "vendedor", "sdr"] },
   { label: "Agendamentos EAD", href: "/agendamentos", icon: CalendarCheck, roles: ["dev", "vendedor", "sdr", "marketing"] },
+
 
   { label: "Marketing", href: "/marketing", icon: Megaphone, roles: ["dev", "marketing"] },
   { label: "Depoimentos", href: "/depoimentos", icon: FileVideo, roles: ["dev", "marketing"] },
