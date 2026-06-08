@@ -694,8 +694,10 @@ export type Database = {
           razao_social: string | null
           responsavel: string | null
           rua: string | null
+          scope: string
           setor: string | null
           source: Database["public"]["Enums"]["lead_source"]
+          source_lead_id: string | null
           status: Database["public"]["Enums"]["lead_status"]
           updated_at: string
         }
@@ -720,8 +722,10 @@ export type Database = {
           razao_social?: string | null
           responsavel?: string | null
           rua?: string | null
+          scope?: string
           setor?: string | null
           source?: Database["public"]["Enums"]["lead_source"]
+          source_lead_id?: string | null
           status?: Database["public"]["Enums"]["lead_status"]
           updated_at?: string
         }
@@ -746,8 +750,10 @@ export type Database = {
           razao_social?: string | null
           responsavel?: string | null
           rua?: string | null
+          scope?: string
           setor?: string | null
           source?: Database["public"]["Enums"]["lead_source"]
+          source_lead_id?: string | null
           status?: Database["public"]["Enums"]["lead_status"]
           updated_at?: string
         }
@@ -757,6 +763,13 @@ export type Database = {
             columns: ["assigned_to"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leads_source_lead_id_fkey"
+            columns: ["source_lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
             referencedColumns: ["id"]
           },
         ]
