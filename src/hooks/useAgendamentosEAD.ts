@@ -23,15 +23,15 @@ export interface LeadWithReminder {
   lead: AgendamentosLead;
 }
 
-export function useTrophyLeads() {
+export function useTrophyLeads(scope: 'atendimento' | 'crm' = 'atendimento') {
   return useQuery({
-    queryKey: ["agendamentos-trophy-leads"],
+    queryKey: ["agendamentos-trophy-leads", scope],
     queryFn: async () => {
       const { data, error } = await (supabase as any)
         .from("leads")
         .select("*, assigned_profile:profiles!leads_assigned_to_fkey(full_name, avatar_url)")
         .eq("status", "ganho")
-        .eq("scope", "atendimento")
+        .eq("scope", scope)
         .order("created_at", { ascending: false });
       if (error) throw error;
 
@@ -40,17 +40,18 @@ export function useTrophyLeads() {
   });
 }
 
-export function useReminderLeads() {
+export function useReminderLeads(scope: 'atendimento' | 'crm' = 'atendimento') {
   return useQuery({
-    queryKey: ["agendamentos-reminder-leads"],
+    queryKey: ["agendamentos-reminder-leads", scope],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from("lead_reminders")
         .select(
           `id, reminder_date, description, completed_at, lead_id, created_by, created_at,
            lead:leads!inner(*, assigned_profile:profiles!leads_assigned_to_fkey(full_name, avatar_url)),
            created_by_profile:profiles!lead_reminders_created_by_fkey(full_name)`
         )
+        .eq("lead.scope", scope)
         .is("completed_at", null)
         .order("reminder_date", { ascending: true });
       if (error) throw error;
@@ -64,3 +65,4 @@ export function useReminderLeads() {
     },
   });
 }
+
