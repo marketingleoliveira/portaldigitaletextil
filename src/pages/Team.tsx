@@ -327,6 +327,9 @@ const Team: React.FC = () => {
                     <div className="w-px h-8 bg-border" />
                   </div>
                 )}
+              </div>
+            )}
+
 
             {/* Criação - Above Vendedores */}
             {criacao.length > 0 && (
