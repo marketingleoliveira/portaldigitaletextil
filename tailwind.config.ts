@@ -72,6 +72,7 @@ export default {
           vendedor: "hsl(var(--role-vendedor))",
           criacao: "hsl(var(--role-criacao))",
           marketing: "hsl(var(--role-marketing))",
+          sdr: "hsl(var(--role-sdr))",
         },
       },
       borderRadius: {
