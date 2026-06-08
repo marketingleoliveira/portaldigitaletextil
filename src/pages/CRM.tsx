@@ -31,7 +31,14 @@ const CRM = () => {
   const { data: pendingReminders = [] } = usePendingReminders();
 
   const filteredLeads = useMemo(() => {
-    const filtered = leads.filter((lead) => {
+    const scoped = leads.filter((lead) => {
+      // Vendedor sees only leads assigned to them or created by them
+      if (user?.role === "vendedor") {
+        return lead.assigned_to === user.id || lead.created_by === user.id;
+      }
+      return true;
+    });
+    const filtered = scoped.filter((lead) => {
       if (!searchTerm) return true;
       const q = searchTerm.toLowerCase();
       return (
@@ -41,6 +48,7 @@ const CRM = () => {
         lead.contact_phone?.includes(q)
       );
     });
+
 
     // Sort: leads with pending reminders first
     return filtered.sort((a, b) => {
