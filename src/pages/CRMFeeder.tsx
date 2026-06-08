@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import DashboardLayout from "@/components/layouts/DashboardLayout";
-import { useLeads, type Lead, type LeadStatus, LEAD_STATUS_CONFIG } from "@/hooks/useCRM";
+import { useLeads, useLeadsRealtime, type Lead, type LeadStatus, LEAD_STATUS_CONFIG } from "@/hooks/useCRM";
 import { useAuth } from "@/contexts/AuthContext";
 import { CRMStats } from "@/components/crm/CRMStats";
 import { CRMKanban } from "@/components/crm/CRMKanban";
@@ -27,6 +27,7 @@ const CRMFeeder = () => {
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
   const [showDetail, setShowDetail] = useState(false);
 
+  useLeadsRealtime();
   const { data: leads = [], isLoading } = useLeads(statusFilter === "all" ? null : statusFilter, 'crm');
 
   const filteredLeads = useMemo(() => {

@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from "react";
 import DashboardLayout from "@/components/layouts/DashboardLayout";
-import { useLeads, type Lead, type LeadStatus, LEAD_STATUS_CONFIG } from "@/hooks/useCRM";
+import { useLeads, useLeadsRealtime, type Lead, type LeadStatus, LEAD_STATUS_CONFIG } from "@/hooks/useCRM";
 import { usePendingReminders } from "@/hooks/useLeadReminders";
 import { useAuth } from "@/contexts/AuthContext";
 import { CRMStats } from "@/components/crm/CRMStats";
@@ -27,6 +27,7 @@ const CRM = () => {
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
   const [showDetail, setShowDetail] = useState(false);
 
+  useLeadsRealtime();
   const { data: leads = [], isLoading } = useLeads(statusFilter === "all" ? null : statusFilter, 'atendimento');
   const { data: pendingReminders = [] } = usePendingReminders();
 
