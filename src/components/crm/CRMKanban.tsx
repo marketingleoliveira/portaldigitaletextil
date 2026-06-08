@@ -81,7 +81,7 @@ export function CRMKanban({ leads, onSelectLead }: CRMKanbanProps) {
   };
 
   const handleAssignVendedor = (leadId: string, vendedorId: string) => {
-    updateLead.mutate({ id: leadId, assigned_to: vendedorId });
+    updateLead.mutate({ id: leadId, assigned_to: vendedorId === "__none__" ? null : vendedorId } as any);
   };
 
   return (
@@ -214,6 +214,11 @@ export function CRMKanban({ leads, onSelectLead }: CRMKanbanProps) {
                                 <SelectValue placeholder="Vendedor responsável..." />
                               </SelectTrigger>
                               <SelectContent>
+                                {lead.assigned_to && (
+                                  <SelectItem value="__none__" className="text-xs text-destructive">
+                                    Remover atribuição
+                                  </SelectItem>
+                                )}
                                 {vendedores?.map((v) => (
                                   <SelectItem key={v.id} value={v.id} className="text-xs">
                                     {v.full_name} {v.region ? `(${v.region})` : ''}
