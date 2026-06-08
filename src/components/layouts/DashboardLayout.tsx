@@ -136,6 +136,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
   const location = useLocation();
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [expandedItems, setExpandedItems] = useState<string[]>([]);
 
   // Time clock reminder alerts
   useTimeClockReminder();
