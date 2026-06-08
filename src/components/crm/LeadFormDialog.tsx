@@ -5,13 +5,15 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useCreateLead, useVendedores, LEAD_SOURCE_CONFIG, type LeadSource } from "@/hooks/useCRM";
+import { useCreateLead, useVendedores, LEAD_SOURCE_CONFIG, type LeadSource, type LeadScope } from "@/hooks/useCRM";
 import { Loader2 } from "lucide-react";
 
 interface LeadFormDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  scope?: LeadScope;
 }
+
 
 const initialForm = {
   // Empresa
