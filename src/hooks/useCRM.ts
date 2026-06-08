@@ -71,13 +71,16 @@ export const LEAD_SOURCE_CONFIG: Record<LeadSource, string> = {
   outro: "Outro",
 };
 
-export function useLeads(statusFilter?: LeadStatus | null) {
+export type LeadScope = 'crm' | 'atendimento';
+
+export function useLeads(statusFilter?: LeadStatus | null, scope: LeadScope = 'atendimento') {
   return useQuery({
-    queryKey: ["leads", statusFilter],
+    queryKey: ["leads", statusFilter, scope],
     queryFn: async () => {
       let query = supabase
         .from("leads")
         .select("*, assigned_profile:profiles!leads_assigned_to_fkey(full_name, avatar_url)")
+        .eq("scope" as any, scope)
         .order("created_at", { ascending: false });
 
       if (statusFilter) {
@@ -90,6 +93,7 @@ export function useLeads(statusFilter?: LeadStatus | null) {
     },
   });
 }
+
 
 export function useLeadActivities(leadId: string) {
   return useQuery({
