@@ -247,6 +247,17 @@ export function useUpdateLead() {
         });
       }
 
+      // Handle unassignment: remove vendor's duplicate from Atendimento EAD
+      if (currentLead && (currentLead as any).scope === 'crm'
+          && 'assigned_to' in data && !data.assigned_to && (currentLead as any).assigned_to) {
+        await (supabase as any)
+          .from("leads")
+          .delete()
+          .eq("source_lead_id", id)
+          .eq("assigned_to", (currentLead as any).assigned_to)
+          .eq("scope", "atendimento");
+      }
+
       // Notify vendor when assigned
       if (data.assigned_to && currentLead && data.assigned_to !== currentLead.assigned_to) {
         const leadName = currentLead.company_name || "Lead";
