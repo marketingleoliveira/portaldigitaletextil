@@ -77,11 +77,12 @@ export function useLeads(statusFilter?: LeadStatus | null, scope: LeadScope = 'a
   return useQuery({
     queryKey: ["leads", statusFilter, scope],
     queryFn: async () => {
-      let query = supabase
+      let query: any = supabase
         .from("leads")
         .select("*, assigned_profile:profiles!leads_assigned_to_fkey(full_name, avatar_url)")
-        .eq("scope" as any, scope)
+        .eq("scope", scope)
         .order("created_at", { ascending: false });
+
 
       if (statusFilter) {
         query = query.eq("status", statusFilter);
