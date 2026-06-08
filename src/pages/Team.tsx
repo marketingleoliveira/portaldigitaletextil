@@ -408,6 +408,18 @@ const Team: React.FC = () => {
           </Card>
           <Card>
             <CardContent className="pt-6 text-center">
+              <p className="text-3xl font-bold text-role-marketing">{marketing.length}</p>
+              <p className="text-sm text-muted-foreground">Marketing</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="pt-6 text-center">
+              <p className="text-3xl font-bold text-role-sdr">{sdrs.length}</p>
+              <p className="text-sm text-muted-foreground">SDR</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="pt-6 text-center">
               <p className="text-3xl font-bold text-role-vendedor">{vendedores.length}</p>
               <p className="text-sm text-muted-foreground">Vendedores</p>
             </CardContent>
