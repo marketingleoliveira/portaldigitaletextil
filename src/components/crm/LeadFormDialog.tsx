@@ -36,7 +36,7 @@ const initialForm = {
   notes: "",
 };
 
-export function LeadFormDialog({ open, onOpenChange }: LeadFormDialogProps) {
+export function LeadFormDialog({ open, onOpenChange, scope = 'atendimento' }: LeadFormDialogProps) {
   const createLead = useCreateLead();
   const { data: vendedores } = useVendedores();
   const [form, setForm] = useState(initialForm);
@@ -62,10 +62,12 @@ export function LeadFormDialog({ open, onOpenChange }: LeadFormDialogProps) {
       bairro: form.bairro.trim() || undefined,
       cep: form.cep.trim() || undefined,
       notes: form.notes.trim() || undefined,
+      scope,
     } as any);
     setForm(initialForm);
     onOpenChange(false);
   };
+
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
