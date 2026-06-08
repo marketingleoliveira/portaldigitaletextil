@@ -58,7 +58,7 @@ const CRM = () => {
       if (aR === 0 && bR > 0) return 1;
       return 0;
     });
-  }, [leads, searchTerm, pendingReminders]);
+  }, [leads, searchTerm, pendingReminders, user]);
 
   const handleSelectLead = (lead: Lead) => {
     setSelectedLead(lead);
