@@ -43,6 +43,8 @@ import GuestMeetingRoom from "./pages/GuestMeetingRoom";
 
 import CreationMaterials from "./pages/CreationMaterials";
 import CRM from "./pages/CRM";
+import CRMFeeder from "./pages/CRMFeeder";
+
 import Agendamentos from "./pages/Agendamentos";
 import Marketing from "./pages/Marketing";
 import Depoimentos from "./pages/Depoimentos";
