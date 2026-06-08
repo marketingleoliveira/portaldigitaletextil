@@ -27,7 +27,7 @@ const CRM = () => {
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
   const [showDetail, setShowDetail] = useState(false);
 
-  const { data: leads = [], isLoading } = useLeads(statusFilter === "all" ? null : statusFilter);
+  const { data: leads = [], isLoading } = useLeads(statusFilter === "all" ? null : statusFilter, 'atendimento');
   const { data: pendingReminders = [] } = usePendingReminders();
 
   const filteredLeads = useMemo(() => {
