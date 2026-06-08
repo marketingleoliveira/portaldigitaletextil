@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import DashboardLayout from "@/components/layouts/DashboardLayout";
 import { useLeads, type Lead, type LeadStatus, LEAD_STATUS_CONFIG } from "@/hooks/useCRM";
 import { usePendingReminders } from "@/hooks/useLeadReminders";
@@ -56,6 +56,19 @@ const CRM = () => {
     setSelectedLead(lead);
     setShowDetail(true);
   };
+
+  // Listen for external open-lead-detail events (e.g., from Agendamentos EAD)
+  useEffect(() => {
+    const handler = (e: CustomEvent<string>) => {
+      const leadId = e.detail;
+      const found = leads.find((l) => l.id === leadId);
+      if (found) {
+        handleSelectLead(found);
+      }
+    };
+    window.addEventListener("open-lead-detail", handler as EventListener);
+    return () => window.removeEventListener("open-lead-detail", handler as EventListener);
+  }, [leads]);
 
   return (
     <DashboardLayout>
