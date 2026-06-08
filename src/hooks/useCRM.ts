@@ -159,11 +159,12 @@ export function useCreateLead() {
   const { user } = useAuth();
 
   return useMutation({
-    mutationFn: async (data: CreateLeadData) => {
+    mutationFn: async (data: CreateLeadData & { scope?: LeadScope }) => {
       const { error } = await supabase.from("leads").insert({
         ...data,
+        scope: data.scope || 'atendimento',
         created_by: user!.id,
-      });
+      } as any);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -185,7 +186,7 @@ export function useUpdateLead() {
       // Get current lead for status change and assignment tracking
       const { data: currentLead } = await supabase
         .from("leads")
-        .select("status, assigned_to, company_name")
+        .select("*")
         .eq("id", id)
         .single();
 
@@ -211,8 +212,48 @@ export function useUpdateLead() {
           target_user_id: data.assigned_to,
           created_by: user!.id,
           title: "Novo lead atribuído a você",
-          message: `O lead "${leadName}" foi atribuído a você. Acesse o CRM para mais detalhes.`,
+          message: `O lead "${leadName}" foi atribuído a você. Acesse o Atendimento EAD para mais detalhes.`,
         });
+
+        // CRM feeder: duplicate to Atendimento EAD scope so the vendor can work it
+        const curr = currentLead as any;
+        if (curr.scope === 'crm') {
+          // Check if a duplicate already exists for this vendor
+          const { data: existing } = await supabase
+            .from("leads")
+            .select("id")
+            .eq("source_lead_id" as any, id)
+            .eq("assigned_to", data.assigned_to)
+            .maybeSingle();
+
+          if (!existing) {
+            const dup: any = {
+              company_name: curr.company_name,
+              contact_name: curr.contact_name,
+              contact_email: curr.contact_email,
+              contact_phone: curr.contact_phone,
+              source: curr.source,
+              estimated_value: curr.estimated_value,
+              notes: curr.notes,
+              cnpj: curr.cnpj,
+              razao_social: curr.razao_social,
+              categoria: curr.categoria,
+              setor: curr.setor,
+              responsavel: curr.responsavel,
+              compra_tecido_mensal: curr.compra_tecido_mensal,
+              rua: curr.rua,
+              bairro: curr.bairro,
+              cep: curr.cep,
+              expected_close_date: curr.expected_close_date,
+              status: 'novo',
+              scope: 'atendimento',
+              source_lead_id: id,
+              assigned_to: data.assigned_to,
+              created_by: user!.id,
+            };
+            await supabase.from("leads").insert(dup);
+          }
+        }
       }
     },
     onSuccess: () => {
@@ -225,6 +266,7 @@ export function useUpdateLead() {
     },
   });
 }
+
 
 export function useDeleteLead() {
   const queryClient = useQueryClient();
