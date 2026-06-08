@@ -48,7 +48,9 @@ import {
   FileVideo,
   DoorOpen,
   ClipboardList,
+  Briefcase,
 } from "lucide-react";
+
 import { useTimeClockReminder } from "@/hooks/useTimeClockReminder";
 import { useLocationTracking } from "@/hooks/useLocationTracking";
 import { cn } from "@/lib/utils";
