@@ -24,6 +24,7 @@ import {
 import RoleBadge from '@/components/RoleBadge';
 import OnlineUsersCard from '@/components/OnlineUsersCard';
 import ActivityRankingCard from '@/components/ActivityRankingCard';
+import MonthlyActivityRankingCard from '@/components/MonthlyActivityRankingCard';
 import RoomStatusCard from '@/components/RoomStatusCard';
 
 interface DashboardStats {
@@ -432,7 +433,12 @@ const Dashboard: React.FC = () => {
 
         {/* Activity Ranking & Links */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {user?.role && <ActivityRankingCard />}
+          {user?.role && (
+            <div className="space-y-6">
+              <ActivityRankingCard />
+              <MonthlyActivityRankingCard />
+            </div>
+          )}
 
           <Card>
             <CardHeader>
