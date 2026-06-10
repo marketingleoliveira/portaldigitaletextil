@@ -438,6 +438,7 @@ const Dashboard: React.FC = () => {
             <div className="space-y-6">
               <ActivityRankingCard />
               <MonthlyActivityRankingCard />
+              <WorldCup2026Card />
             </div>
           )}
 
