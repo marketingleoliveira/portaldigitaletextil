@@ -4,8 +4,8 @@
 
 @layer base {
   :root {
-    /* Corporate Theme - Original Colors */
-    --background: 210 40% 98%;
+    /* Brazil Theme - Subtle accents (blue, yellow, green, white) */
+    --background: 0 0% 100%;
     --foreground: 222 47% 11%;
 
     --card: 0 0% 100%;
@@ -14,31 +14,32 @@
     --popover: 0 0% 100%;
     --popover-foreground: 222 47% 11%;
 
-    /* Primary Blue */
-    --primary: 221 83% 53%;
+    /* Primary Brazil Blue */
+    --primary: 217 95% 32%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 210 40% 96%;
+    --secondary: 140 60% 96%;
     --secondary-foreground: 222 47% 11%;
 
     --muted: 210 40% 96%;
     --muted-foreground: 215 16% 47%;
 
-    --accent: 210 40% 96%;
-    --accent-foreground: 222 47% 11%;
+    /* Brazil Green accent */
+    --accent: 142 70% 94%;
+    --accent-foreground: 142 72% 20%;
 
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
 
-    /* Status colors */
-    --success: 142 76% 36%;
+    /* Status colors - Brazil green/yellow */
+    --success: 142 72% 35%;
     --success-foreground: 0 0% 100%;
-    --warning: 38 92% 50%;
-    --warning-foreground: 0 0% 100%;
+    --warning: 48 100% 50%;
+    --warning-foreground: 222 47% 11%;
 
     --border: 214 32% 91%;
     --input: 214 32% 91%;
-    --ring: 221 83% 53%;
+    --ring: 217 95% 32%;
 
     --radius: 0.5rem;
 
@@ -51,26 +52,26 @@
     --role-marketing: 25 95% 53%;
     --role-sdr: 200 90% 50%;
 
-    /* Sidebar - Corporate */
-    --sidebar-background: 222 47% 11%;
-    --sidebar-foreground: 210 40% 98%;
-    --sidebar-primary: 221 83% 53%;
+    /* Sidebar - Brazil Blue */
+    --sidebar-background: 217 95% 18%;
+    --sidebar-foreground: 0 0% 100%;
+    --sidebar-primary: 142 72% 38%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 217 33% 17%;
-    --sidebar-accent-foreground: 210 40% 98%;
-    --sidebar-border: 217 33% 17%;
-    --sidebar-ring: 221 83% 53%;
+    --sidebar-accent: 217 90% 25%;
+    --sidebar-accent-foreground: 0 0% 100%;
+    --sidebar-border: 217 90% 25%;
+    --sidebar-ring: 48 100% 50%;
 
     /* Corporate Gradients */
-    --gradient-primary: linear-gradient(135deg, hsl(221 83% 53%) 0%, hsl(217 91% 60%) 100%);
-    --gradient-sidebar: linear-gradient(180deg, hsl(222 47% 11%) 0%, hsl(217 33% 17%) 100%);
-    --gradient-card: linear-gradient(180deg, hsl(0 0% 100%) 0%, hsl(210 40% 98%) 100%);
+    --gradient-primary: linear-gradient(135deg, hsl(217 95% 32%) 0%, hsl(142 72% 38%) 100%);
+    --gradient-sidebar: linear-gradient(180deg, hsl(217 95% 18%) 0%, hsl(217 90% 25%) 100%);
+    --gradient-card: linear-gradient(180deg, hsl(0 0% 100%) 0%, hsl(48 100% 97%) 100%);
 
     /* Shadows */
     --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
     --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
     --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
-    --shadow-primary: 0 4px 14px 0 hsl(221 83% 53% / 0.35);
+    --shadow-primary: 0 4px 14px 0 hsl(217 95% 32% / 0.35);
   }
 
   .dark {
@@ -84,8 +85,11 @@
     --popover: 217 33% 17%;
     --popover-foreground: 210 40% 98%;
 
-    --primary: 217 91% 60%;
+    --primary: 217 91% 55%;
     --primary-foreground: 0 0% 100%;
+
+    /* Brazil yellow ring accent in dark */
+    --ring: 48 100% 55%;
 
     --secondary: 217 33% 17%;
     --secondary-foreground: 210 40% 98%;
@@ -101,11 +105,10 @@
 
     --border: 217 33% 17%;
     --input: 217 33% 17%;
-    --ring: 217 91% 60%;
 
-    --sidebar-background: 222 47% 8%;
-    --sidebar-foreground: 210 40% 98%;
-    --sidebar-primary: 217 91% 60%;
+    --sidebar-background: 217 95% 12%;
+    --sidebar-foreground: 0 0% 100%;
+    --sidebar-primary: 142 72% 42%;
     --sidebar-primary-foreground: 0 0% 100%;
     --sidebar-accent: 217 33% 17%;
     --sidebar-accent-foreground: 210 40% 98%;
