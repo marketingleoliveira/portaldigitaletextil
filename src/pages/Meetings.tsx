@@ -412,14 +412,6 @@ export default function Meetings() {
                           <UserPlus className="w-4 h-4" />
                         </Button>
                         <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => copyMeetingLink(meeting.meeting_code)}
-                          title="Copiar link da reunião"
-                        >
-                          <Copy className="w-4 h-4" />
-                        </Button>
-                        <Button
                           variant="default"
                           size="sm"
                           onClick={() => navigate(`/reuniao/${meeting.meeting_code}`)}
