@@ -85,7 +85,19 @@ const CRM = () => {
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold">Atendimento EAD</h1>
+            <h1 className="text-2xl font-bold">
+              Atendimento EAD
+              {user?.profile?.full_name && (
+                <span className="text-muted-foreground font-normal text-lg ml-2">
+                  — {(() => {
+                    const h = new Date().getHours();
+                    const periodo = h < 12 ? "Bom dia" : h < 18 ? "Boa tarde" : "Boa noite";
+                    const firstName = user.profile.full_name.split(" ")[0];
+                    return `${periodo}, ${firstName}! Tenha um ótimo trabalho.`;
+                  })()}
+                </span>
+              )}
+            </h1>
             <p className="text-sm text-muted-foreground">
             {isDev
               ? "Gerencie atendimentos externos e localização"
