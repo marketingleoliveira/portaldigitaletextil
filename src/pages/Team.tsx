@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { AppRole, ROLE_LABELS } from '@/types/auth';
 import RoleBadge from '@/components/RoleBadge';
-import { Loader2, Users, Code, Shield, UserCog, User, Palette, Mail, X, Linkedin, Megaphone, Target } from 'lucide-react';
+import { Loader2, Users, Code, Shield, UserCog, User, Palette, Mail, X, Linkedin, Megaphone, Target, BadgeCheck } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import WhatsAppIcon from '@/components/icons/WhatsAppIcon';
 import {
@@ -93,6 +93,7 @@ const Team: React.FC = () => {
   const marketing = orgMembers.filter((m) => m.role === 'marketing');
   const sdrs = orgMembers.filter((m) => m.role === 'sdr');
   const vendedores = orgMembers.filter((m) => m.role === 'vendedor');
+  const qualidade = orgMembers.filter((m) => m.role === 'qualidade');
 
   const handleMemberClick = (member: TeamMember) => {
     setSelectedMember(member);
@@ -354,6 +355,22 @@ const Team: React.FC = () => {
               </div>
             )}
 
+            {/* Qualidade */}
+            {qualidade.length > 0 && (
+              <div className="space-y-4">
+                <div className="flex items-center gap-2">
+                  <BadgeCheck className="w-5 h-5 text-teal-500" />
+                  <h3 className="font-semibold text-lg">Qualidade</h3>
+                  <Badge variant="secondary" className="ml-2">{qualidade.length}</Badge>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+                  {qualidade.map((member) => (
+                    <MemberCard key={member.id} member={member} size="sm" />
+                  ))}
+                </div>
+              </div>
+            )}
+
             {/* Vendedores - Bottom Level */}
             {vendedores.length > 0 && (
               <div className="space-y-4">
@@ -381,7 +398,7 @@ const Team: React.FC = () => {
         </Card>
 
         {/* Stats */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-4">
           <Card>
             <CardContent className="pt-6 text-center">
               <p className="text-3xl font-bold text-primary">{members.length}</p>
@@ -422,6 +439,12 @@ const Team: React.FC = () => {
             <CardContent className="pt-6 text-center">
               <p className="text-3xl font-bold text-role-vendedor">{vendedores.length}</p>
               <p className="text-sm text-muted-foreground">Vendedores</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="pt-6 text-center">
+              <p className="text-3xl font-bold text-teal-500">{qualidade.length}</p>
+              <p className="text-sm text-muted-foreground">Qualidade</p>
             </CardContent>
           </Card>
         </div>
