@@ -11,6 +11,9 @@ interface AuthContextType {
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
   updatePassword: (newPassword: string) => Promise<{ error: Error | null }>;
+  realRole: AppRole | null;
+  viewAsRole: AppRole | null;
+  setViewAsRole: (role: AppRole | null) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -23,13 +26,29 @@ export const useAuth = () => {
   return context;
 };
 
+const VIEW_AS_KEY = 'viewAsRole';
+
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [userDataLoading, setUserDataLoading] = useState(false);
   const [userDataFetched, setUserDataFetched] = useState(false);
+  const [viewAsRole, setViewAsRoleState] = useState<AppRole | null>(() => {
+    if (typeof window === 'undefined') return null;
+    const stored = window.localStorage.getItem(VIEW_AS_KEY);
+    return (stored as AppRole) || null;
+  });
   const lastFetchedUserIdRef = useRef<string | null>(null);
+
+  const setViewAsRole = useCallback((role: AppRole | null) => {
+    if (role) {
+      window.localStorage.setItem(VIEW_AS_KEY, role);
+    } else {
+      window.localStorage.removeItem(VIEW_AS_KEY);
+    }
+    setViewAsRoleState(role);
+  }, []);
 
   const fetchUserData = useCallback(async (authUser: User, isLogin: boolean = false, force: boolean = false) => {
     // Skip if we already fetched data for this user (unless forced)
@@ -193,8 +212,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Combined loading state - only show loading until initial data fetch is complete
   const isLoading = loading || (session?.user && !userDataFetched);
 
+  const realRole = user?.role ?? null;
+  const effectiveRole: AppRole | null =
+    realRole === 'dev' && viewAsRole ? viewAsRole : realRole;
+  const exposedUser: AuthUser | null = user
+    ? { ...user, role: effectiveRole }
+    : null;
+
   return (
-    <AuthContext.Provider value={{ user, session, loading: isLoading, signIn, signOut, updatePassword }}>
+    <AuthContext.Provider
+      value={{
+        user: exposedUser,
+        session,
+        loading: isLoading,
+        signIn,
+        signOut,
+        updatePassword,
+        realRole,
+        viewAsRole: realRole === 'dev' ? viewAsRole : null,
+        setViewAsRole,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );
