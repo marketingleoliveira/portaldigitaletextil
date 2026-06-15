@@ -137,7 +137,7 @@ interface DashboardLayoutProps {
 }
 
 const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
-  const { user, signOut, loading } = useAuth();
+  const { user, signOut, loading, realRole, viewAsRole, setViewAsRole } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
