@@ -11,6 +11,9 @@ interface AuthContextType {
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
   updatePassword: (newPassword: string) => Promise<{ error: Error | null }>;
+  realRole: AppRole | null;
+  viewAsRole: AppRole | null;
+  setViewAsRole: (role: AppRole | null) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
