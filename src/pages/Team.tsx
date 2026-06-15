@@ -441,6 +441,12 @@ const Team: React.FC = () => {
               <p className="text-sm text-muted-foreground">Vendedores</p>
             </CardContent>
           </Card>
+          <Card>
+            <CardContent className="pt-6 text-center">
+              <p className="text-3xl font-bold text-teal-500">{qualidade.length}</p>
+              <p className="text-sm text-muted-foreground">Qualidade</p>
+            </CardContent>
+          </Card>
         </div>
 
         {/* Member Profile Dialog */}
