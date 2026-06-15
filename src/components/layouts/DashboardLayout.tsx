@@ -60,8 +60,9 @@ import { useLocationTracking } from "@/hooks/useLocationTracking";
 import { cn } from "@/lib/utils";
 import NotificationBanner from "@/components/NotificationBanner";
 import PersistentNotificationAlert from "@/components/PersistentNotificationAlert";
+import { Eye, EyeOff } from "lucide-react";
 
-import { AppRole } from "@/types/auth";
+import { AppRole, ROLE_LABELS } from "@/types/auth";
 import { UsersRound } from "lucide-react";
 
 interface NavItem {
