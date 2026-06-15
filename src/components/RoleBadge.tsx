@@ -1,7 +1,7 @@
 import React from 'react';
 import { Badge } from '@/components/ui/badge';
 import { AppRole, ROLE_LABELS } from '@/types/auth';
-import { Shield, UserCog, User, Code, Palette, Megaphone } from 'lucide-react';
+import { Shield, UserCog, User, Code, Palette, Megaphone, BadgeCheck } from 'lucide-react';
 
 interface RoleBadgeProps {
   role: AppRole;
@@ -19,6 +19,7 @@ const RoleBadge: React.FC<RoleBadgeProps> = ({ role, region, showIcon = true, si
     criacao: Palette,
     sdr: User,
     marketing: Megaphone,
+    qualidade: BadgeCheck,
   };
 
   const Icon = icons[role];
@@ -32,6 +33,7 @@ const RoleBadge: React.FC<RoleBadgeProps> = ({ role, region, showIcon = true, si
     criacao: "criacao",
     sdr: "secondary",
     marketing: "secondary",
+    qualidade: "secondary",
   };
 
   // For vendedor with region, show "Vendedor SP" format
