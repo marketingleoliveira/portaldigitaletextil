@@ -398,7 +398,7 @@ const Team: React.FC = () => {
         </Card>
 
         {/* Stats */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-4">
           <Card>
             <CardContent className="pt-6 text-center">
               <p className="text-3xl font-bold text-primary">{members.length}</p>
