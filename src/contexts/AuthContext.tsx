@@ -26,13 +26,29 @@ export const useAuth = () => {
   return context;
 };
 
+const VIEW_AS_KEY = 'viewAsRole';
+
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [userDataLoading, setUserDataLoading] = useState(false);
   const [userDataFetched, setUserDataFetched] = useState(false);
+  const [viewAsRole, setViewAsRoleState] = useState<AppRole | null>(() => {
+    if (typeof window === 'undefined') return null;
+    const stored = window.localStorage.getItem(VIEW_AS_KEY);
+    return (stored as AppRole) || null;
+  });
   const lastFetchedUserIdRef = useRef<string | null>(null);
+
+  const setViewAsRole = useCallback((role: AppRole | null) => {
+    if (role) {
+      window.localStorage.setItem(VIEW_AS_KEY, role);
+    } else {
+      window.localStorage.removeItem(VIEW_AS_KEY);
+    }
+    setViewAsRoleState(role);
+  }, []);
 
   const fetchUserData = useCallback(async (authUser: User, isLogin: boolean = false, force: boolean = false) => {
     // Skip if we already fetched data for this user (unless forced)
