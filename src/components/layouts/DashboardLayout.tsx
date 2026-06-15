@@ -341,6 +341,25 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
 
         {/* Main Content */}
         <div className="flex-1 flex flex-col min-w-0">
+          {viewAsRole && (
+            <div className="bg-amber-500 text-black px-4 py-2 text-sm flex items-center justify-between gap-2">
+              <span className="flex items-center gap-2">
+                <Eye className="w-4 h-4" />
+                Visualizando como <strong>{ROLE_LABELS[viewAsRole]}</strong> (modo desenvolvedor)
+              </span>
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-7 bg-white"
+                onClick={() => {
+                  setViewAsRole(null);
+                  navigate("/dashboard");
+                }}
+              >
+                Sair do modo
+              </Button>
+            </div>
+          )}
           {/* Header */}
           <header className="sticky top-0 z-30 bg-card border-b border-border">
             <div className="flex items-center justify-between h-16 px-4 lg:px-6">
