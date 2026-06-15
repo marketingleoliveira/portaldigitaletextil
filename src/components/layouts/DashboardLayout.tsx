@@ -414,6 +414,58 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
                         Meu Perfil
                       </Link>
                     </DropdownMenuItem>
+                    {realRole === "dev" && (
+                      <>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuSub>
+                          <DropdownMenuSubTrigger>
+                            <Eye className="w-4 h-4 mr-2" />
+                            Visualizar como
+                            {viewAsRole && (
+                              <span className="ml-auto text-xs text-muted-foreground">
+                                {ROLE_LABELS[viewAsRole]}
+                              </span>
+                            )}
+                          </DropdownMenuSubTrigger>
+                          <DropdownMenuPortal>
+                            <DropdownMenuSubContent className="w-48 bg-popover">
+                              {(Object.keys(ROLE_LABELS) as AppRole[])
+                                .filter((r) => r !== "dev")
+                                .map((r) => (
+                                  <DropdownMenuItem
+                                    key={r}
+                                    onClick={() => {
+                                      setViewAsRole(r);
+                                      navigate("/dashboard");
+                                    }}
+                                    className="cursor-pointer"
+                                  >
+                                    {ROLE_LABELS[r]}
+                                    {viewAsRole === r && (
+                                      <span className="ml-auto text-xs">✓</span>
+                                    )}
+                                  </DropdownMenuItem>
+                                ))}
+                              {viewAsRole && (
+                                <>
+                                  <DropdownMenuSeparator />
+                                  <DropdownMenuItem
+                                    onClick={() => {
+                                      setViewAsRole(null);
+                                      navigate("/dashboard");
+                                    }}
+                                    className="cursor-pointer"
+                                  >
+                                    <EyeOff className="w-4 h-4 mr-2" />
+                                    Voltar para Desenvolvedor
+                                  </DropdownMenuItem>
+                                </>
+                              )}
+                            </DropdownMenuSubContent>
+                          </DropdownMenuPortal>
+                        </DropdownMenuSub>
+                      </>
+                    )}
                     <DropdownMenuSeparator />
                     <DropdownMenuItem onClick={handleSignOut} className="text-destructive cursor-pointer">
                       <LogOut className="w-4 h-4 mr-2" />
