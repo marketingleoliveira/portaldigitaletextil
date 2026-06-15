@@ -212,8 +212,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Combined loading state - only show loading until initial data fetch is complete
   const isLoading = loading || (session?.user && !userDataFetched);
 
+  const realRole = user?.role ?? null;
+  const effectiveRole: AppRole | null =
+    realRole === 'dev' && viewAsRole ? viewAsRole : realRole;
+  const exposedUser: AuthUser | null = user
+    ? { ...user, role: effectiveRole }
+    : null;
+
   return (
-    <AuthContext.Provider value={{ user, session, loading: isLoading, signIn, signOut, updatePassword }}>
+    <AuthContext.Provider
+      value={{
+        user: exposedUser,
+        session,
+        loading: isLoading,
+        signIn,
+        signOut,
+        updatePassword,
+        realRole,
+        viewAsRole: realRole === 'dev' ? viewAsRole : null,
+        setViewAsRole,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );
