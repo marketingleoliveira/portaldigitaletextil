@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { AppRole, ROLE_LABELS } from '@/types/auth';
 import RoleBadge from '@/components/RoleBadge';
-import { Loader2, Users, Code, Shield, UserCog, User, Palette, Mail, X, Linkedin, Megaphone, Target } from 'lucide-react';
+import { Loader2, Users, Code, Shield, UserCog, User, Palette, Mail, X, Linkedin, Megaphone, Target, BadgeCheck } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import WhatsAppIcon from '@/components/icons/WhatsAppIcon';
 import {
