@@ -264,6 +264,92 @@ export type Database = {
         }
         Relationships: []
       }
+      expense_items: {
+        Row: {
+          amount: number
+          category: string
+          created_at: string
+          description: string | null
+          expense_date: string | null
+          id: string
+          receipt_path: string | null
+          receipt_url: string | null
+          report_id: string
+        }
+        Insert: {
+          amount?: number
+          category: string
+          created_at?: string
+          description?: string | null
+          expense_date?: string | null
+          id?: string
+          receipt_path?: string | null
+          receipt_url?: string | null
+          report_id: string
+        }
+        Update: {
+          amount?: number
+          category?: string
+          created_at?: string
+          description?: string | null
+          expense_date?: string | null
+          id?: string
+          receipt_path?: string | null
+          receipt_url?: string | null
+          report_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "expense_items_report_id_fkey"
+            columns: ["report_id"]
+            isOneToOne: false
+            referencedRelation: "expense_reports"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      expense_reports: {
+        Row: {
+          company_advance: number
+          created_at: string
+          id: string
+          notes: string | null
+          status: string
+          title: string
+          trip_destination: string | null
+          trip_end_date: string | null
+          trip_start_date: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          company_advance?: number
+          created_at?: string
+          id?: string
+          notes?: string | null
+          status?: string
+          title: string
+          trip_destination?: string | null
+          trip_end_date?: string | null
+          trip_start_date?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          company_advance?: number
+          created_at?: string
+          id?: string
+          notes?: string | null
+          status?: string
+          title?: string
+          trip_destination?: string | null
+          trip_end_date?: string | null
+          trip_start_date?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       file_region_visibility: {
         Row: {
           file_id: string
