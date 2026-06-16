@@ -15,8 +15,9 @@ import {
 import {
   BarChart3, Users, Activity, TrendingUp, Loader2, 
   User, Download, LogIn, FileText, ChevronLeft, Calendar,
-  Clock, Globe, Timer, Trash2, Pencil, Save, X, LogOut, AlertTriangle
+  Clock, Globe, Timer, Trash2, Pencil, Save, X, LogOut, AlertTriangle, Receipt
 } from 'lucide-react';
+import ReembolsosManager from '@/components/reembolsos/ReembolsosManager';
 import {
   Dialog,
   DialogContent,
@@ -106,6 +107,7 @@ const Reports: React.FC = () => {
   const [editingRecord, setEditingRecord] = useState<EditingTimeRecord | null>(null);
   const [savingEdit, setSavingEdit] = useState(false);
   const [showActivityReport, setShowActivityReport] = useState(false);
+  const [showReembolsos, setShowReembolsos] = useState(false);
   const [forceLogoutLoading, setForceLogoutLoading] = useState(false);
   const [stats, setStats] = useState({
     totalLogins: 0,
@@ -803,7 +805,7 @@ const Reports: React.FC = () => {
                 </div>
               </div>
               <Button 
-                onClick={() => setShowActivityReport(true)}
+                onClick={() => { setShowActivityReport(true); setShowReembolsos(false); }}
                 variant={showActivityReport ? "default" : "outline"}
                 className="gap-2"
               >
@@ -811,7 +813,7 @@ const Reports: React.FC = () => {
                 ATIVIDADE
               </Button>
               <Button 
-                onClick={() => fetchTimeRecords(selectedUser.id)}
+                onClick={() => { fetchTimeRecords(selectedUser.id); setShowReembolsos(false); }}
                 variant={showTimeRecords ? "default" : "outline"}
                 className="gap-2"
                 disabled={loadingTimeRecords}
@@ -823,8 +825,32 @@ const Reports: React.FC = () => {
                 )}
                 PONTO
               </Button>
+              <Button
+                onClick={() => { setShowReembolsos(true); setShowActivityReport(false); setShowTimeRecords(false); }}
+                variant={showReembolsos ? "default" : "outline"}
+                className="gap-2"
+              >
+                <Receipt className="w-4 h-4" />
+                REEMBOLSOS
+              </Button>
             </div>
           </div>
+
+          {/* Reembolsos Section */}
+          {showReembolsos && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Receipt className="w-5 h-5 text-primary" />
+                  Reembolsos de {selectedUser.full_name}
+                </CardTitle>
+                <CardDescription>Histórico completo de solicitações de reembolso</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ReembolsosManager userId={selectedUser.id} canEdit={user?.role === 'dev' || user?.role === 'admin'} isAdminView />
+              </CardContent>
+            </Card>
+          )}
 
           {/* Activity Report Modal */}
           {showActivityReport && (
