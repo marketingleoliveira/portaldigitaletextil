@@ -53,6 +53,7 @@ import {
   DoorOpen,
   ClipboardList,
   Briefcase,
+  Receipt,
 } from "lucide-react";
 
 import { useTimeClockReminder } from "@/hooks/useTimeClockReminder";
@@ -82,6 +83,7 @@ const navItems: NavItem[] = [
   { label: "Reserva de Salas", href: "/reserva-salas", icon: DoorOpen, roles: ["dev", "admin", "gerente", "vendedor", "criacao", "sdr", "marketing", "qualidade"] },
   { label: "Localizar", href: "/localizar", icon: MapPin, roles: ["dev"] },
   { label: "Metas", href: "/metas", icon: Target, roles: ["dev", "admin", "gerente", "vendedor"] },
+  { label: "Reembolso", href: "/reembolsos", icon: Receipt, roles: ["dev", "admin", "vendedor"] },
   {
     label: "CRM",
     href: "/crm-alimentador",
