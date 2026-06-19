@@ -80,10 +80,11 @@ const formatBRL = (n: number) =>
 interface Props {
   userId: string;
   canEdit: boolean;
+  canDelete?: boolean;
   isAdminView?: boolean;
 }
 
-const ReembolsosManager: React.FC<Props> = ({ userId, canEdit, isAdminView }) => {
+const ReembolsosManager: React.FC<Props> = ({ userId, canEdit, canDelete = false, isAdminView }) => {
   const [reports, setReports] = useState<ExpenseReport[]>([]);
   const [items, setItems] = useState<Record<string, ExpenseItem[]>>({});
   const [loading, setLoading] = useState(true);
