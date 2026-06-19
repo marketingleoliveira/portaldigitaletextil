@@ -18,7 +18,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import {
   Plus, Trash2, Upload, FileText, Receipt, ChevronDown, ChevronUp, Loader2,
-  Utensils, Fuel, Hotel, Car, MapPin, MoreHorizontal, ExternalLink, Pencil,
+  Utensils, Fuel, Hotel, Car, MapPin, MoreHorizontal, ExternalLink, Pencil, Download,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
@@ -251,6 +251,52 @@ const ReembolsosManager: React.FC<Props> = ({ userId, canEdit, isAdminView }) =>
     fetchAll();
   };
 
+  const exportReportCSV = (rep: ExpenseReport) => {
+    const its = items[rep.id] || [];
+    const total = its.reduce((s, i) => s + Number(i.amount || 0), 0);
+    const adv = Number(rep.company_advance || 0);
+    const diff = total - adv;
+    const esc = (v: any) => {
+      const s = v === null || v === undefined ? '' : String(v);
+      return /[",;\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+    };
+    const lines: string[] = [];
+    lines.push(`Relatório de Reembolso`);
+    lines.push(`Título;${esc(rep.title)}`);
+    lines.push(`Destino;${esc(rep.trip_destination || '')}`);
+    lines.push(`Início;${esc(rep.trip_start_date || '')}`);
+    lines.push(`Término;${esc(rep.trip_end_date || '')}`);
+    lines.push(`Status;${esc(STATUS_META[rep.status]?.label || rep.status)}`);
+    lines.push(`Adiantado (R$);${adv.toFixed(2).replace('.', ',')}`);
+    lines.push(`Total Gasto (R$);${total.toFixed(2).replace('.', ',')}`);
+    lines.push(`${diff >= 0 ? 'Empresa Reembolsa' : 'Funcionário Devolve'} (R$);${Math.abs(diff).toFixed(2).replace('.', ',')}`);
+    if (rep.notes) lines.push(`Observações;${esc(rep.notes)}`);
+    lines.push('');
+    lines.push('Data;Categoria;Descrição;Valor (R$);Comprovante');
+    its.forEach(it => {
+      const meta = CATEGORY_META[it.category] || CATEGORY_META.outros;
+      lines.push([
+        esc(it.expense_date || ''),
+        esc(meta.label),
+        esc(it.description || ''),
+        Number(it.amount || 0).toFixed(2).replace('.', ','),
+        esc(it.receipt_url || ''),
+      ].join(';'));
+    });
+    const csv = '\uFEFF' + lines.join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    const safeTitle = rep.title.replace(/[^\w\-]+/g, '_').slice(0, 40);
+    a.href = url;
+    a.download = `reembolso-${safeTitle}-${format(new Date(rep.created_at), 'yyyyMMdd')}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    toast.success('Relatório exportado');
+  };
+
   // Totals per report
   const totalsFor = (id: string) => {
     const its = items[id] || [];
@@ -349,6 +395,9 @@ const ReembolsosManager: React.FC<Props> = ({ userId, canEdit, isAdminView }) =>
                     <Button size="sm" variant="ghost" onClick={() => setExpanded(isOpen ? null : rep.id)} className="gap-1">
                       {isOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
                       {its.length} {its.length === 1 ? 'item' : 'itens'}
+                    </Button>
+                    <Button size="sm" variant="outline" className="gap-1" onClick={() => exportReportCSV(rep)} disabled={its.length === 0}>
+                      <Download className="w-3.5 h-3.5" /> Exportar
                     </Button>
                     {canEdit && (
                       <>
