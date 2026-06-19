@@ -447,6 +447,9 @@ const ReembolsosManager: React.FC<Props> = ({ userId, canEdit, canDelete = false
     const safeName = (userName || 'colaborador').replace(/[^\w\-]+/g, '_').slice(0, 40);
     doc.save(`reembolsos-${safeName}-${format(new Date(), 'yyyyMMdd')}.pdf`);
     toast.success('Relatório PDF gerado');
+  };
+
+
 
   // Totals per report
   const totalsFor = (id: string) => {
