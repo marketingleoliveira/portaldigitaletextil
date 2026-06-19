@@ -18,7 +18,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import {
   Plus, Trash2, Upload, FileText, Receipt, ChevronDown, ChevronUp, Loader2,
-  Utensils, Fuel, Hotel, Car, MapPin, MoreHorizontal, ExternalLink, Pencil,
+  Utensils, Fuel, Hotel, Car, MapPin, MoreHorizontal, ExternalLink, Pencil, Download,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
