@@ -499,7 +499,13 @@ const ReembolsosManager: React.FC<Props> = ({ userId, canEdit, canDelete = false
         </Card>
       </div>
 
-      {canEdit && (
+      {isAdminView ? (
+        <div className="flex justify-end">
+          <Button onClick={exportFullPdf} className="gap-2" disabled={reports.length === 0}>
+            <Download className="w-4 h-4" /> Exportar PDF
+          </Button>
+        </div>
+      ) : canEdit && (
         <div className="flex justify-end">
           <Button onClick={openNewDialog} className="gap-2">
             <Plus className="w-4 h-4" /> Nova Solicitação
