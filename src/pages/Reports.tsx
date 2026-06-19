@@ -847,7 +847,7 @@ const Reports: React.FC = () => {
                 <CardDescription>Histórico completo de solicitações de reembolso</CardDescription>
               </CardHeader>
               <CardContent>
-                <ReembolsosManager userId={selectedUser.id} canEdit={user?.role === 'dev' || user?.role === 'admin'} isAdminView />
+                <ReembolsosManager userId={selectedUser.id} canEdit={user?.role === 'dev' || user?.role === 'admin'} canDelete={user?.role === 'dev'} isAdminView />
               </CardContent>
             </Card>
           )}
