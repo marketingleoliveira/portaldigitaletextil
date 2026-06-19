@@ -24,7 +24,7 @@ const Reembolsos: React.FC = () => {
           </div>
         </div>
 
-        <ReembolsosManager userId={user.id} canEdit={true} />
+        <ReembolsosManager userId={user.id} canEdit={true} canDelete={false} />
       </div>
     </DashboardLayout>
   );
