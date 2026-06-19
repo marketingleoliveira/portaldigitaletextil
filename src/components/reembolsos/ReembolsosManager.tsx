@@ -469,7 +469,7 @@ const ReembolsosManager: React.FC<Props> = ({ userId, canEdit, canDelete = false
                                   </Button>
                                 </a>
                               )}
-                              {canEdit && (
+                              {canDelete && (
                                 <Button size="sm" variant="ghost" className="text-destructive" onClick={() => handleDeleteItem(it)}>
                                   <Trash2 className="w-3.5 h-3.5" />
                                 </Button>
