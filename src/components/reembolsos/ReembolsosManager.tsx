@@ -405,24 +405,26 @@ const ReembolsosManager: React.FC<Props> = ({ userId, canEdit, canDelete = false
                         <Button size="sm" variant="outline" className="gap-1" onClick={() => openEditDialog(rep)}>
                           <Pencil className="w-3.5 h-3.5" /> Adicionar item
                         </Button>
-                        <AlertDialog>
-                          <AlertDialogTrigger asChild>
-                            <Button size="sm" variant="ghost" className="gap-1 text-destructive hover:text-destructive">
-                              <Trash2 className="w-3.5 h-3.5" /> Excluir
-                            </Button>
-                          </AlertDialogTrigger>
-                          <AlertDialogContent>
-                            <AlertDialogHeader>
-                              <AlertDialogTitle>Excluir solicitação?</AlertDialogTitle>
-                              <AlertDialogDescription>Esta ação remove a solicitação e todos os comprovantes anexados.</AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                              <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                              <AlertDialogAction onClick={() => handleDeleteReport(rep.id)}>Excluir</AlertDialogAction>
-                            </AlertDialogFooter>
-                          </AlertDialogContent>
-                        </AlertDialog>
                       </>
+                    )}
+                    {canDelete && (
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button size="sm" variant="ghost" className="gap-1 text-destructive hover:text-destructive">
+                            <Trash2 className="w-3.5 h-3.5" /> Excluir
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Excluir solicitação?</AlertDialogTitle>
+                            <AlertDialogDescription>Esta ação remove a solicitação e todos os comprovantes anexados.</AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                            <AlertDialogAction onClick={() => handleDeleteReport(rep.id)}>Excluir</AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
                     )}
                     {isAdminView && (
                       <Select value={rep.status} onValueChange={(v) => handleStatusChange(rep.id, v)}>
