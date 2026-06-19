@@ -301,6 +301,153 @@ const ReembolsosManager: React.FC<Props> = ({ userId, canEdit, canDelete = false
     toast.success('Relatório exportado');
   };
 
+  const exportFullPdf = async () => {
+    if (reports.length === 0) {
+      toast.error('Não há solicitações para exportar');
+      return;
+    }
+    const doc = new jsPDF();
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const pageHeight = doc.internal.pageSize.getHeight();
+    const margin = 15;
+
+    // Try to add logo
+    try {
+      const logoUrl = (await import('@/assets/logo-digitale-full.png')).default;
+      const img = await new Promise<string>((resolve, reject) => {
+        const i = new Image();
+        i.crossOrigin = 'anonymous';
+        i.onload = () => {
+          const c = document.createElement('canvas');
+          c.width = i.width; c.height = i.height;
+          c.getContext('2d')?.drawImage(i, 0, 0);
+          resolve(c.toDataURL('image/png'));
+        };
+        i.onerror = reject;
+        i.src = logoUrl;
+      });
+      doc.addImage(img, 'PNG', margin, 10, 45, 13);
+    } catch { /* ignore */ }
+
+    doc.setFontSize(16);
+    doc.setFont('helvetica', 'bold');
+    doc.text('RELATÓRIO DE REEMBOLSO DE VIAGENS', pageWidth / 2, 18, { align: 'center' });
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`Gerado em ${format(new Date(), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}`, pageWidth / 2, 24, { align: 'center' });
+
+    // Collaborator box
+    doc.setDrawColor(200);
+    doc.setFillColor(248, 250, 252);
+    doc.roundedRect(margin, 30, pageWidth - 2 * margin, 18, 2, 2, 'FD');
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(10);
+    doc.text('Colaborador:', margin + 3, 37);
+    doc.setFont('helvetica', 'normal');
+    doc.text(userName || '—', margin + 32, 37);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Total de solicitações:', margin + 3, 44);
+    doc.setFont('helvetica', 'normal');
+    doc.text(String(reports.length), margin + 47, 44);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Recebido:', pageWidth / 2 + 5, 37);
+    doc.setFont('helvetica', 'normal');
+    doc.text(formatBRL(globalTotals.totalAdvance), pageWidth / 2 + 28, 37);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Gasto:', pageWidth / 2 + 5, 44);
+    doc.setFont('helvetica', 'normal');
+    doc.text(formatBRL(globalTotals.totalSpent), pageWidth / 2 + 28, 44);
+    doc.setFont('helvetica', 'bold');
+    doc.text(globalTotals.diff >= 0 ? 'A reembolsar:' : 'A devolver:', pageWidth / 2 + 70, 37);
+    doc.setFont('helvetica', 'normal');
+    doc.text(formatBRL(Math.abs(globalTotals.diff)), pageWidth / 2 + 70, 44);
+
+    let y = 56;
+    for (const rep of reports) {
+      const its = items[rep.id] || [];
+      const total = its.reduce((s, i) => s + Number(i.amount || 0), 0);
+      const adv = Number(rep.company_advance || 0);
+      const d = total - adv;
+
+      if (y > pageHeight - 60) { doc.addPage(); y = 20; }
+
+      doc.setFillColor(59, 130, 246);
+      doc.setTextColor(255);
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(10);
+      doc.rect(margin, y, pageWidth - 2 * margin, 7, 'F');
+      doc.text(rep.title, margin + 2, y + 5);
+      const statusLabel = STATUS_META[rep.status]?.label || rep.status;
+      doc.text(statusLabel, pageWidth - margin - 2, y + 5, { align: 'right' });
+      y += 9;
+
+      doc.setTextColor(0);
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(9);
+      const meta: string[] = [];
+      if (rep.trip_destination) meta.push(`Destino: ${rep.trip_destination}`);
+      if (rep.trip_start_date) {
+        const s = format(new Date(rep.trip_start_date + 'T00:00:00'), 'dd/MM/yyyy');
+        const e = rep.trip_end_date ? format(new Date(rep.trip_end_date + 'T00:00:00'), 'dd/MM/yyyy') : null;
+        meta.push(`Período: ${s}${e && e !== s ? ` → ${e}` : ''}`);
+      }
+      if (meta.length) { doc.text(meta.join('   |   '), margin, y); y += 5; }
+
+      autoTable(doc, {
+        startY: y,
+        head: [['Data', 'Categoria', 'Descrição', 'Valor (R$)']],
+        body: its.map(it => [
+          it.expense_date ? format(new Date(it.expense_date + 'T00:00:00'), 'dd/MM/yyyy') : '-',
+          CATEGORY_META[it.category]?.label || it.category,
+          it.description || '-',
+          Number(it.amount || 0).toFixed(2).replace('.', ','),
+        ]),
+        theme: 'striped',
+        headStyles: { fillColor: [226, 232, 240], textColor: 30, fontStyle: 'bold' },
+        bodyStyles: { fontSize: 8 },
+        columnStyles: { 3: { halign: 'right' } },
+        margin: { left: margin, right: margin },
+      });
+      // @ts-ignore
+      y = (doc as any).lastAutoTable.finalY + 3;
+
+      if (y > pageHeight - 40) { doc.addPage(); y = 20; }
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(9);
+      doc.text(`Recebido: ${formatBRL(adv)}   |   Gasto: ${formatBRL(total)}   |   ${d >= 0 ? 'A reembolsar' : 'A devolver'}: ${formatBRL(Math.abs(d))}`, pageWidth - margin, y + 2, { align: 'right' });
+      y += 8;
+      if (rep.notes) {
+        doc.setFont('helvetica', 'italic');
+        doc.setFontSize(8);
+        const lines = doc.splitTextToSize(`Obs: ${rep.notes}`, pageWidth - 2 * margin);
+        doc.text(lines, margin, y);
+        y += lines.length * 4 + 2;
+      }
+    }
+
+    // Signatures
+    if (y > pageHeight - 55) { doc.addPage(); y = 20; }
+    y = Math.max(y + 10, pageHeight - 50);
+    doc.setDrawColor(120);
+    const colW = (pageWidth - 2 * margin) / 3;
+    const sigY = y + 15;
+    const labels = ['Administrativo', 'Gerência', 'Vendas'];
+    labels.forEach((label, i) => {
+      const x1 = margin + i * colW + 5;
+      const x2 = margin + (i + 1) * colW - 5;
+      doc.line(x1, sigY, x2, sigY);
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(9);
+      doc.text(label, (x1 + x2) / 2, sigY + 5, { align: 'center' });
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(7);
+      doc.text('Assinatura', (x1 + x2) / 2, sigY + 10, { align: 'center' });
+    });
+
+    const safeName = (userName || 'colaborador').replace(/[^\w\-]+/g, '_').slice(0, 40);
+    doc.save(`reembolsos-${safeName}-${format(new Date(), 'yyyyMMdd')}.pdf`);
+    toast.success('Relatório PDF gerado');
+
   // Totals per report
   const totalsFor = (id: string) => {
     const its = items[id] || [];
