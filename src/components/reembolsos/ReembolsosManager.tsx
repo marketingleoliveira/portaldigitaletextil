@@ -396,6 +396,9 @@ const ReembolsosManager: React.FC<Props> = ({ userId, canEdit, isAdminView }) =>
                       {isOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
                       {its.length} {its.length === 1 ? 'item' : 'itens'}
                     </Button>
+                    <Button size="sm" variant="outline" className="gap-1" onClick={() => exportReportCSV(rep)} disabled={its.length === 0}>
+                      <Download className="w-3.5 h-3.5" /> Exportar
+                    </Button>
                     {canEdit && (
                       <>
                         <Button size="sm" variant="outline" className="gap-1" onClick={() => openEditDialog(rep)}>
