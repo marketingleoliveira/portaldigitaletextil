@@ -84,9 +84,10 @@ interface Props {
   canEdit: boolean;
   canDelete?: boolean;
   isAdminView?: boolean;
+  userName?: string;
 }
 
-const ReembolsosManager: React.FC<Props> = ({ userId, canEdit, canDelete = false, isAdminView }) => {
+const ReembolsosManager: React.FC<Props> = ({ userId, canEdit, canDelete = false, isAdminView, userName }) => {
   const [reports, setReports] = useState<ExpenseReport[]>([]);
   const [items, setItems] = useState<Record<string, ExpenseItem[]>>({});
   const [loading, setLoading] = useState(true);
