@@ -140,22 +140,24 @@ const Users: React.FC = () => {
   };
 
   const handleResetPassword = async (userEmail: string, userName: string) => {
+    const DEFAULT_RESET_PASSWORD = 'Senha@2026';
     try {
       const { data, error } = await supabase.functions.invoke('reset-user-password', {
-        body: { email: userEmail, password: 'senha123' }
+        body: { email: userEmail, password: DEFAULT_RESET_PASSWORD }
       });
 
       if (error) throw error;
+      if (data?.error) throw new Error(data.error);
 
       toast({
         title: 'Senha resetada',
-        description: `A senha de ${userName} foi alterada para: senha123`,
+        description: `A senha de ${userName} foi alterada para: ${DEFAULT_RESET_PASSWORD}`,
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error resetting password:', error);
       toast({
         title: 'Erro',
-        description: 'Não foi possível resetar a senha',
+        description: error?.message || 'Não foi possível resetar a senha',
         variant: 'destructive',
       });
     }
