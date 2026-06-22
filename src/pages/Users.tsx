@@ -469,6 +469,7 @@ const Users: React.FC = () => {
                       <SelectItem value="criacao">Criação</SelectItem>
                       <SelectItem value="sdr">SDR</SelectItem>
                       <SelectItem value="marketing">Marketing</SelectItem>
+                      <SelectItem value="qualidade">Qualidade</SelectItem>
                       <SelectItem value="dev">Desenvolvedor</SelectItem>
                     </SelectContent>
                   </Select>
