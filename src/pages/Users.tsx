@@ -140,7 +140,7 @@ const Users: React.FC = () => {
   };
 
   const handleResetPassword = async (userEmail: string, userName: string) => {
-    const DEFAULT_RESET_PASSWORD = 'Senha@2026';
+    const DEFAULT_RESET_PASSWORD = 'Tx#9vK!mQ2pL';
     try {
       const { data, error } = await supabase.functions.invoke('reset-user-password', {
         body: { email: userEmail, password: DEFAULT_RESET_PASSWORD }
