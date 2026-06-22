@@ -58,7 +58,7 @@ const userSchema = z.object({
   full_name: z.string().min(3, 'Nome deve ter no mínimo 3 caracteres').max(100),
   email: z.string().email('Email inválido').max(255),
   phone: z.string().max(20).optional(),
-  role: z.enum(['admin', 'gerente', 'vendedor', 'dev', 'criacao', 'sdr', 'marketing']),
+  role: z.enum(['admin', 'gerente', 'vendedor', 'dev', 'criacao', 'sdr', 'marketing', 'qualidade']),
 });
 
 interface UserWithRole extends Omit<UserProfile, 'region'> {
@@ -140,22 +140,24 @@ const Users: React.FC = () => {
   };
 
   const handleResetPassword = async (userEmail: string, userName: string) => {
+    const DEFAULT_RESET_PASSWORD = 'Senha@2026';
     try {
       const { data, error } = await supabase.functions.invoke('reset-user-password', {
-        body: { email: userEmail, password: 'senha123' }
+        body: { email: userEmail, password: DEFAULT_RESET_PASSWORD }
       });
 
       if (error) throw error;
+      if (data?.error) throw new Error(data.error);
 
       toast({
         title: 'Senha resetada',
-        description: `A senha de ${userName} foi alterada para: senha123`,
+        description: `A senha de ${userName} foi alterada para: ${DEFAULT_RESET_PASSWORD}`,
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error resetting password:', error);
       toast({
         title: 'Erro',
-        description: 'Não foi possível resetar a senha',
+        description: error?.message || 'Não foi possível resetar a senha',
         variant: 'destructive',
       });
     }
@@ -467,6 +469,7 @@ const Users: React.FC = () => {
                       <SelectItem value="criacao">Criação</SelectItem>
                       <SelectItem value="sdr">SDR</SelectItem>
                       <SelectItem value="marketing">Marketing</SelectItem>
+                      <SelectItem value="qualidade">Qualidade</SelectItem>
                       <SelectItem value="dev">Desenvolvedor</SelectItem>
                     </SelectContent>
                   </Select>
@@ -668,6 +671,7 @@ const Users: React.FC = () => {
                     <SelectItem value="criacao">Criação</SelectItem>
                     <SelectItem value="sdr">SDR</SelectItem>
                     <SelectItem value="marketing">Marketing</SelectItem>
+                    <SelectItem value="qualidade">Qualidade</SelectItem>
                     <SelectItem value="dev">Desenvolvedor</SelectItem>
                   </SelectContent>
                 </Select>
