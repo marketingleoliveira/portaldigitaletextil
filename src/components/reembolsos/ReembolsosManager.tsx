@@ -379,15 +379,15 @@ const ReembolsosManager: React.FC<Props> = ({ userId, canEdit, canDelete = false
     doc.setFont('helvetica', 'bold');
     doc.text('Recebido:', pageWidth / 2 + 5, 37);
     doc.setFont('helvetica', 'normal');
-    doc.text(formatBRL(globalTotals.totalAdvance), pageWidth / 2 + 28, 37);
+    doc.text(formatBRL(exportTotalAdvance), pageWidth / 2 + 28, 37);
     doc.setFont('helvetica', 'bold');
     doc.text('Gasto:', pageWidth / 2 + 5, 44);
     doc.setFont('helvetica', 'normal');
-    doc.text(formatBRL(globalTotals.totalSpent), pageWidth / 2 + 28, 44);
+    doc.text(formatBRL(exportTotalSpent), pageWidth / 2 + 28, 44);
     doc.setFont('helvetica', 'bold');
-    doc.text(globalTotals.diff >= 0 ? 'A reembolsar:' : 'A devolver:', pageWidth / 2 + 70, 37);
+    doc.text(exportDiff >= 0 ? 'A reembolsar:' : 'A devolver:', pageWidth / 2 + 70, 37);
     doc.setFont('helvetica', 'normal');
-    doc.text(formatBRL(Math.abs(globalTotals.diff)), pageWidth / 2 + 70, 44);
+    doc.text(formatBRL(Math.abs(exportDiff)), pageWidth / 2 + 70, 44);
 
     let y = 56;
     for (const rep of repsToExport) {
