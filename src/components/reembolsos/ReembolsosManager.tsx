@@ -96,6 +96,22 @@ const ReembolsosManager: React.FC<Props> = ({ userId, canEdit, canDelete = false
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingReport, setEditingReport] = useState<ExpenseReport | null>(null);
   const [saving, setSaving] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+
+  const toggleSelect = (id: string) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    setSelectedIds(prev => {
+      if (prev.size === reports.length) return new Set();
+      return new Set(reports.map(r => r.id));
+    });
+  };
 
   // Form state
   const [title, setTitle] = useState('');
