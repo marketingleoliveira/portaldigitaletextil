@@ -480,12 +480,12 @@ const ReembolsosManager: React.FC<Props> = ({ userId, canEdit, canDelete = false
     if (y > pageHeight - 55) { doc.addPage(); y = 20; }
     y = Math.max(y + 10, pageHeight - 50);
     doc.setDrawColor(120);
-    const colW = (pageWidth - 2 * margin) / 3;
+    const sigColW = (pageWidth - 2 * margin) / 3;
     const sigY = y + 15;
     const labels = ['Administrativo', 'Gerência', 'Vendas'];
     labels.forEach((label, i) => {
-      const x1 = margin + i * colW + 5;
-      const x2 = margin + (i + 1) * colW - 5;
+      const x1 = margin + i * sigColW + 5;
+      const x2 = margin + (i + 1) * sigColW - 5;
       doc.line(x1, sigY, x2, sigY);
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(9);
