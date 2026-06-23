@@ -381,7 +381,7 @@ const ReembolsosManager: React.FC<Props> = ({ userId, canEdit, canDelete = false
     doc.text(formatBRL(Math.abs(globalTotals.diff)), pageWidth / 2 + 70, 44);
 
     let y = 56;
-    for (const rep of reports) {
+    for (const rep of repsToExport) {
       const its = items[rep.id] || [];
       const total = its.reduce((s, i) => s + Number(i.amount || 0), 0);
       const adv = Number(rep.company_advance || 0);
