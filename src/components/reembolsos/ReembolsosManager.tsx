@@ -318,8 +318,9 @@ const ReembolsosManager: React.FC<Props> = ({ userId, canEdit, canDelete = false
     toast.success('Relatório exportado');
   };
 
-  const exportFullPdf = async () => {
-    if (reports.length === 0) {
+  const exportFullPdf = async (targetReports?: ExpenseReport[]) => {
+    const repsToExport = targetReports || reports;
+    if (repsToExport.length === 0) {
       toast.error('Não há solicitações para exportar');
       return;
     }
