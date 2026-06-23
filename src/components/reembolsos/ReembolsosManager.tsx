@@ -573,17 +573,27 @@ const ReembolsosManager: React.FC<Props> = ({ userId, canEdit, canDelete = false
               <Card key={rep.id}>
                 <CardHeader className="pb-3">
                   <div className="flex items-start justify-between gap-3 flex-wrap">
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <CardTitle className="text-lg">{rep.title}</CardTitle>
-                        <Badge variant={statusMeta.variant}>{statusMeta.label}</Badge>
+                    <div className="flex items-start gap-3 flex-1 min-w-0">
+                      {isAdminView && (
+                        <div className="pt-1">
+                          <Checkbox
+                            checked={selectedIds.has(rep.id)}
+                            onCheckedChange={() => toggleSelect(rep.id)}
+                          />
+                        </div>
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <CardTitle className="text-lg">{rep.title}</CardTitle>
+                          <Badge variant={statusMeta.variant}>{statusMeta.label}</Badge>
+                        </div>
+                        <CardDescription className="mt-1">
+                          {rep.trip_destination && <span>{rep.trip_destination} · </span>}
+                          {rep.trip_start_date && format(new Date(rep.trip_start_date + 'T00:00:00'), 'dd/MM/yyyy')}
+                          {rep.trip_end_date && rep.trip_end_date !== rep.trip_start_date &&
+                            ` → ${format(new Date(rep.trip_end_date + 'T00:00:00'), 'dd/MM/yyyy')}`}
+                        </CardDescription>
                       </div>
-                      <CardDescription className="mt-1">
-                        {rep.trip_destination && <span>{rep.trip_destination} · </span>}
-                        {rep.trip_start_date && format(new Date(rep.trip_start_date + 'T00:00:00'), 'dd/MM/yyyy')}
-                        {rep.trip_end_date && rep.trip_end_date !== rep.trip_start_date &&
-                          ` → ${format(new Date(rep.trip_end_date + 'T00:00:00'), 'dd/MM/yyyy')}`}
-                      </CardDescription>
                     </div>
                     <div className="text-right space-y-0.5">
                       <p className="text-xs text-muted-foreground">Gasto: <span className="font-semibold text-foreground">{formatBRL(t.total)}</span></p>
