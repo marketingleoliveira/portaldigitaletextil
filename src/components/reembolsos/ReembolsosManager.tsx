@@ -6,6 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription,
 } from '@/components/ui/dialog';
@@ -95,6 +96,22 @@ const ReembolsosManager: React.FC<Props> = ({ userId, canEdit, canDelete = false
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingReport, setEditingReport] = useState<ExpenseReport | null>(null);
   const [saving, setSaving] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+
+  const toggleSelect = (id: string) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    setSelectedIds(prev => {
+      if (prev.size === reports.length) return new Set();
+      return new Set(reports.map(r => r.id));
+    });
+  };
 
   // Form state
   const [title, setTitle] = useState('');
@@ -301,11 +318,21 @@ const ReembolsosManager: React.FC<Props> = ({ userId, canEdit, canDelete = false
     toast.success('Relatório exportado');
   };
 
-  const exportFullPdf = async () => {
-    if (reports.length === 0) {
+  const exportFullPdf = async (targetReports?: ExpenseReport[]) => {
+    const repsToExport = targetReports || reports;
+    if (repsToExport.length === 0) {
       toast.error('Não há solicitações para exportar');
       return;
     }
+
+    // Compute totals for the reports being exported
+    let exportTotalSpent = 0, exportTotalAdvance = 0;
+    repsToExport.forEach(r => {
+      exportTotalAdvance += Number(r.company_advance || 0);
+      exportTotalSpent += (items[r.id] || []).reduce((s, i) => s + Number(i.amount || 0), 0);
+    });
+    const exportDiff = exportTotalSpent - exportTotalAdvance;
+
     const doc = new jsPDF();
     const pageWidth = doc.internal.pageSize.getWidth();
     const pageHeight = doc.internal.pageSize.getHeight();
@@ -348,22 +375,22 @@ const ReembolsosManager: React.FC<Props> = ({ userId, canEdit, canDelete = false
     doc.setFont('helvetica', 'bold');
     doc.text('Total de solicitações:', margin + 3, 44);
     doc.setFont('helvetica', 'normal');
-    doc.text(String(reports.length), margin + 47, 44);
+    doc.text(String(repsToExport.length), margin + 47, 44);
     doc.setFont('helvetica', 'bold');
     doc.text('Recebido:', pageWidth / 2 + 5, 37);
     doc.setFont('helvetica', 'normal');
-    doc.text(formatBRL(globalTotals.totalAdvance), pageWidth / 2 + 28, 37);
+    doc.text(formatBRL(exportTotalAdvance), pageWidth / 2 + 28, 37);
     doc.setFont('helvetica', 'bold');
     doc.text('Gasto:', pageWidth / 2 + 5, 44);
     doc.setFont('helvetica', 'normal');
-    doc.text(formatBRL(globalTotals.totalSpent), pageWidth / 2 + 28, 44);
+    doc.text(formatBRL(exportTotalSpent), pageWidth / 2 + 28, 44);
     doc.setFont('helvetica', 'bold');
-    doc.text(globalTotals.diff >= 0 ? 'A reembolsar:' : 'A devolver:', pageWidth / 2 + 70, 37);
+    doc.text(exportDiff >= 0 ? 'A reembolsar:' : 'A devolver:', pageWidth / 2 + 70, 37);
     doc.setFont('helvetica', 'normal');
-    doc.text(formatBRL(Math.abs(globalTotals.diff)), pageWidth / 2 + 70, 44);
+    doc.text(formatBRL(Math.abs(exportDiff)), pageWidth / 2 + 70, 44);
 
     let y = 56;
-    for (const rep of reports) {
+    for (const rep of repsToExport) {
       const its = items[rep.id] || [];
       const total = its.reduce((s, i) => s + Number(i.amount || 0), 0);
       const adv = Number(rep.company_advance || 0);
@@ -500,8 +527,32 @@ const ReembolsosManager: React.FC<Props> = ({ userId, canEdit, canDelete = false
       </div>
 
       {isAdminView ? (
-        <div className="flex justify-end">
-          <Button onClick={exportFullPdf} className="gap-2" disabled={reports.length === 0}>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Checkbox
+              id="select-all"
+              checked={reports.length > 0 && selectedIds.size === reports.length}
+              onCheckedChange={toggleSelectAll}
+            />
+            <Label htmlFor="select-all" className="text-sm cursor-pointer">
+              Selecionar todos
+            </Label>
+            <span className="text-xs text-muted-foreground">
+              {selectedIds.size > 0 && `${selectedIds.size} selecionado${selectedIds.size > 1 ? 's' : ''}`}
+            </span>
+          </div>
+          <Button
+            onClick={() => {
+              if (selectedIds.size === 0) {
+                toast.error('Selecione pelo menos um reembolso para exportar');
+                return;
+              }
+              const selectedReports = reports.filter(r => selectedIds.has(r.id));
+              exportFullPdf(selectedReports);
+            }}
+            className="gap-2"
+            disabled={reports.length === 0}
+          >
             <Download className="w-4 h-4" /> Exportar PDF
           </Button>
         </div>
@@ -531,17 +582,27 @@ const ReembolsosManager: React.FC<Props> = ({ userId, canEdit, canDelete = false
               <Card key={rep.id}>
                 <CardHeader className="pb-3">
                   <div className="flex items-start justify-between gap-3 flex-wrap">
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <CardTitle className="text-lg">{rep.title}</CardTitle>
-                        <Badge variant={statusMeta.variant}>{statusMeta.label}</Badge>
+                    <div className="flex items-start gap-3 flex-1 min-w-0">
+                      {isAdminView && (
+                        <div className="pt-1">
+                          <Checkbox
+                            checked={selectedIds.has(rep.id)}
+                            onCheckedChange={() => toggleSelect(rep.id)}
+                          />
+                        </div>
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <CardTitle className="text-lg">{rep.title}</CardTitle>
+                          <Badge variant={statusMeta.variant}>{statusMeta.label}</Badge>
+                        </div>
+                        <CardDescription className="mt-1">
+                          {rep.trip_destination && <span>{rep.trip_destination} · </span>}
+                          {rep.trip_start_date && format(new Date(rep.trip_start_date + 'T00:00:00'), 'dd/MM/yyyy')}
+                          {rep.trip_end_date && rep.trip_end_date !== rep.trip_start_date &&
+                            ` → ${format(new Date(rep.trip_end_date + 'T00:00:00'), 'dd/MM/yyyy')}`}
+                        </CardDescription>
                       </div>
-                      <CardDescription className="mt-1">
-                        {rep.trip_destination && <span>{rep.trip_destination} · </span>}
-                        {rep.trip_start_date && format(new Date(rep.trip_start_date + 'T00:00:00'), 'dd/MM/yyyy')}
-                        {rep.trip_end_date && rep.trip_end_date !== rep.trip_start_date &&
-                          ` → ${format(new Date(rep.trip_end_date + 'T00:00:00'), 'dd/MM/yyyy')}`}
-                      </CardDescription>
                     </div>
                     <div className="text-right space-y-0.5">
                       <p className="text-xs text-muted-foreground">Gasto: <span className="font-semibold text-foreground">{formatBRL(t.total)}</span></p>
