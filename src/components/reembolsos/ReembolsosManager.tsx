@@ -518,8 +518,32 @@ const ReembolsosManager: React.FC<Props> = ({ userId, canEdit, canDelete = false
       </div>
 
       {isAdminView ? (
-        <div className="flex justify-end">
-          <Button onClick={exportFullPdf} className="gap-2" disabled={reports.length === 0}>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Checkbox
+              id="select-all"
+              checked={reports.length > 0 && selectedIds.size === reports.length}
+              onCheckedChange={toggleSelectAll}
+            />
+            <Label htmlFor="select-all" className="text-sm cursor-pointer">
+              Selecionar todos
+            </Label>
+            <span className="text-xs text-muted-foreground">
+              {selectedIds.size > 0 && `${selectedIds.size} selecionado${selectedIds.size > 1 ? 's' : ''}`}
+            </span>
+          </div>
+          <Button
+            onClick={() => {
+              if (selectedIds.size === 0) {
+                toast.error('Selecione pelo menos um reembolso para exportar');
+                return;
+              }
+              const selectedReports = reports.filter(r => selectedIds.has(r.id));
+              exportFullPdf(selectedReports);
+            }}
+            className="gap-2"
+            disabled={reports.length === 0}
+          >
             <Download className="w-4 h-4" /> Exportar PDF
           </Button>
         </div>
