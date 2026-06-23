@@ -338,58 +338,82 @@ const ReembolsosManager: React.FC<Props> = ({ userId, canEdit, canDelete = false
     const pageHeight = doc.internal.pageSize.getHeight();
     const margin = 15;
 
-    // Try to add logo
+    // Try to add logo (preserve aspect ratio for crisp rendering)
+    const LOGO_MAX_W = 32;
+    const LOGO_MAX_H = 12;
+    let logoH = 0;
     try {
       const logoUrl = (await import('@/assets/logo-digitale-full.png')).default;
-      const img = await new Promise<string>((resolve, reject) => {
+      const { dataUrl, w, h } = await new Promise<{ dataUrl: string; w: number; h: number }>((resolve, reject) => {
         const i = new Image();
         i.crossOrigin = 'anonymous';
         i.onload = () => {
           const c = document.createElement('canvas');
           c.width = i.width; c.height = i.height;
           c.getContext('2d')?.drawImage(i, 0, 0);
-          resolve(c.toDataURL('image/png'));
+          resolve({ dataUrl: c.toDataURL('image/png'), w: i.width, h: i.height });
         };
         i.onerror = reject;
         i.src = logoUrl;
       });
-      doc.addImage(img, 'PNG', margin, 10, 45, 13);
+      const ratio = w / h;
+      let drawW = LOGO_MAX_W;
+      let drawH = drawW / ratio;
+      if (drawH > LOGO_MAX_H) { drawH = LOGO_MAX_H; drawW = drawH * ratio; }
+      doc.addImage(dataUrl, 'PNG', margin, 10, drawW, drawH, undefined, 'FAST');
+      logoH = drawH;
     } catch { /* ignore */ }
 
-    doc.setFontSize(16);
+    // Title block placed below the logo so nothing overlaps
+    const titleY = Math.max(10 + logoH + 8, 26);
+    doc.setFontSize(14);
     doc.setFont('helvetica', 'bold');
-    doc.text('RELATÓRIO DE REEMBOLSO DE VIAGENS', pageWidth / 2, 18, { align: 'center' });
+    doc.setTextColor(30);
+    doc.text('RELATÓRIO DE REEMBOLSO DE VIAGENS', pageWidth / 2, titleY, { align: 'center' });
     doc.setFontSize(9);
     doc.setFont('helvetica', 'normal');
-    doc.text(`Gerado em ${format(new Date(), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}`, pageWidth / 2, 24, { align: 'center' });
+    doc.setTextColor(90);
+    doc.text(`Gerado em ${format(new Date(), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}`, pageWidth / 2, titleY + 6, { align: 'center' });
+    doc.setTextColor(0);
 
     // Collaborator box
+    const boxY = titleY + 12;
+    const boxH = 20;
     doc.setDrawColor(200);
     doc.setFillColor(248, 250, 252);
-    doc.roundedRect(margin, 30, pageWidth - 2 * margin, 18, 2, 2, 'FD');
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(10);
-    doc.text('Colaborador:', margin + 3, 37);
-    doc.setFont('helvetica', 'normal');
-    doc.text(userName || '—', margin + 32, 37);
-    doc.setFont('helvetica', 'bold');
-    doc.text('Total de solicitações:', margin + 3, 44);
-    doc.setFont('helvetica', 'normal');
-    doc.text(String(repsToExport.length), margin + 47, 44);
-    doc.setFont('helvetica', 'bold');
-    doc.text('Recebido:', pageWidth / 2 + 5, 37);
-    doc.setFont('helvetica', 'normal');
-    doc.text(formatBRL(exportTotalAdvance), pageWidth / 2 + 28, 37);
-    doc.setFont('helvetica', 'bold');
-    doc.text('Gasto:', pageWidth / 2 + 5, 44);
-    doc.setFont('helvetica', 'normal');
-    doc.text(formatBRL(exportTotalSpent), pageWidth / 2 + 28, 44);
-    doc.setFont('helvetica', 'bold');
-    doc.text(exportDiff >= 0 ? 'A reembolsar:' : 'A devolver:', pageWidth / 2 + 70, 37);
-    doc.setFont('helvetica', 'normal');
-    doc.text(formatBRL(Math.abs(exportDiff)), pageWidth / 2 + 70, 44);
+    doc.roundedRect(margin, boxY, pageWidth - 2 * margin, boxH, 2, 2, 'FD');
 
-    let y = 56;
+    const colW = (pageWidth - 2 * margin) / 3;
+    const col1X = margin + 3;
+    const col2X = margin + colW + 3;
+    const col3X = margin + 2 * colW + 3;
+    const row1 = boxY + 8;
+    const row2 = boxY + 15;
+
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(9);
+    doc.text('Colaborador:', col1X, row1);
+    doc.setFont('helvetica', 'normal');
+    doc.text(userName || '—', col1X + 24, row1);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Total de solicitações:', col1X, row2);
+    doc.setFont('helvetica', 'normal');
+    doc.text(String(repsToExport.length), col1X + 38, row2);
+
+    doc.setFont('helvetica', 'bold');
+    doc.text('Recebido:', col2X, row1);
+    doc.setFont('helvetica', 'normal');
+    doc.text(formatBRL(exportTotalAdvance), col2X + 20, row1);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Gasto:', col2X, row2);
+    doc.setFont('helvetica', 'normal');
+    doc.text(formatBRL(exportTotalSpent), col2X + 20, row2);
+
+    doc.setFont('helvetica', 'bold');
+    doc.text(exportDiff >= 0 ? 'A reembolsar:' : 'A devolver:', col3X, row1);
+    doc.setFont('helvetica', 'normal');
+    doc.text(formatBRL(Math.abs(exportDiff)), col3X + 28, row1);
+
+    let y = boxY + boxH + 8;
     for (const rep of repsToExport) {
       const its = items[rep.id] || [];
       const total = its.reduce((s, i) => s + Number(i.amount || 0), 0);
