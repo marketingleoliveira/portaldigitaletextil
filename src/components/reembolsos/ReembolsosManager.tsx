@@ -324,6 +324,15 @@ const ReembolsosManager: React.FC<Props> = ({ userId, canEdit, canDelete = false
       toast.error('Não há solicitações para exportar');
       return;
     }
+
+    // Compute totals for the reports being exported
+    let exportTotalSpent = 0, exportTotalAdvance = 0;
+    repsToExport.forEach(r => {
+      exportTotalAdvance += Number(r.company_advance || 0);
+      exportTotalSpent += (items[r.id] || []).reduce((s, i) => s + Number(i.amount || 0), 0);
+    });
+    const exportDiff = exportTotalSpent - exportTotalAdvance;
+
     const doc = new jsPDF();
     const pageWidth = doc.internal.pageSize.getWidth();
     const pageHeight = doc.internal.pageSize.getHeight();
@@ -366,7 +375,7 @@ const ReembolsosManager: React.FC<Props> = ({ userId, canEdit, canDelete = false
     doc.setFont('helvetica', 'bold');
     doc.text('Total de solicitações:', margin + 3, 44);
     doc.setFont('helvetica', 'normal');
-    doc.text(String(reports.length), margin + 47, 44);
+    doc.text(String(repsToExport.length), margin + 47, 44);
     doc.setFont('helvetica', 'bold');
     doc.text('Recebido:', pageWidth / 2 + 5, 37);
     doc.setFont('helvetica', 'normal');
