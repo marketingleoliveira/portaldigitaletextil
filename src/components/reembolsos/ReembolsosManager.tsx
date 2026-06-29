@@ -101,6 +101,57 @@ const ReembolsosManager: React.FC<Props> = ({ userId, canEdit, canDelete = false
   const [editingReport, setEditingReport] = useState<ExpenseReport | null>(null);
   const [saving, setSaving] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [editingItem, setEditingItem] = useState<ExpenseItem | null>(null);
+  const [itemEdit, setItemEdit] = useState<DraftItem | null>(null);
+  const [savingItem, setSavingItem] = useState(false);
+
+  const openEditItem = (it: ExpenseItem) => {
+    setEditingItem(it);
+    setItemEdit({
+      category: it.category,
+      description: it.description || '',
+      amount: String(it.amount ?? ''),
+      expense_date: it.expense_date || '',
+      file: null,
+      fileName: it.receipt_path ? it.receipt_path.split('/').pop() : null,
+      uploadedUrl: it.receipt_url,
+      uploadedPath: it.receipt_path,
+    });
+  };
+
+  const handleEditItemFilePick = async (file: File | null) => {
+    if (!file) return;
+    setItemEdit(prev => prev ? { ...prev, file, fileName: file.name, uploading: true } : prev);
+    const up = await uploadReceipt(file);
+    setItemEdit(prev => prev ? { ...prev, uploadedUrl: up.url, uploadedPath: up.path, uploading: false } : prev);
+    if (up.path) toast.success('Comprovante enviado');
+  };
+
+  const saveEditedItem = async () => {
+    if (!editingItem || !itemEdit) return;
+    setSavingItem(true);
+    try {
+      // If a new receipt was uploaded, remove the previous file
+      if (itemEdit.uploadedPath && editingItem.receipt_path && itemEdit.uploadedPath !== editingItem.receipt_path) {
+        await supabase.storage.from('reembolsos').remove([editingItem.receipt_path]);
+      }
+      const { error } = await supabase.from('expense_items').update({
+        category: itemEdit.category,
+        description: itemEdit.description || null,
+        amount: parseFloat(itemEdit.amount.replace(',', '.')) || 0,
+        expense_date: itemEdit.expense_date || null,
+        receipt_url: itemEdit.uploadedUrl,
+        receipt_path: itemEdit.uploadedPath,
+      }).eq('id', editingItem.id);
+      if (error) throw error;
+      toast.success('Item atualizado');
+      setEditingItem(null);
+      setItemEdit(null);
+      await fetchAll();
+    } catch (e: any) {
+      toast.error('Erro ao atualizar item: ' + (e.message || ''));
+    } finally { setSavingItem(false); }
+  };
 
   const toggleSelect = (id: string) => {
     setSelectedIds(prev => {
@@ -732,7 +783,12 @@ const ReembolsosManager: React.FC<Props> = ({ userId, canEdit, canDelete = false
                                   </Button>
                                 </a>
                               )}
-                              {canDelete && (
+                              {canEdit && (
+                                <Button size="sm" variant="ghost" className="gap-1" onClick={() => openEditItem(it)}>
+                                  <Pencil className="w-3.5 h-3.5" />
+                                </Button>
+                              )}
+                              {(canDelete || canEdit) && (
                                 <Button size="sm" variant="ghost" className="text-destructive" onClick={() => handleDeleteItem(it)}>
                                   <Trash2 className="w-3.5 h-3.5" />
                                 </Button>
@@ -873,6 +929,66 @@ const ReembolsosManager: React.FC<Props> = ({ userId, canEdit, canDelete = false
             <Button onClick={handleSubmit} disabled={saving}>
               {saving && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
               {editingReport ? 'Salvar alterações' : 'Criar solicitação'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Item Dialog */}
+      <Dialog open={!!editingItem} onOpenChange={(o) => { if (!o) { setEditingItem(null); setItemEdit(null); } }}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Editar item de despesa</DialogTitle>
+            <DialogDescription>Atualize os dados ou substitua o comprovante anexado.</DialogDescription>
+          </DialogHeader>
+          {itemEdit && (
+            <div className="space-y-3">
+              <div>
+                <Label className="text-xs">Categoria</Label>
+                <Select value={itemEdit.category} onValueChange={(v) => setItemEdit(p => p ? { ...p, category: v as ExpenseCategory } : p)}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {Object.entries(CATEGORY_META).map(([k, m]) => (
+                      <SelectItem key={k} value={k}>{m.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label className="text-xs">Descrição</Label>
+                <Input value={itemEdit.description} onChange={(e) => setItemEdit(p => p ? { ...p, description: e.target.value } : p)} />
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <Label className="text-xs">Valor (R$)</Label>
+                  <Input inputMode="decimal" value={itemEdit.amount} onChange={(e) => setItemEdit(p => p ? { ...p, amount: e.target.value } : p)} />
+                </div>
+                <div>
+                  <Label className="text-xs">Data</Label>
+                  <Input type="date" value={itemEdit.expense_date} onChange={(e) => setItemEdit(p => p ? { ...p, expense_date: e.target.value } : p)} />
+                </div>
+              </div>
+              <div>
+                <Label className="text-xs flex items-center gap-1"><Upload className="w-3 h-3" /> Comprovante</Label>
+                <Input
+                  type="file"
+                  accept="image/*,application/pdf"
+                  onChange={(e) => handleEditItemFilePick(e.target.files?.[0] || null)}
+                />
+                {itemEdit.uploading && <p className="text-[11px] text-muted-foreground mt-1">Enviando...</p>}
+                {!itemEdit.uploading && itemEdit.uploadedUrl && (
+                  <a href={itemEdit.uploadedUrl} target="_blank" rel="noreferrer" className="text-[11px] text-primary underline mt-1 inline-block">
+                    Ver comprovante atual
+                  </a>
+                )}
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setEditingItem(null); setItemEdit(null); }} disabled={savingItem}>Cancelar</Button>
+            <Button onClick={saveEditedItem} disabled={savingItem || itemEdit?.uploading}>
+              {savingItem && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
+              Salvar
             </Button>
           </DialogFooter>
         </DialogContent>
