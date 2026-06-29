@@ -194,11 +194,24 @@ const ReembolsosManager: React.FC<Props> = ({ userId, canEdit, canDelete = false
   const uploadReceipt = async (file: File): Promise<{ url: string | null; path: string | null }> => {
     const ext = file.name.split('.').pop();
     const path = `${userId}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
-    const { error } = await supabase.storage.from('reembolsos').upload(path, file);
-    if (error) { toast.error('Erro ao enviar comprovante'); return { url: null, path: null }; }
+    const { error } = await supabase.storage.from('reembolsos').upload(path, file, { upsert: false, contentType: file.type || undefined });
+    if (error) { toast.error('Erro ao enviar comprovante: ' + error.message); return { url: null, path: null }; }
     const { data } = await supabase.storage.from('reembolsos').createSignedUrl(path, 60 * 60 * 24 * 365);
     return { url: data?.signedUrl || null, path };
   };
+
+  // Upload immediately on file pick to preserve mobile gesture context and avoid page reloads
+  const handleFilePick = async (i: number, file: File | null) => {
+    if (!file) {
+      setDrafts(d => d.map((x, idx) => idx === i ? { ...x, file: null, fileName: null, uploadedUrl: null, uploadedPath: null, uploading: false } : x));
+      return;
+    }
+    setDrafts(d => d.map((x, idx) => idx === i ? { ...x, file, fileName: file.name, uploading: true } : x));
+    const up = await uploadReceipt(file);
+    setDrafts(d => d.map((x, idx) => idx === i ? { ...x, uploadedUrl: up.url, uploadedPath: up.path, uploading: false } : x));
+    if (up.path) toast.success('Comprovante enviado');
+  };
+
 
   const handleSubmit = async () => {
     if (!title.trim()) { toast.error('Informe um título para a viagem'); return; }
