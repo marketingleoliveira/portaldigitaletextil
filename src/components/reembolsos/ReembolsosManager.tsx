@@ -101,6 +101,57 @@ const ReembolsosManager: React.FC<Props> = ({ userId, canEdit, canDelete = false
   const [editingReport, setEditingReport] = useState<ExpenseReport | null>(null);
   const [saving, setSaving] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [editingItem, setEditingItem] = useState<ExpenseItem | null>(null);
+  const [itemEdit, setItemEdit] = useState<DraftItem | null>(null);
+  const [savingItem, setSavingItem] = useState(false);
+
+  const openEditItem = (it: ExpenseItem) => {
+    setEditingItem(it);
+    setItemEdit({
+      category: it.category,
+      description: it.description || '',
+      amount: String(it.amount ?? ''),
+      expense_date: it.expense_date || '',
+      file: null,
+      fileName: it.receipt_path ? it.receipt_path.split('/').pop() : null,
+      uploadedUrl: it.receipt_url,
+      uploadedPath: it.receipt_path,
+    });
+  };
+
+  const handleEditItemFilePick = async (file: File | null) => {
+    if (!file) return;
+    setItemEdit(prev => prev ? { ...prev, file, fileName: file.name, uploading: true } : prev);
+    const up = await uploadReceipt(file);
+    setItemEdit(prev => prev ? { ...prev, uploadedUrl: up.url, uploadedPath: up.path, uploading: false } : prev);
+    if (up.path) toast.success('Comprovante enviado');
+  };
+
+  const saveEditedItem = async () => {
+    if (!editingItem || !itemEdit) return;
+    setSavingItem(true);
+    try {
+      // If a new receipt was uploaded, remove the previous file
+      if (itemEdit.uploadedPath && editingItem.receipt_path && itemEdit.uploadedPath !== editingItem.receipt_path) {
+        await supabase.storage.from('reembolsos').remove([editingItem.receipt_path]);
+      }
+      const { error } = await supabase.from('expense_items').update({
+        category: itemEdit.category,
+        description: itemEdit.description || null,
+        amount: parseFloat(itemEdit.amount.replace(',', '.')) || 0,
+        expense_date: itemEdit.expense_date || null,
+        receipt_url: itemEdit.uploadedUrl,
+        receipt_path: itemEdit.uploadedPath,
+      }).eq('id', editingItem.id);
+      if (error) throw error;
+      toast.success('Item atualizado');
+      setEditingItem(null);
+      setItemEdit(null);
+      await fetchAll();
+    } catch (e: any) {
+      toast.error('Erro ao atualizar item: ' + (e.message || ''));
+    } finally { setSavingItem(false); }
+  };
 
   const toggleSelect = (id: string) => {
     setSelectedIds(prev => {
