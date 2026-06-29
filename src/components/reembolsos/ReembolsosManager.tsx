@@ -69,6 +69,10 @@ interface DraftItem {
   amount: string;
   expense_date: string;
   file: File | null;
+  fileName?: string | null;
+  uploadedUrl?: string | null;
+  uploadedPath?: string | null;
+  uploading?: boolean;
 }
 
 const STATUS_META: Record<string, { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline' }> = {
