@@ -837,10 +837,16 @@ const ReembolsosManager: React.FC<Props> = ({ userId, canEdit, canDelete = false
                       <Input
                         type="file"
                         accept="image/*,application/pdf"
-                        onChange={(e) => updateDraft(i, { file: e.target.files?.[0] || null })}
+                        onChange={(e) => { const f = e.target.files?.[0] || null; handleFilePick(i, f); }}
                       />
-                      {d.file && <p className="text-[11px] text-muted-foreground mt-1">{d.file.name}</p>}
+                      {d.uploading && <p className="text-[11px] text-muted-foreground mt-1">Enviando...</p>}
+                      {!d.uploading && d.fileName && (
+                        <p className="text-[11px] text-muted-foreground mt-1">
+                          {d.uploadedPath ? '✓ ' : ''}{d.fileName}
+                        </p>
+                      )}
                     </div>
+
                   </div>
                 ))}
               </div>
