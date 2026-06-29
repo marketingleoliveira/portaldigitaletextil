@@ -223,7 +223,8 @@ const ReembolsosManager: React.FC<Props> = ({ userId, canEdit, canDelete = false
     setEndDate(rep.trip_end_date || '');
     setAdvance(String(rep.company_advance));
     setNotes(rep.notes || '');
-    setDrafts([]); // when editing, new items only appended via separate add
+    // Pre-add an empty draft so the seller sees the form ready to add a new item
+    setDrafts([{ category: 'alimentacao', description: '', amount: '', expense_date: '', file: null }]);
     setDialogOpen(true);
   };
 
