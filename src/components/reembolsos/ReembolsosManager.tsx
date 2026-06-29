@@ -237,9 +237,10 @@ const ReembolsosManager: React.FC<Props> = ({ userId, canEdit, canDelete = false
 
       // Insert any drafts
       for (const d of drafts) {
-        if (!d.amount && !d.description && !d.file) continue;
-        let url: string | null = null, path: string | null = null;
-        if (d.file) {
+        if (!d.amount && !d.description && !d.file && !d.uploadedPath) continue;
+        let url: string | null = d.uploadedUrl || null;
+        let path: string | null = d.uploadedPath || null;
+        if (!path && d.file) {
           const up = await uploadReceipt(d.file);
           url = up.url; path = up.path;
         }
@@ -253,6 +254,7 @@ const ReembolsosManager: React.FC<Props> = ({ userId, canEdit, canDelete = false
         });
         if (error) throw error;
       }
+
 
       toast.success(editingReport ? 'Reembolso atualizado' : 'Reembolso criado');
       setDialogOpen(false);
