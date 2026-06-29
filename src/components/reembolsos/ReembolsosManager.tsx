@@ -933,6 +933,66 @@ const ReembolsosManager: React.FC<Props> = ({ userId, canEdit, canDelete = false
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Edit Item Dialog */}
+      <Dialog open={!!editingItem} onOpenChange={(o) => { if (!o) { setEditingItem(null); setItemEdit(null); } }}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Editar item de despesa</DialogTitle>
+            <DialogDescription>Atualize os dados ou substitua o comprovante anexado.</DialogDescription>
+          </DialogHeader>
+          {itemEdit && (
+            <div className="space-y-3">
+              <div>
+                <Label className="text-xs">Categoria</Label>
+                <Select value={itemEdit.category} onValueChange={(v) => setItemEdit(p => p ? { ...p, category: v as ExpenseCategory } : p)}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {Object.entries(CATEGORY_META).map(([k, m]) => (
+                      <SelectItem key={k} value={k}>{m.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label className="text-xs">Descrição</Label>
+                <Input value={itemEdit.description} onChange={(e) => setItemEdit(p => p ? { ...p, description: e.target.value } : p)} />
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <Label className="text-xs">Valor (R$)</Label>
+                  <Input inputMode="decimal" value={itemEdit.amount} onChange={(e) => setItemEdit(p => p ? { ...p, amount: e.target.value } : p)} />
+                </div>
+                <div>
+                  <Label className="text-xs">Data</Label>
+                  <Input type="date" value={itemEdit.expense_date} onChange={(e) => setItemEdit(p => p ? { ...p, expense_date: e.target.value } : p)} />
+                </div>
+              </div>
+              <div>
+                <Label className="text-xs flex items-center gap-1"><Upload className="w-3 h-3" /> Comprovante</Label>
+                <Input
+                  type="file"
+                  accept="image/*,application/pdf"
+                  onChange={(e) => handleEditItemFilePick(e.target.files?.[0] || null)}
+                />
+                {itemEdit.uploading && <p className="text-[11px] text-muted-foreground mt-1">Enviando...</p>}
+                {!itemEdit.uploading && itemEdit.uploadedUrl && (
+                  <a href={itemEdit.uploadedUrl} target="_blank" rel="noreferrer" className="text-[11px] text-primary underline mt-1 inline-block">
+                    Ver comprovante atual
+                  </a>
+                )}
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setEditingItem(null); setItemEdit(null); }} disabled={savingItem}>Cancelar</Button>
+            <Button onClick={saveEditedItem} disabled={savingItem || itemEdit?.uploading}>
+              {savingItem && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
+              Salvar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
