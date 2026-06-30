@@ -3,7 +3,6 @@ import DashboardLayout from '@/components/layouts/DashboardLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import AdSlot from '@/components/AdSlot';
 import { supabase } from '@/integrations/supabase/client';
 import { MapPin, Clock, Globe, Loader2, RefreshCw, Wifi, WifiOff, Map, List, History, Users, Radio, CheckCircle2, XCircle, HelpCircle, Satellite, Network } from 'lucide-react';
 import { Button } from '@/components/ui/button';
