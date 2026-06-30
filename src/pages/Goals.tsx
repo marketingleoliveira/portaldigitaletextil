@@ -12,6 +12,7 @@ import { Progress } from '@/components/ui/progress';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import AdSlot from '@/components/AdSlot';
 import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from 'sonner';
 import { hasFullAccess, AppRole } from '@/types/auth';
@@ -685,6 +686,9 @@ const Goals: React.FC = () => {
                   Histórico
                 </TabsTrigger>
               </TabsList>
+
+              <AdSlot />
+
 
               {/* Histórico Tab Content */}
               <TabsContent value="historico">
