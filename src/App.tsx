@@ -105,7 +105,7 @@ const App = () => (
                   <Route path="/localizar" element={<ProtectedRoute allowedRoles={['dev']}><Localizar /></ProtectedRoute>} />
                   <Route path="/metas" element={<ProtectedRoute><Goals /></ProtectedRoute>} />
                   <Route path="/crm-alimentador" element={<ProtectedRoute allowedRoles={['dev', 'sdr']}><CRMFeeder /></ProtectedRoute>} />
-                  <Route path="/crm" element={<ProtectedRoute allowedRoles={['dev', 'vendedor']}><CRM /></ProtectedRoute>} />
+                  <Route path="/crm" element={<ProtectedRoute allowedRoles={['dev', 'vendedor', 'gerente', 'admin']}><CRM /></ProtectedRoute>} />
 
                   <Route path="/agendamentos" element={<ProtectedRoute allowedRoles={['dev', 'vendedor']}><Agendamentos /></ProtectedRoute>} />
                   <Route path="/agendamentos-crm" element={<ProtectedRoute allowedRoles={['dev', 'sdr']}><AgendamentosCRM /></ProtectedRoute>} />
