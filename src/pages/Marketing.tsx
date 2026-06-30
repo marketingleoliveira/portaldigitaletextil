@@ -16,6 +16,7 @@ import { Progress } from '@/components/ui/progress';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import AdSlot from '@/components/AdSlot';
 
 const Marketing: React.FC = () => {
   const { testimonials, isLoading } = useTestimonials();
@@ -83,6 +84,9 @@ const Marketing: React.FC = () => {
             <TabsTrigger value="overview">Visão Geral</TabsTrigger>
             <TabsTrigger value="report">Relatório</TabsTrigger>
           </TabsList>
+
+          <AdSlot />
+
 
           <TabsContent value="kanban" className="mt-4">
             {leadsLoading ? (
