@@ -6,7 +6,8 @@ interface AdSlotProps {
 }
 
 const ADSENSE_CLIENT = 'ca-pub-8202479736483548';
-const DEFAULT_SLOT = (import.meta as any).env?.VITE_ADSENSE_SLOT as string | undefined;
+const ADSENSE_SCRIPT_ID = 'google-adsense-script';
+const DEFAULT_SLOT = ((import.meta as any).env?.VITE_ADSENSE_SLOT as string | undefined) || '2729027690';
 
 type AdFormat = {
   w: number;
@@ -36,6 +37,18 @@ const AdSlot: React.FC<AdSlotProps> = ({ slot, className }) => {
   const wrapperRef = useRef<HTMLDivElement | null>(null);
   const [fmt, setFmt] = useState<AdFormat>(() => pickFormat(typeof window !== 'undefined' ? window.innerWidth : 1024));
   const adSlot = slot || DEFAULT_SLOT;
+
+  // Carrega o script do Google AdSense uma única vez no portal autenticado.
+  useEffect(() => {
+    if (document.getElementById(ADSENSE_SCRIPT_ID)) return;
+
+    const script = document.createElement('script');
+    script.id = ADSENSE_SCRIPT_ID;
+    script.async = true;
+    script.src = `https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${ADSENSE_CLIENT}`;
+    script.crossOrigin = 'anonymous';
+    document.head.appendChild(script);
+  }, []);
 
   // Observa largura do contêiner e reescolhe o formato.
   useEffect(() => {
@@ -86,8 +99,8 @@ const AdSlot: React.FC<AdSlotProps> = ({ slot, className }) => {
             style={{ display: 'block', width: '100%', height: fmt.h }}
             data-ad-client={ADSENSE_CLIENT}
             data-ad-slot={adSlot}
-            data-ad-format={fmt.format}
-            data-full-width-responsive="false"
+            data-ad-format="auto"
+            data-full-width-responsive="true"
           />
         ) : (
           <span>Anúncio {fmt.label}</span>
