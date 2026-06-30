@@ -18,9 +18,11 @@ import { Plus, Search, LayoutGrid, List, Loader2, Upload } from "lucide-react";
 const CRM = () => {
   const { user } = useAuth();
   const isDev = user?.role === "dev";
+  const canOverseeVendors = user?.role === "dev" || user?.role === "gerente" || user?.role === "admin";
   const canManageCRM = user?.role === "dev" || user?.role === "sdr" || user?.role === "vendedor";
   const [viewMode, setViewMode] = useState<"kanban" | "table">("kanban");
   const [statusFilter, setStatusFilter] = useState<LeadStatus | "all">("all");
+  const [vendorFilter, setVendorFilter] = useState<string>("all");
   const [searchTerm, setSearchTerm] = useState("");
   const [showForm, setShowForm] = useState(false);
   const [showImport, setShowImport] = useState(false);
@@ -30,6 +32,18 @@ const CRM = () => {
   useLeadsRealtime();
   const { data: leads = [], isLoading } = useLeads(statusFilter === "all" ? null : statusFilter, 'atendimento');
   const { data: pendingReminders = [] } = usePendingReminders();
+
+  const vendorOptions = useMemo(() => {
+    const map = new Map<string, string>();
+    leads.forEach((l) => {
+      if (l.assigned_to && l.assigned_profile?.full_name) {
+        map.set(l.assigned_to, l.assigned_profile.full_name);
+      }
+    });
+    return Array.from(map.entries())
+      .map(([id, name]) => ({ id, name }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }, [leads]);
 
   const filteredLeads = useMemo(() => {
     const scoped = leads.filter((lead) => {
