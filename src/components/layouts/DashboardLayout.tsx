@@ -499,7 +499,10 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
           </header>
 
           {/* Page Content */}
-          <main className="flex-1 p-4 lg:p-6 overflow-auto">{children}</main>
+          <main className="flex-1 p-4 lg:p-6 overflow-auto">
+            {children}
+            <AdSlot />
+          </main>
         </div>
       </div>
     </div>
