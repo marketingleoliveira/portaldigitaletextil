@@ -8,6 +8,7 @@ import { useActiveMeetings } from "@/hooks/useActiveMeetings";
 import Logo from "@/components/Logo";
 import SustainabilityBadge from "@/components/SustainabilityBadge";
 import RoleBadge from "@/components/RoleBadge";
+import AdSlot from "@/components/AdSlot";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -499,7 +500,10 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
           </header>
 
           {/* Page Content */}
-          <main className="flex-1 p-4 lg:p-6 overflow-auto">{children}</main>
+          <main className="flex-1 p-4 lg:p-6 overflow-auto">
+            {children}
+            <AdSlot />
+          </main>
         </div>
       </div>
     </div>
