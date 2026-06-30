@@ -8,6 +8,7 @@ import { useActiveMeetings } from "@/hooks/useActiveMeetings";
 import Logo from "@/components/Logo";
 import SustainabilityBadge from "@/components/SustainabilityBadge";
 import RoleBadge from "@/components/RoleBadge";
+import AdSlot from "@/components/AdSlot";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
