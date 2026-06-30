@@ -501,6 +501,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
 
           {/* Page Content */}
           <main className="flex-1 p-4 lg:p-6 overflow-auto">
+            <AdSlot />
             {children}
             <AdSlot />
           </main>
