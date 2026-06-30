@@ -167,6 +167,20 @@ const CRM = () => {
                 ))}
               </SelectContent>
             </Select>
+            {canOverseeVendors && (
+              <Select value={vendorFilter} onValueChange={setVendorFilter}>
+                <SelectTrigger className="w-[200px]">
+                  <SelectValue placeholder="Todos os vendedores" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos os vendedores</SelectItem>
+                  <SelectItem value="unassigned">Sem vendedor</SelectItem>
+                  {vendorOptions.map((v) => (
+                    <SelectItem key={v.id} value={v.id}>{v.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
           </div>
 
           <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as "kanban" | "table")}>
