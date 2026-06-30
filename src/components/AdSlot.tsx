@@ -7,6 +7,7 @@ interface AdSlotProps {
 
 const ADSENSE_CLIENT = 'ca-pub-8202479736483548';
 const ADSENSE_SCRIPT_ID = 'google-adsense-script';
+const ADSENSE_SCRIPT_SRC = `https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${ADSENSE_CLIENT}`;
 const DEFAULT_SLOT =
   ((import.meta as any).env?.VITE_ADSENSE_SLOT as string | undefined) || '2729027690';
 
@@ -21,11 +22,19 @@ const AdSlot: React.FC<AdSlotProps> = ({ slot, className }) => {
 
   // Carrega o script do AdSense uma única vez.
   useEffect(() => {
-    if (document.getElementById(ADSENSE_SCRIPT_ID)) return;
+    const existingScript = document.querySelector(
+      `script[src^="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"]`
+    );
+
+    if (existingScript) {
+      existingScript.id ||= ADSENSE_SCRIPT_ID;
+      return;
+    }
+
     const script = document.createElement('script');
     script.id = ADSENSE_SCRIPT_ID;
     script.async = true;
-    script.src = `https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${ADSENSE_CLIENT}`;
+    script.src = ADSENSE_SCRIPT_SRC;
     script.crossOrigin = 'anonymous';
     document.head.appendChild(script);
   }, []);
