@@ -18,9 +18,11 @@ import { Plus, Search, LayoutGrid, List, Loader2, Upload } from "lucide-react";
 const CRM = () => {
   const { user } = useAuth();
   const isDev = user?.role === "dev";
+  const canOverseeVendors = user?.role === "dev" || user?.role === "gerente" || user?.role === "admin";
   const canManageCRM = user?.role === "dev" || user?.role === "sdr" || user?.role === "vendedor";
   const [viewMode, setViewMode] = useState<"kanban" | "table">("kanban");
   const [statusFilter, setStatusFilter] = useState<LeadStatus | "all">("all");
+  const [vendorFilter, setVendorFilter] = useState<string>("all");
   const [searchTerm, setSearchTerm] = useState("");
   const [showForm, setShowForm] = useState(false);
   const [showImport, setShowImport] = useState(false);
@@ -31,6 +33,18 @@ const CRM = () => {
   const { data: leads = [], isLoading } = useLeads(statusFilter === "all" ? null : statusFilter, 'atendimento');
   const { data: pendingReminders = [] } = usePendingReminders();
 
+  const vendorOptions = useMemo(() => {
+    const map = new Map<string, string>();
+    leads.forEach((l) => {
+      if (l.assigned_to && l.assigned_profile?.full_name) {
+        map.set(l.assigned_to, l.assigned_profile.full_name);
+      }
+    });
+    return Array.from(map.entries())
+      .map(([id, name]) => ({ id, name }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }, [leads]);
+
   const filteredLeads = useMemo(() => {
     const scoped = leads.filter((lead) => {
       // Vendedor sees only leads assigned to them or created by them
@@ -39,7 +53,12 @@ const CRM = () => {
       }
       return true;
     });
-    const filtered = scoped.filter((lead) => {
+    const byVendor = scoped.filter((lead) => {
+      if (!canOverseeVendors || vendorFilter === "all") return true;
+      if (vendorFilter === "unassigned") return !lead.assigned_to;
+      return lead.assigned_to === vendorFilter;
+    });
+    const filtered = byVendor.filter((lead) => {
       if (!searchTerm) return true;
       const q = searchTerm.toLowerCase();
       return (
@@ -59,7 +78,7 @@ const CRM = () => {
       if (aR === 0 && bR > 0) return 1;
       return 0;
     });
-  }, [leads, searchTerm, pendingReminders, user]);
+  }, [leads, searchTerm, pendingReminders, user, vendorFilter, canOverseeVendors]);
 
   const handleSelectLead = (lead: Lead) => {
     setSelectedLead(lead);
@@ -148,6 +167,20 @@ const CRM = () => {
                 ))}
               </SelectContent>
             </Select>
+            {canOverseeVendors && (
+              <Select value={vendorFilter} onValueChange={setVendorFilter}>
+                <SelectTrigger className="w-[200px]">
+                  <SelectValue placeholder="Todos os vendedores" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos os vendedores</SelectItem>
+                  <SelectItem value="unassigned">Sem vendedor</SelectItem>
+                  {vendorOptions.map((v) => (
+                    <SelectItem key={v.id} value={v.id}>{v.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
           </div>
 
           <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as "kanban" | "table")}>

@@ -97,9 +97,9 @@ const navItems: NavItem[] = [
     label: "Atendimento EAD",
     href: "/crm",
     icon: Handshake,
-    roles: ["dev", "vendedor"],
+    roles: ["dev", "vendedor", "gerente", "admin"],
     children: [
-      { label: "Agendamentos EAD", href: "/agendamentos", icon: CalendarCheck, roles: ["dev", "vendedor"] },
+      { label: "Agendamentos EAD", href: "/agendamentos", icon: CalendarCheck, roles: ["dev", "vendedor", "gerente", "admin"] },
     ],
   },
   {
