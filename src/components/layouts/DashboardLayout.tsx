@@ -319,8 +319,14 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
               )}
             </nav>
 
+            {/* Sidebar Ad */}
+            <div className="px-3 pb-3">
+              <AdSlot className="!my-0" />
+            </div>
+
             {/* User Info */}
             <div className="p-4 border-t border-sidebar-border">
+
               <div className="flex items-center gap-3 px-2">
                 {user?.profile?.avatar_url ? (
                   <img
