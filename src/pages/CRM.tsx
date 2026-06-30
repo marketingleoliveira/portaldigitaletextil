@@ -53,7 +53,12 @@ const CRM = () => {
       }
       return true;
     });
-    const filtered = scoped.filter((lead) => {
+    const byVendor = scoped.filter((lead) => {
+      if (!canOverseeVendors || vendorFilter === "all") return true;
+      if (vendorFilter === "unassigned") return !lead.assigned_to;
+      return lead.assigned_to === vendorFilter;
+    });
+    const filtered = byVendor.filter((lead) => {
       if (!searchTerm) return true;
       const q = searchTerm.toLowerCase();
       return (
@@ -73,7 +78,7 @@ const CRM = () => {
       if (aR === 0 && bR > 0) return 1;
       return 0;
     });
-  }, [leads, searchTerm, pendingReminders, user]);
+  }, [leads, searchTerm, pendingReminders, user, vendorFilter, canOverseeVendors]);
 
   const handleSelectLead = (lead: Lead) => {
     setSelectedLead(lead);
