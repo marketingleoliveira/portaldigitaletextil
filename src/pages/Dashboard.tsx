@@ -25,7 +25,6 @@ import RoleBadge from '@/components/RoleBadge';
 import OnlineUsersCard from '@/components/OnlineUsersCard';
 import ActivityRankingCard from '@/components/ActivityRankingCard';
 import MonthlyActivityRankingCard from '@/components/MonthlyActivityRankingCard';
-import WorldCup2026Card from '@/components/WorldCup2026Card';
 import RoomStatusCard from '@/components/RoomStatusCard';
 
 interface DashboardStats {

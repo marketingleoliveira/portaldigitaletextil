@@ -4,116 +4,112 @@
 
 @layer base {
   :root {
-    /* Brazil Theme - Subtle accents (blue, yellow, green, white) */
-    --background: 0 0% 100%;
-    --foreground: 222 47% 11%;
+    /* Digitale Têxtil Corporate Theme - #1f3249 */
+    --background: 210 20% 98%;
+    --foreground: 213 40% 20%;
 
     --card: 0 0% 100%;
-    --card-foreground: 222 47% 11%;
+    --card-foreground: 213 40% 20%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 222 47% 11%;
+    --popover-foreground: 213 40% 20%;
 
-    /* Primary Brazil Blue */
-    --primary: 217 95% 32%;
+    /* Corporate Blue #1f3249 */
+    --primary: 213 40% 20%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 140 60% 96%;
-    --secondary-foreground: 222 47% 11%;
+    --secondary: 214 32% 91%;
+    --secondary-foreground: 213 40% 20%;
 
     --muted: 210 40% 96%;
-    --muted-foreground: 215 16% 47%;
+    --muted-foreground: 213 25% 40%;
 
-    /* Brazil Green accent */
-    --accent: 142 70% 94%;
-    --accent-foreground: 142 72% 20%;
+    --accent: 213 30% 90%;
+    --accent-foreground: 213 40% 20%;
 
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
 
-    /* Status colors - Brazil green/yellow */
-    --success: 142 72% 35%;
+    /* Status colors */
+    --success: 142 76% 36%;
     --success-foreground: 0 0% 100%;
-    --warning: 48 100% 50%;
-    --warning-foreground: 222 47% 11%;
+    --warning: 38 92% 50%;
+    --warning-foreground: 0 0% 100%;
 
     --border: 214 32% 91%;
     --input: 214 32% 91%;
-    --ring: 217 95% 32%;
+    --ring: 213 40% 20%;
 
     --radius: 0.5rem;
 
     /* Role colors */
     --role-dev: 280 100% 50%;
-    --role-admin: 320 83% 58%;
-    --role-gerente: 45 90% 50%;
-    --role-vendedor: 170 71% 45%;
+    --role-admin: 262 83% 58%;
+    --role-gerente: 213 40% 30%;
+    --role-vendedor: 142 71% 45%;
     --role-criacao: 280 80% 60%;
     --role-marketing: 25 95% 53%;
     --role-sdr: 200 90% 50%;
 
-    /* Sidebar - Brazil Blue */
-    --sidebar-background: 217 95% 18%;
-    --sidebar-foreground: 0 0% 100%;
-    --sidebar-primary: 142 72% 38%;
+    /* Sidebar */
+    --sidebar-background: 213 40% 20%;
+    --sidebar-foreground: 210 40% 98%;
+    --sidebar-primary: 213 40% 35%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 217 90% 25%;
-    --sidebar-accent-foreground: 0 0% 100%;
-    --sidebar-border: 217 90% 25%;
-    --sidebar-ring: 48 100% 50%;
+    --sidebar-accent: 213 40% 28%;
+    --sidebar-accent-foreground: 210 40% 98%;
+    --sidebar-border: 213 40% 25%;
+    --sidebar-ring: 213 40% 35%;
 
-    /* Corporate Gradients */
-    --gradient-primary: linear-gradient(135deg, hsl(217 95% 32%) 0%, hsl(142 72% 38%) 100%);
-    --gradient-sidebar: linear-gradient(180deg, hsl(217 95% 18%) 0%, hsl(217 90% 25%) 100%);
-    --gradient-card: linear-gradient(180deg, hsl(0 0% 100%) 0%, hsl(48 100% 97%) 100%);
+    /* Gradients */
+    --gradient-primary: linear-gradient(135deg, hsl(213 40% 20%) 0%, hsl(213 40% 30%) 100%);
+    --gradient-sidebar: linear-gradient(180deg, hsl(213 40% 20%) 0%, hsl(213 40% 15%) 100%);
+    --gradient-card: linear-gradient(180deg, hsl(0 0% 100%) 0%, hsl(210 20% 98%) 100%);
 
     /* Shadows */
     --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
     --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
     --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
-    --shadow-primary: 0 4px 14px 0 hsl(217 95% 32% / 0.35);
+    --shadow-primary: 0 4px 14px 0 hsl(213 40% 20% / 0.25);
   }
 
   .dark {
-    /* Dark Corporate Theme */
-    --background: 222 47% 11%;
+    --background: 213 40% 6%;
     --foreground: 210 40% 98%;
 
-    --card: 217 33% 17%;
+    --card: 213 40% 9%;
     --card-foreground: 210 40% 98%;
 
-    --popover: 217 33% 17%;
+    --popover: 213 40% 9%;
     --popover-foreground: 210 40% 98%;
 
-    --primary: 217 91% 55%;
+    --primary: 213 40% 35%;
     --primary-foreground: 0 0% 100%;
 
-    /* Brazil yellow ring accent in dark */
-    --ring: 48 100% 55%;
-
-    --secondary: 217 33% 17%;
+    --secondary: 213 40% 15%;
     --secondary-foreground: 210 40% 98%;
 
-    --muted: 217 33% 17%;
-    --muted-foreground: 215 20% 65%;
+    --muted: 213 40% 15%;
+    --muted-foreground: 213 20% 65%;
 
-    --accent: 217 33% 17%;
-    --accent-foreground: 210 40% 98%;
+    --accent: 213 40% 18%;
+    --accent-foreground: 213 40% 50%;
 
-    --destructive: 0 62% 40%;
-    --destructive-foreground: 0 0% 100%;
+    --destructive: 0 62% 30%;
+    --destructive-foreground: 210 40% 98%;
 
-    --border: 217 33% 17%;
-    --input: 217 33% 17%;
+    --border: 213 40% 18%;
+    --input: 213 40% 18%;
+    --ring: 213 40% 35%;
 
-    --sidebar-background: 217 95% 12%;
-    --sidebar-foreground: 0 0% 100%;
-    --sidebar-primary: 142 72% 42%;
+    --sidebar-background: 213 40% 6%;
+    --sidebar-foreground: 210 40% 98%;
+    --sidebar-primary: 213 40% 35%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 217 33% 17%;
+    --sidebar-accent: 213 40% 12%;
     --sidebar-accent-foreground: 210 40% 98%;
-    --sidebar-border: 217 33% 12%;
-    --sidebar-ring: 217 91% 60%;
+    --sidebar-border: 213 40% 15%;
+    --sidebar-ring: 213 40% 35%;
   }
 }
 
@@ -286,4 +282,3 @@
 .animate-float-up {
   animation: float-up 3s ease-out forwards;
 }
-
