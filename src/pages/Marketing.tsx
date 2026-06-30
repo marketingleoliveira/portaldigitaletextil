@@ -85,9 +85,6 @@ const Marketing: React.FC = () => {
             <TabsTrigger value="report">Relatório</TabsTrigger>
           </TabsList>
 
-          <AdSlot />
-
-
           <TabsContent value="kanban" className="mt-4">
             {leadsLoading ? (
               <div className="flex justify-center py-16">

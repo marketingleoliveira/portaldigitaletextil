@@ -687,9 +687,6 @@ const Goals: React.FC = () => {
                 </TabsTrigger>
               </TabsList>
 
-              <AdSlot />
-
-
               {/* Histórico Tab Content */}
               <TabsContent value="historico">
                 <GoalHistory />

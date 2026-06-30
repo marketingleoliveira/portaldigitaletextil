@@ -354,10 +354,6 @@ const Localizar: React.FC = () => {
                 Histórico
               </TabsTrigger>
             </TabsList>
-            <AdSlot />
-            
-
-            
             <TabsContent value="map">
               <Card>
                 <CardHeader>
