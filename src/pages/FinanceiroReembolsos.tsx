@@ -21,7 +21,8 @@ import {
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
+import { PDFDocument, StandardFonts, rgb, PDFFont, PDFPage } from 'pdf-lib';
+import logoUrl from '@/assets/logo-digitale-full.png';
 
 type ExpenseStatus = 'pendente' | 'aprovado' | 'rejeitado' | 'pago';
 
@@ -144,68 +145,174 @@ const FinanceiroReembolsos: React.FC = () => {
       const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
       const fontBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
 
-      // ---- Summary page ----
-      let page = pdfDoc.addPage([595.28, 841.89]); // A4
-      const width = page.getWidth();
-      const height = page.getHeight();
-      let y = height - 50;
-      const drawText = (text: string, opts: { x?: number; size?: number; bold?: boolean; color?: [number, number, number] } = {}) => {
-        page.drawText(text, {
-          x: opts.x ?? 50,
-          y,
-          size: opts.size ?? 10,
-          font: opts.bold ? fontBold : font,
-          color: rgb(...(opts.color ?? [0, 0, 0])),
-        });
+      // Embed logo (preserving aspect ratio)
+      let logoImg: Awaited<ReturnType<typeof pdfDoc.embedPng>> | null = null;
+      try {
+        const logoBytes = await fetch(logoUrl).then(r => r.arrayBuffer());
+        logoImg = await pdfDoc.embedPng(new Uint8Array(logoBytes));
+      } catch (e) {
+        console.warn('Logo indisponível', e);
+      }
+
+      // Page constants
+      const PAGE_W = 595.28;
+      const PAGE_H = 841.89;
+      const MARGIN = 50;
+      const CONTENT_W = PAGE_W - MARGIN * 2;
+      const BRAND = rgb(0.05, 0.36, 0.24); // corporate green
+      const MUTED = rgb(0.45, 0.45, 0.45);
+      const LINE = rgb(0.85, 0.85, 0.85);
+
+      // Word wrap helper
+      const wrap = (text: string, maxWidth: number, size: number, f: PDFFont): string[] => {
+        const words = (text || '').replace(/\s+/g, ' ').trim().split(' ');
+        if (!words[0]) return [];
+        const lines: string[] = [];
+        let cur = '';
+        for (const w of words) {
+          const test = cur ? cur + ' ' + w : w;
+          if (f.widthOfTextAtSize(test, size) <= maxWidth) cur = test;
+          else {
+            if (cur) lines.push(cur);
+            // hard-break long single word
+            if (f.widthOfTextAtSize(w, size) > maxWidth) {
+              let chunk = '';
+              for (const ch of w) {
+                if (f.widthOfTextAtSize(chunk + ch, size) > maxWidth) { lines.push(chunk); chunk = ch; }
+                else chunk += ch;
+              }
+              cur = chunk;
+            } else cur = w;
+          }
+        }
+        if (cur) lines.push(cur);
+        return lines;
       };
-      const line = (h = 14) => { y -= h; if (y < 60) { page = pdfDoc.addPage([595.28, 841.89]); y = height - 50; } };
 
-      drawText('Relatório de Reembolso', { size: 18, bold: true }); line(24);
-      drawText(report.title, { size: 13, bold: true }); line(20);
+      let pageNum = 0;
+      const pages: PDFPage[] = [];
+      const newPage = (): PDFPage => {
+        const p = pdfDoc.addPage([PAGE_W, PAGE_H]);
+        pages.push(p);
+        pageNum++;
+        // Header band
+        p.drawRectangle({ x: 0, y: PAGE_H - 80, width: PAGE_W, height: 80, color: BRAND });
+        if (logoImg) {
+          const lh = 44;
+          const lw = (logoImg.width / logoImg.height) * lh;
+          p.drawImage(logoImg, { x: MARGIN, y: PAGE_H - 62, width: lw, height: lh });
+        }
+        p.drawText('Relatório de Reembolso', {
+          x: PAGE_W - MARGIN - fontBold.widthOfTextAtSize('Relatório de Reembolso', 14),
+          y: PAGE_H - 45, size: 14, font: fontBold, color: rgb(1, 1, 1),
+        });
+        const sub = `Nº ${report.id.slice(0, 8).toUpperCase()}`;
+        p.drawText(sub, {
+          x: PAGE_W - MARGIN - font.widthOfTextAtSize(sub, 9),
+          y: PAGE_H - 62, size: 9, font, color: rgb(0.9, 0.95, 0.92),
+        });
+        return p;
+      };
 
-      drawText(`Colaborador: ${report.user_name || '—'}`); line();
-      drawText(`E-mail: ${report.user_email || '—'}`); line();
-      drawText(`Destino: ${report.trip_destination || '—'}`); line();
+      let page = newPage();
+      let y = PAGE_H - 110;
+
+      const ensureSpace = (needed: number) => {
+        if (y - needed < 70) { page = newPage(); y = PAGE_H - 110; }
+      };
+
+      const drawLine = (text: string, opts: { size?: number; bold?: boolean; color?: any; x?: number; gap?: number } = {}) => {
+        const size = opts.size ?? 10;
+        ensureSpace(size + 4);
+        page.drawText(text, {
+          x: opts.x ?? MARGIN, y,
+          size, font: opts.bold ? fontBold : font,
+          color: opts.color ?? rgb(0.15, 0.15, 0.15),
+        });
+        y -= (opts.gap ?? size + 5);
+      };
+
+      const drawKV = (label: string, value: string) => {
+        ensureSpace(16);
+        page.drawText(label, { x: MARGIN, y, size: 9, font: fontBold, color: MUTED });
+        page.drawText(value || '—', { x: MARGIN + 110, y, size: 10, font, color: rgb(0.1, 0.1, 0.1) });
+        y -= 16;
+      };
+
+      const sectionTitle = (t: string) => {
+        y -= 6;
+        ensureSpace(24);
+        page.drawText(t, { x: MARGIN, y, size: 11, font: fontBold, color: BRAND });
+        y -= 4;
+        page.drawLine({ start: { x: MARGIN, y: y }, end: { x: PAGE_W - MARGIN, y: y }, thickness: 0.6, color: BRAND });
+        y -= 14;
+      };
+
+      // ---- Title block ----
+      drawLine(report.title, { size: 15, bold: true, gap: 22 });
+
+      sectionTitle('Dados do Colaborador');
+      drawKV('Colaborador:', report.user_name || '—');
+      drawKV('E-mail:', report.user_email || '—');
+
+      sectionTitle('Viagem');
+      drawKV('Destino:', report.trip_destination || '—');
       const period = `${report.trip_start_date ? format(new Date(report.trip_start_date), 'dd/MM/yyyy', { locale: ptBR }) : '—'} até ${report.trip_end_date ? format(new Date(report.trip_end_date), 'dd/MM/yyyy', { locale: ptBR }) : '—'}`;
-      drawText(`Período: ${period}`); line();
-      drawText(`Status: ${STATUS_META[report.status].label}`); line();
-      drawText(`Criado em: ${format(new Date(report.created_at), 'dd/MM/yyyy HH:mm', { locale: ptBR })}`); line(20);
+      drawKV('Período:', period);
+      drawKV('Status:', STATUS_META[report.status].label);
+      drawKV('Criado em:', format(new Date(report.created_at), 'dd/MM/yyyy HH:mm', { locale: ptBR }));
 
+      sectionTitle('Resumo Financeiro');
       const advance = Number(report.company_advance || 0);
       const spent = Number(report.total_spent || 0);
       const diff = spent - advance;
-      drawText(`Adiantado pela empresa: ${formatBRL(advance)}`, { bold: true }); line();
-      drawText(`Total gasto: ${formatBRL(spent)}`, { bold: true }); line();
-      drawText(`${diff >= 0 ? 'Reembolsar ao colaborador' : 'Devolver à empresa'}: ${formatBRL(Math.abs(diff))}`, { bold: true, color: diff >= 0 ? [0.05, 0.5, 0.3] : [0.7, 0.4, 0] }); line(24);
+      drawKV('Adiantado:', formatBRL(advance));
+      drawKV('Total gasto:', formatBRL(spent));
+      ensureSpace(20);
+      const diffLabel = diff >= 0 ? 'Reembolsar ao colaborador:' : 'Devolver à empresa:';
+      const diffColor = diff >= 0 ? rgb(0.05, 0.5, 0.3) : rgb(0.75, 0.35, 0.05);
+      page.drawText(diffLabel, { x: MARGIN, y, size: 10, font: fontBold, color: diffColor });
+      page.drawText(formatBRL(Math.abs(diff)), { x: MARGIN + 180, y, size: 11, font: fontBold, color: diffColor });
+      y -= 22;
 
       if (report.notes) {
-        drawText('Observações:', { bold: true }); line();
-        const words = report.notes.split(/\s+/);
-        let lineText = '';
-        for (const w of words) {
-          if ((lineText + ' ' + w).length > 90) { drawText(lineText); line(); lineText = w; }
-          else lineText = lineText ? lineText + ' ' + w : w;
-        }
-        if (lineText) { drawText(lineText); line(); }
-        line(10);
+        sectionTitle('Observações');
+        const lines = wrap(report.notes, CONTENT_W, 10, font);
+        for (const ln of lines) drawLine(ln, { size: 10 });
       }
 
-      drawText(`Itens (${reportItems.length})`, { size: 12, bold: true }); line(18);
-      drawText('Data', { x: 50, bold: true });
-      drawText('Categoria', { x: 110, bold: true });
-      drawText('Descrição', { x: 210, bold: true });
-      drawText('Valor', { x: 470, bold: true });
-      line();
-      page.drawLine({ start: { x: 50, y: y + 6 }, end: { x: width - 50, y: y + 6 }, thickness: 0.5, color: rgb(0.7, 0.7, 0.7) });
+      // ---- Items table ----
+      sectionTitle(`Itens (${reportItems.length})`);
+      const COLS = { date: MARGIN, cat: MARGIN + 60, desc: MARGIN + 160, val: PAGE_W - MARGIN - 70 };
+      const DESC_W = COLS.val - COLS.desc - 10;
+
+      const drawTableHeader = () => {
+        ensureSpace(22);
+        page.drawRectangle({ x: MARGIN, y: y - 4, width: CONTENT_W, height: 18, color: rgb(0.95, 0.97, 0.95) });
+        page.drawText('Data', { x: COLS.date + 4, y: y + 2, size: 9, font: fontBold, color: BRAND });
+        page.drawText('Categoria', { x: COLS.cat, y: y + 2, size: 9, font: fontBold, color: BRAND });
+        page.drawText('Descrição', { x: COLS.desc, y: y + 2, size: 9, font: fontBold, color: BRAND });
+        page.drawText('Valor', { x: COLS.val, y: y + 2, size: 9, font: fontBold, color: BRAND });
+        y -= 20;
+      };
+      drawTableHeader();
 
       for (const it of reportItems) {
         const date = it.expense_date ? format(new Date(it.expense_date), 'dd/MM/yy', { locale: ptBR }) : '—';
-        const desc = (it.description || '—').slice(0, 45);
-        drawText(date, { x: 50 });
-        drawText((it.category || '').slice(0, 16), { x: 110 });
-        drawText(desc, { x: 210 });
-        drawText(formatBRL(Number(it.amount || 0)), { x: 470 });
-        line();
+        const cat = (it.category || '').slice(0, 14);
+        const descLines = wrap(it.description || '—', DESC_W, 9, font);
+        const rowH = Math.max(14, descLines.length * 11 + 4);
+        if (y - rowH < 70) { page = newPage(); y = PAGE_H - 110; drawTableHeader(); }
+        page.drawText(date, { x: COLS.date + 4, y, size: 9, font, color: rgb(0.2, 0.2, 0.2) });
+        page.drawText(cat, { x: COLS.cat, y, size: 9, font, color: rgb(0.2, 0.2, 0.2) });
+        let dy = y;
+        for (const ln of descLines) {
+          page.drawText(ln, { x: COLS.desc, y: dy, size: 9, font, color: rgb(0.2, 0.2, 0.2) });
+          dy -= 11;
+        }
+        page.drawText(formatBRL(Number(it.amount || 0)), { x: COLS.val, y, size: 9, font: fontBold, color: rgb(0.15, 0.15, 0.15) });
+        y -= rowH;
+        page.drawLine({ start: { x: MARGIN, y: y + 2 }, end: { x: PAGE_W - MARGIN, y: y + 2 }, thickness: 0.3, color: LINE });
       }
 
       // ---- Attach receipts ----
@@ -222,25 +329,34 @@ const FinanceiroReembolsos: React.FC = () => {
 
           if (isPdf) {
             const src = await PDFDocument.load(buf, { ignoreEncryption: true });
-            const pages = await pdfDoc.copyPages(src, src.getPageIndices());
-            pages.forEach(p => pdfDoc.addPage(p));
+            const copied = await pdfDoc.copyPages(src, src.getPageIndices());
+            copied.forEach(p => { pdfDoc.addPage(p); pages.push(p); });
           } else if (isJpg || isPng) {
             const img = isJpg ? await pdfDoc.embedJpg(buf) : await pdfDoc.embedPng(buf);
-            const p = pdfDoc.addPage([595.28, 841.89]);
-            const maxW = p.getWidth() - 80;
-            const maxH = p.getHeight() - 120;
+            const p = newPage();
+            const caption = `Comprovante — ${it.category} — ${formatBRL(Number(it.amount || 0))}`;
+            p.drawText(caption, { x: MARGIN, y: PAGE_H - 105, size: 10, font: fontBold, color: rgb(0.15, 0.15, 0.15) });
+            const maxW = CONTENT_W;
+            const maxH = PAGE_H - 180;
             const scale = Math.min(maxW / img.width, maxH / img.height, 1);
             const w = img.width * scale;
             const h = img.height * scale;
-            p.drawText(`Comprovante — ${it.category} — ${formatBRL(Number(it.amount || 0))}`, {
-              x: 40, y: p.getHeight() - 40, size: 10, font: fontBold,
-            });
-            p.drawImage(img, { x: (p.getWidth() - w) / 2, y: (p.getHeight() - h) / 2 - 20, width: w, height: h });
+            p.drawImage(img, { x: (PAGE_W - w) / 2, y: (PAGE_H - 130 - h) / 2 + 20, width: w, height: h });
           }
         } catch (e) {
           console.warn('Falha ao anexar comprovante', it.id, e);
         }
       }
+
+      // ---- Footer with page numbers ----
+      const total = pages.length;
+      pages.forEach((p, i) => {
+        const txt = `Página ${i + 1} de ${total}  •  Digitale Têxtil  •  Gerado em ${format(new Date(), 'dd/MM/yyyy HH:mm', { locale: ptBR })}`;
+        p.drawText(txt, {
+          x: MARGIN, y: 30, size: 8, font, color: MUTED,
+        });
+        p.drawLine({ start: { x: MARGIN, y: 45 }, end: { x: PAGE_W - MARGIN, y: 45 }, thickness: 0.4, color: LINE });
+      });
 
       const bytes = await pdfDoc.save();
       const blob = new Blob([bytes as BlobPart], { type: 'application/pdf' });
@@ -256,6 +372,7 @@ const FinanceiroReembolsos: React.FC = () => {
       toast.error('Erro ao gerar PDF: ' + (e?.message || 'desconhecido'), { id: toastId });
     }
   };
+
 
   const filtered = useMemo(() => {
     return reports.filter(r => {
