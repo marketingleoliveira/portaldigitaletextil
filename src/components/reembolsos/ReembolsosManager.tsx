@@ -927,11 +927,12 @@ const ReembolsosManager: React.FC<Props> = ({ userId, canEdit, canDelete = false
                       </Button>
                     </div>
                     <div className="col-span-12">
-                      <Label className="text-xs flex items-center gap-1"><Upload className="w-3 h-3" /> Comprovante</Label>
+                      <Label className="text-xs flex items-center gap-1"><Upload className="w-3 h-3" /> Comprovante(s)</Label>
                       <Input
                         type="file"
+                        multiple
                         accept="image/*,application/pdf"
-                        onChange={(e) => { const f = e.target.files?.[0] || null; handleFilePick(i, f); }}
+                        onChange={(e) => { handleFilesPick(i, e.target.files); e.currentTarget.value = ''; }}
                       />
                       {d.uploading && <p className="text-[11px] text-muted-foreground mt-1">Enviando...</p>}
                       {!d.uploading && d.fileName && (
