@@ -55,6 +55,7 @@ import Recordings from "./pages/Recordings";
 import Solicitacoes from "./pages/Solicitacoes";
 import Reembolsos from "./pages/Reembolsos";
 import FinanceiroReembolsos from "./pages/FinanceiroReembolsos";
+import FinanceiroPontos from "./pages/FinanceiroPontos";
 
 const queryClient = new QueryClient();
 
