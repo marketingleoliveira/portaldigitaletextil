@@ -389,10 +389,16 @@ const FinanceiroReembolsos: React.FC = () => {
   }, [reports, search, statusFilter]);
 
   const kpis = useMemo(() => {
-    const acc = { pendente: 0, aprovado: 0, rejeitado: 0, pago: 0, total: 0 };
+    const acc = { pendente: 0, aprovado: 0, rejeitado: 0, pago: 0, totalSpent: 0, totalAdvance: 0, toReimburse: 0, toReturn: 0 };
     reports.forEach(r => {
       acc[r.status] = (acc[r.status] || 0) + 1;
-      acc.total += r.total_spent || 0;
+      const spent = Number(r.total_spent || 0);
+      const adv = Number(r.company_advance || 0);
+      acc.totalSpent += spent;
+      acc.totalAdvance += adv;
+      const d = spent - adv;
+      if (d >= 0) acc.toReimburse += d;
+      else acc.toReturn += -d;
     });
     return acc;
   }, [reports]);
