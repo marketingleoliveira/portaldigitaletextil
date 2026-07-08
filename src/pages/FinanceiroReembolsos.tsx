@@ -549,7 +549,8 @@ const FinanceiroReembolsos: React.FC = () => {
                           <TableCell className="text-right">{formatBRL(Number(r.company_advance || 0))}</TableCell>
                           <TableCell className="text-right">{formatBRL(r.total_spent || 0)}</TableCell>
                           <TableCell className={`text-right font-semibold ${diff >= 0 ? 'text-emerald-600' : 'text-amber-600'}`}>
-                            {formatBRL(Math.abs(diff))}
+                            {diff >= 0 ? '+' : '−'} {formatBRL(Math.abs(diff))}
+                            <p className="text-[10px] font-normal text-muted-foreground">{diff >= 0 ? 'a reembolsar' : 'a devolver'}</p>
                           </TableCell>
                           <TableCell>
                             <Badge variant="outline" className={meta.className}>
