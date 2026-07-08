@@ -980,7 +980,12 @@ const ReembolsosManager: React.FC<Props> = ({ userId, canEdit, canDelete = false
 
       {/* Edit Item Dialog */}
       <Dialog open={!!editingItem} onOpenChange={(o) => { if (!o) { setEditingItem(null); setItemEdit(null); } }}>
-        <DialogContent className="max-w-lg">
+        <DialogContent
+          className="max-w-lg"
+          onPointerDownOutside={(e) => e.preventDefault()}
+          onInteractOutside={(e) => e.preventDefault()}
+          onEscapeKeyDown={(e) => e.preventDefault()}
+        >
           <DialogHeader>
             <DialogTitle>Editar item de despesa</DialogTitle>
             <DialogDescription>Atualize os dados ou substitua o comprovante anexado.</DialogDescription>
