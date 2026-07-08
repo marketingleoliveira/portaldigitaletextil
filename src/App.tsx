@@ -122,6 +122,7 @@ const App = () => (
                   <Route path="/solicitacoes" element={<ProtectedRoute allowedRoles={['dev', 'marketing']}><Solicitacoes /></ProtectedRoute>} />
                   <Route path="/reembolsos" element={<ProtectedRoute allowedRoles={['dev', 'admin', 'vendedor']}><Reembolsos /></ProtectedRoute>} />
                   <Route path="/financeiro/reembolsos" element={<ProtectedRoute allowedRoles={['dev', 'financeiro']}><FinanceiroReembolsos /></ProtectedRoute>} />
+                  <Route path="/financeiro/pontos" element={<ProtectedRoute allowedRoles={['dev', 'financeiro']}><FinanceiroPontos /></ProtectedRoute>} />
                   <Route path="/reuniao/:code" element={<ProtectedRoute><MeetingErrorBoundary><MeetingRoom /></MeetingErrorBoundary></ProtectedRoute>} />
                   
                   <Route path="/entrar/:code" element={<GuestJoin />} />
