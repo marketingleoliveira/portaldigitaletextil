@@ -56,6 +56,8 @@ import Solicitacoes from "./pages/Solicitacoes";
 import Reembolsos from "./pages/Reembolsos";
 import FinanceiroReembolsos from "./pages/FinanceiroReembolsos";
 import FinanceiroPontos from "./pages/FinanceiroPontos";
+import SAC from "./pages/SAC";
+import SACDetails from "./pages/SACDetails";
 
 const queryClient = new QueryClient();
 
