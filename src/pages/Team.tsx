@@ -94,6 +94,7 @@ const Team: React.FC = () => {
   const sdrs = orgMembers.filter((m) => m.role === 'sdr');
   const vendedores = orgMembers.filter((m) => m.role === 'vendedor');
   const qualidade = orgMembers.filter((m) => m.role === 'qualidade');
+  const financeiro = orgMembers.filter((m) => m.role === 'financeiro');
 
   const handleMemberClick = (member: TeamMember) => {
     setSelectedMember(member);
