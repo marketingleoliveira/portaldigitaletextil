@@ -115,7 +115,7 @@ const navItems: NavItem[] = [
       { label: "Agendamentos EAD", href: "/agendamentos", icon: CalendarCheck, roles: ["dev", "vendedor", "gerente", "admin"] },
     ],
   },
-  { label: "SAC", href: "/sac", icon: Inbox, roles: ["dev", "admin", "gerente", "vendedor", "sdr", "marketing", "qualidade", "financeiro"] },
+  // { label: "SAC", href: "/sac", icon: Inbox, roles: ["dev", "admin", "gerente", "vendedor", "sdr", "marketing", "qualidade", "financeiro"] },
   {
     label: "Marketing",
     href: "/marketing",
