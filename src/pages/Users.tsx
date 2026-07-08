@@ -82,7 +82,7 @@ const Users: React.FC = () => {
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [showDefaultPassword, setShowDefaultPassword] = useState(false);
-  const DEFAULT_SYSTEM_PASSWORD = 'senha123';
+  const DEFAULT_SYSTEM_PASSWORD = 'Digitale@2026';
 
   const [newUser, setNewUser] = useState({
     full_name: '',
