@@ -1270,6 +1270,26 @@ export default function MeetingRoom() {
     }
   }, [isVideoOn, callObject, meeting, user, hasModeratorAccess, globalVideoEnabled]);
 
+  const toggleBackgroundBlur = useCallback(async () => {
+    if (!callObject) return;
+    const next = !bgBlurEnabled;
+    try {
+      await callObject.updateInputSettings({
+        video: {
+          processor: next
+            ? { type: "background-blur", config: { strength: 0.6 } }
+            : { type: "none" },
+        },
+      });
+      setBgBlurEnabled(next);
+      toast.success(next ? "Fundo desfocado ativado" : "Fundo desfocado desativado");
+    } catch (err) {
+      console.error("Error toggling background blur:", err);
+      toast.error("Seu navegador/dispositivo não suporta desfoque de fundo");
+    }
+  }, [bgBlurEnabled, callObject]);
+
+
   const toggleScreenShare = useCallback(async () => {
     if (!callObject) {
       toast.error("Conexão não estabelecida");
