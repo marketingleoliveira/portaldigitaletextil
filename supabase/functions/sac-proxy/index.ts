@@ -13,6 +13,11 @@ Deno.serve(async (req) => {
     return new Response('ok', { headers: corsHeaders });
   }
 
+  console.log("sac-proxy called", req.method, req.url);
+  const t = Deno.env.get("SAC_PORTAL_TOKEN");
+  console.log("token_len:", t?.length ?? 0);
+
+
   try {
     const authHeader = req.headers.get('Authorization');
     if (!authHeader?.startsWith('Bearer ')) {
