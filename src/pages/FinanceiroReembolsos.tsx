@@ -16,11 +16,12 @@ import {
 } from '@/components/ui/dialog';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
-  Wallet, Search, Loader2, ExternalLink, CheckCircle2, XCircle, Clock, BadgeDollarSign,
+  Wallet, Search, Loader2, ExternalLink, CheckCircle2, XCircle, Clock, BadgeDollarSign, FileDown,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
 
 type ExpenseStatus = 'pendente' | 'aprovado' | 'rejeitado' | 'pago';
 
@@ -133,6 +134,127 @@ const FinanceiroReembolsos: React.FC = () => {
     toast.success(`Reembolso marcado como ${STATUS_META[status].label}`);
     setReports(prev => prev.map(r => r.id === id ? { ...r, status } : r));
     if (detailReport?.id === id) setDetailReport({ ...detailReport, status });
+  };
+
+  const exportReportPdf = async (report: Report) => {
+    const toastId = toast.loading('Gerando PDF...');
+    try {
+      const reportItems = items[report.id] || [];
+      const pdfDoc = await PDFDocument.create();
+      const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+      const fontBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+
+      // ---- Summary page ----
+      let page = pdfDoc.addPage([595.28, 841.89]); // A4
+      const width = page.getWidth();
+      const height = page.getHeight();
+      let y = height - 50;
+      const drawText = (text: string, opts: { x?: number; size?: number; bold?: boolean; color?: [number, number, number] } = {}) => {
+        page.drawText(text, {
+          x: opts.x ?? 50,
+          y,
+          size: opts.size ?? 10,
+          font: opts.bold ? fontBold : font,
+          color: rgb(...(opts.color ?? [0, 0, 0])),
+        });
+      };
+      const line = (h = 14) => { y -= h; if (y < 60) { page = pdfDoc.addPage([595.28, 841.89]); y = height - 50; } };
+
+      drawText('Relatório de Reembolso', { size: 18, bold: true }); line(24);
+      drawText(report.title, { size: 13, bold: true }); line(20);
+
+      drawText(`Colaborador: ${report.user_name || '—'}`); line();
+      drawText(`E-mail: ${report.user_email || '—'}`); line();
+      drawText(`Destino: ${report.trip_destination || '—'}`); line();
+      const period = `${report.trip_start_date ? format(new Date(report.trip_start_date), 'dd/MM/yyyy', { locale: ptBR }) : '—'} até ${report.trip_end_date ? format(new Date(report.trip_end_date), 'dd/MM/yyyy', { locale: ptBR }) : '—'}`;
+      drawText(`Período: ${period}`); line();
+      drawText(`Status: ${STATUS_META[report.status].label}`); line();
+      drawText(`Criado em: ${format(new Date(report.created_at), 'dd/MM/yyyy HH:mm', { locale: ptBR })}`); line(20);
+
+      const advance = Number(report.company_advance || 0);
+      const spent = Number(report.total_spent || 0);
+      const diff = spent - advance;
+      drawText(`Adiantado pela empresa: ${formatBRL(advance)}`, { bold: true }); line();
+      drawText(`Total gasto: ${formatBRL(spent)}`, { bold: true }); line();
+      drawText(`${diff >= 0 ? 'Reembolsar ao colaborador' : 'Devolver à empresa'}: ${formatBRL(Math.abs(diff))}`, { bold: true, color: diff >= 0 ? [0.05, 0.5, 0.3] : [0.7, 0.4, 0] }); line(24);
+
+      if (report.notes) {
+        drawText('Observações:', { bold: true }); line();
+        const words = report.notes.split(/\s+/);
+        let lineText = '';
+        for (const w of words) {
+          if ((lineText + ' ' + w).length > 90) { drawText(lineText); line(); lineText = w; }
+          else lineText = lineText ? lineText + ' ' + w : w;
+        }
+        if (lineText) { drawText(lineText); line(); }
+        line(10);
+      }
+
+      drawText(`Itens (${reportItems.length})`, { size: 12, bold: true }); line(18);
+      drawText('Data', { x: 50, bold: true });
+      drawText('Categoria', { x: 110, bold: true });
+      drawText('Descrição', { x: 210, bold: true });
+      drawText('Valor', { x: 470, bold: true });
+      line();
+      page.drawLine({ start: { x: 50, y: y + 6 }, end: { x: width - 50, y: y + 6 }, thickness: 0.5, color: rgb(0.7, 0.7, 0.7) });
+
+      for (const it of reportItems) {
+        const date = it.expense_date ? format(new Date(it.expense_date), 'dd/MM/yy', { locale: ptBR }) : '—';
+        const desc = (it.description || '—').slice(0, 45);
+        drawText(date, { x: 50 });
+        drawText((it.category || '').slice(0, 16), { x: 110 });
+        drawText(desc, { x: 210 });
+        drawText(formatBRL(Number(it.amount || 0)), { x: 470 });
+        line();
+      }
+
+      // ---- Attach receipts ----
+      for (const it of reportItems) {
+        if (!it.receipt_url) continue;
+        try {
+          const resp = await fetch(it.receipt_url);
+          if (!resp.ok) continue;
+          const buf = new Uint8Array(await resp.arrayBuffer());
+          const ct = (resp.headers.get('content-type') || '').toLowerCase();
+          const isPdf = ct.includes('pdf') || it.receipt_url.toLowerCase().includes('.pdf');
+          const isJpg = ct.includes('jpeg') || /\.jpe?g($|\?)/i.test(it.receipt_url);
+          const isPng = ct.includes('png') || /\.png($|\?)/i.test(it.receipt_url);
+
+          if (isPdf) {
+            const src = await PDFDocument.load(buf, { ignoreEncryption: true });
+            const pages = await pdfDoc.copyPages(src, src.getPageIndices());
+            pages.forEach(p => pdfDoc.addPage(p));
+          } else if (isJpg || isPng) {
+            const img = isJpg ? await pdfDoc.embedJpg(buf) : await pdfDoc.embedPng(buf);
+            const p = pdfDoc.addPage([595.28, 841.89]);
+            const maxW = p.getWidth() - 80;
+            const maxH = p.getHeight() - 120;
+            const scale = Math.min(maxW / img.width, maxH / img.height, 1);
+            const w = img.width * scale;
+            const h = img.height * scale;
+            p.drawText(`Comprovante — ${it.category} — ${formatBRL(Number(it.amount || 0))}`, {
+              x: 40, y: p.getHeight() - 40, size: 10, font: fontBold,
+            });
+            p.drawImage(img, { x: (p.getWidth() - w) / 2, y: (p.getHeight() - h) / 2 - 20, width: w, height: h });
+          }
+        } catch (e) {
+          console.warn('Falha ao anexar comprovante', it.id, e);
+        }
+      }
+
+      const bytes = await pdfDoc.save();
+      const blob = new Blob([bytes as BlobPart], { type: 'application/pdf' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      const safe = (report.user_name || 'reembolso').replace(/[^a-z0-9]+/gi, '_');
+      a.href = url;
+      a.download = `reembolso_${safe}_${report.id.slice(0, 8)}.pdf`;
+      a.click();
+      URL.revokeObjectURL(url);
+      toast.success('PDF gerado com sucesso', { id: toastId });
+    } catch (e: any) {
+      toast.error('Erro ao gerar PDF: ' + (e?.message || 'desconhecido'), { id: toastId });
+    }
   };
 
   const filtered = useMemo(() => {
@@ -295,17 +417,28 @@ const FinanceiroReembolsos: React.FC = () => {
                             </Badge>
                           </TableCell>
                           <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
-                            <Select value={r.status} onValueChange={(v) => updateStatus(r.id, v as ExpenseStatus)}>
-                              <SelectTrigger className="w-[130px] ml-auto h-8 text-xs">
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="pendente">Pendente</SelectItem>
-                                <SelectItem value="aprovado">Aprovar</SelectItem>
-                                <SelectItem value="rejeitado">Rejeitar</SelectItem>
-                                <SelectItem value="pago">Marcar como pago</SelectItem>
-                              </SelectContent>
-                            </Select>
+                            <div className="flex items-center justify-end gap-1">
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="h-8 px-2"
+                                title="Exportar PDF com comprovantes"
+                                onClick={() => exportReportPdf(r)}
+                              >
+                                <FileDown className="w-4 h-4" />
+                              </Button>
+                              <Select value={r.status} onValueChange={(v) => updateStatus(r.id, v as ExpenseStatus)}>
+                                <SelectTrigger className="w-[130px] h-8 text-xs">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="pendente">Pendente</SelectItem>
+                                  <SelectItem value="aprovado">Aprovar</SelectItem>
+                                  <SelectItem value="rejeitado">Rejeitar</SelectItem>
+                                  <SelectItem value="pago">Marcar como pago</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
                           </TableCell>
                         </TableRow>
                       );
@@ -393,6 +526,13 @@ const FinanceiroReembolsos: React.FC = () => {
                 </div>
 
                 <div className="flex flex-wrap gap-2 pt-2 border-t">
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => exportReportPdf(detailReport)}
+                  >
+                    <FileDown className="w-4 h-4 mr-1" /> Exportar PDF
+                  </Button>
                   <Button
                     variant="outline"
                     size="sm"
