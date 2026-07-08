@@ -425,7 +425,9 @@ export default function MeetingRoom() {
       });
 
       // Join the meeting with name and role
-      const roleLabel = user.role ? ROLE_LABELS[user.role] : '';
+      // Override: gerente@digitaletextil.com.br aparece como Gerente na reunião
+      const effectiveRoleForMeeting = user.email === 'gerente@digitaletextil.com.br' ? 'gerente' : user.role;
+      const roleLabel = effectiveRoleForMeeting ? ROLE_LABELS[effectiveRoleForMeeting] : '';
       const displayName = user.profile?.full_name || user.email || "Participante";
       const userNameWithRole = roleLabel ? `${displayName} (${roleLabel})` : displayName;
       
