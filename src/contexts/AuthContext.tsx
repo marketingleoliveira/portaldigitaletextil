@@ -40,6 +40,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return (stored as AppRole) || null;
   });
   const lastFetchedUserIdRef = useRef<string | null>(null);
+  const userDataFetchedRef = useRef(false);
+
+  const setUserDataFetchedState = useCallback((value: boolean) => {
+    userDataFetchedRef.current = value;
+    setUserDataFetched(value);
+  }, []);
 
   const setViewAsRole = useCallback((role: AppRole | null) => {
     if (role) {
@@ -52,11 +58,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const fetchUserData = useCallback(async (authUser: User, isLogin: boolean = false, force: boolean = false) => {
     // Skip if we already fetched data for this user (unless forced)
-    if (!force && lastFetchedUserIdRef.current === authUser.id && userDataFetched) {
+    if (!force && lastFetchedUserIdRef.current === authUser.id && userDataFetchedRef.current) {
       return;
     }
     setUserDataLoading(true);
-    setUserDataFetched(false);
+    setUserDataFetchedState(false);
     try {
       // Fetch profile with retry logic
       let profile = null;
@@ -128,10 +134,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       });
     } finally {
       setUserDataLoading(false);
-      setUserDataFetched(true);
+      setUserDataFetchedState(true);
       lastFetchedUserIdRef.current = authUser.id;
     }
-  }, [userDataFetched]);
+  }, [setUserDataFetchedState]);
 
   useEffect(() => {
     let isMounted = true;
@@ -165,18 +171,28 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         
         if (session?.user) {
           // Only fetch on actual sign in or user update
-          const isLogin = event === 'SIGNED_IN';
+          const isSameFetchedUser = lastFetchedUserIdRef.current === session.user.id && userDataFetchedRef.current;
+
+          // The auth client may emit SIGNED_IN again when the browser tab regains focus.
+          // Treat that as a no-op so protected pages are not replaced by a loading screen,
+          // which would unmount and close open dialogs/popups.
+          if (event === 'SIGNED_IN' && isSameFetchedUser) {
+            setLoading(false);
+            return;
+          }
+
+          const isLogin = event === 'SIGNED_IN' && !isSameFetchedUser;
           const shouldFetch = isLogin || event === 'USER_UPDATED';
           
           if (shouldFetch) {
             setTimeout(() => {
-              fetchUserData(session.user, isLogin, isLogin);
+              fetchUserData(session.user, isLogin, isLogin || event === 'USER_UPDATED');
             }, 0);
           }
         } else if (event === 'SIGNED_OUT') {
           setUser(null);
           lastFetchedUserIdRef.current = null;
-          setUserDataFetched(false);
+          setUserDataFetchedState(false);
           setLoading(false);
         }
       }
@@ -186,7 +202,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       isMounted = false;
       subscription.unsubscribe();
     };
-  }, [fetchUserData]);
+  }, [fetchUserData, setUserDataFetchedState]);
 
   const signIn = async (email: string, password: string) => {
     const { error } = await supabase.auth.signInWithPassword({
@@ -210,7 +226,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   // Combined loading state - only show loading until initial data fetch is complete
-  const isLoading = loading || (session?.user && !userDataFetched);
+  const isLoading = loading || (Boolean(session?.user) && !user && !userDataFetched);
 
   const realRole = user?.role ?? null;
   const effectiveRole: AppRole | null =
