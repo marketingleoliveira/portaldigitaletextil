@@ -55,6 +55,7 @@ import {
   ClipboardList,
   Briefcase,
   Receipt,
+  Wallet,
 } from "lucide-react";
 
 import { useTimeClockReminder } from "@/hooks/useTimeClockReminder";
@@ -84,7 +85,16 @@ const navItems: NavItem[] = [
   { label: "Reserva de Salas", href: "/reserva-salas", icon: DoorOpen, roles: ["dev", "admin", "gerente", "vendedor", "criacao", "sdr", "marketing", "qualidade", "financeiro"] },
   { label: "Localizar", href: "/localizar", icon: MapPin, roles: ["dev"] },
   { label: "Metas", href: "/metas", icon: Target, roles: ["dev", "admin", "gerente", "vendedor"] },
-  { label: "Reembolso", href: "/reembolsos", icon: Receipt, roles: ["dev", "admin", "vendedor", "financeiro"] },
+  { label: "Reembolso", href: "/reembolsos", icon: Receipt, roles: ["dev", "admin", "vendedor"] },
+  {
+    label: "Financeiro",
+    href: "/financeiro/reembolsos",
+    icon: Wallet,
+    roles: ["dev", "financeiro"],
+    children: [
+      { label: "Reembolsos", href: "/financeiro/reembolsos", icon: Receipt, roles: ["dev", "financeiro"] },
+    ],
+  },
   {
     label: "CRM",
     href: "/crm-alimentador",
@@ -119,7 +129,7 @@ const navItems: NavItem[] = [
   { label: "Inativos", href: "/inativos", icon: UserX, roles: ["dev", "admin"] },
   { label: "Equipe", href: "/equipe", icon: UsersRound, roles: ["dev", "admin", "gerente", "vendedor", "criacao", "sdr", "marketing"] },
   { label: "Arquivos", href: "/arquivos", icon: Upload, roles: ["dev", "admin"] },
-  { label: "Relatórios", href: "/relatorios", icon: BarChart3, roles: ["dev", "admin", "gerente", "financeiro"] },
+  { label: "Relatórios", href: "/relatorios", icon: BarChart3, roles: ["dev", "admin", "gerente"] },
   { label: "Tabelas de Preços", href: "/precos", icon: DollarSign, roles: ["dev", "admin", "gerente", "vendedor", "sdr"] },
   { label: "Materiais Comerciais", href: "/downloads", icon: FileText, roles: ["dev", "admin", "gerente", "vendedor", "criacao", "sdr", "marketing"] },
   { label: "Material Criação", href: "/material-criacao", icon: Package, roles: ["dev", "criacao", "marketing"] },
