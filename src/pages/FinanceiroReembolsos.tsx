@@ -389,10 +389,16 @@ const FinanceiroReembolsos: React.FC = () => {
   }, [reports, search, statusFilter]);
 
   const kpis = useMemo(() => {
-    const acc = { pendente: 0, aprovado: 0, rejeitado: 0, pago: 0, total: 0 };
+    const acc = { pendente: 0, aprovado: 0, rejeitado: 0, pago: 0, totalSpent: 0, totalAdvance: 0, toReimburse: 0, toReturn: 0 };
     reports.forEach(r => {
       acc[r.status] = (acc[r.status] || 0) + 1;
-      acc.total += r.total_spent || 0;
+      const spent = Number(r.total_spent || 0);
+      const adv = Number(r.company_advance || 0);
+      acc.totalSpent += spent;
+      acc.totalAdvance += adv;
+      const d = spent - adv;
+      if (d >= 0) acc.toReimburse += d;
+      else acc.toReturn += -d;
     });
     return acc;
   }, [reports]);
@@ -430,8 +436,26 @@ const FinanceiroReembolsos: React.FC = () => {
           })}
           <Card>
             <CardContent className="pt-4">
-              <p className="text-xs text-muted-foreground uppercase">Total gasto</p>
-              <p className="text-xl font-bold mt-1">{formatBRL(kpis.total)}</p>
+              <p className="text-xs text-muted-foreground uppercase">Adiantado</p>
+              <p className="text-lg font-bold mt-1">{formatBRL(kpis.totalAdvance)}</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="pt-4">
+              <p className="text-xs text-muted-foreground uppercase">Gasto</p>
+              <p className="text-lg font-bold mt-1">{formatBRL(kpis.totalSpent)}</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="pt-4">
+              <p className="text-xs text-muted-foreground uppercase">A Reembolsar</p>
+              <p className="text-lg font-bold mt-1 text-emerald-600">{formatBRL(kpis.toReimburse)}</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="pt-4">
+              <p className="text-xs text-muted-foreground uppercase">A Devolver</p>
+              <p className="text-lg font-bold mt-1 text-amber-600">{formatBRL(kpis.toReturn)}</p>
             </CardContent>
           </Card>
         </div>
@@ -487,7 +511,7 @@ const FinanceiroReembolsos: React.FC = () => {
                       <TableHead>Período</TableHead>
                       <TableHead className="text-right">Adiantado</TableHead>
                       <TableHead className="text-right">Gasto</TableHead>
-                      <TableHead className="text-right">Reembolsar</TableHead>
+                      <TableHead className="text-right">Saldo</TableHead>
                       <TableHead>Status</TableHead>
                       <TableHead className="text-right">Ações</TableHead>
                     </TableRow>
@@ -525,7 +549,8 @@ const FinanceiroReembolsos: React.FC = () => {
                           <TableCell className="text-right">{formatBRL(Number(r.company_advance || 0))}</TableCell>
                           <TableCell className="text-right">{formatBRL(r.total_spent || 0)}</TableCell>
                           <TableCell className={`text-right font-semibold ${diff >= 0 ? 'text-emerald-600' : 'text-amber-600'}`}>
-                            {formatBRL(Math.abs(diff))}
+                            {diff >= 0 ? '+' : '−'} {formatBRL(Math.abs(diff))}
+                            <p className="text-[10px] font-normal text-muted-foreground">{diff >= 0 ? 'a reembolsar' : 'a devolver'}</p>
                           </TableCell>
                           <TableCell>
                             <Badge variant="outline" className={meta.className}>
