@@ -55,6 +55,7 @@ import {
   ClipboardList,
   Briefcase,
   Receipt,
+  Wallet,
 } from "lucide-react";
 
 import { useTimeClockReminder } from "@/hooks/useTimeClockReminder";
