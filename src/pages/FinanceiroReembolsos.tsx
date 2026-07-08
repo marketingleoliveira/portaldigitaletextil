@@ -677,6 +677,11 @@ const FinanceiroReembolsos: React.FC = () => {
                       const Icon = meta.icon;
                       return (
                         <TableRow key={r.id} className="cursor-pointer" onClick={() => setDetailReport(r)}>
+                          {isDev && (
+                            <TableCell onClick={(e) => e.stopPropagation()} className="w-8">
+                              <Checkbox checked={selected.has(r.id)} onCheckedChange={() => toggleSelect(r.id)} />
+                            </TableCell>
+                          )}
                           <TableCell>
                             <div className="flex items-center gap-2">
                               <Avatar className="w-8 h-8">
