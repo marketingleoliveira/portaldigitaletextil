@@ -81,6 +81,8 @@ const Users: React.FC = () => {
   const [editRegion, setEditRegion] = useState<string>('');
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [showDefaultPassword, setShowDefaultPassword] = useState(false);
+  const DEFAULT_SYSTEM_PASSWORD = 'senha123';
 
   const [newUser, setNewUser] = useState({
     full_name: '',
