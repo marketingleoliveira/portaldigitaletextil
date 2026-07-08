@@ -21,7 +21,8 @@ import {
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
+import { PDFDocument, StandardFonts, rgb, PDFFont, PDFPage } from 'pdf-lib';
+import logoUrl from '@/assets/logo-digitale-full.png';
 
 type ExpenseStatus = 'pendente' | 'aprovado' | 'rejeitado' | 'pago';
 
