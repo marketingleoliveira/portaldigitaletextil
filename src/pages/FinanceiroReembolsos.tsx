@@ -620,7 +620,30 @@ const FinanceiroReembolsos: React.FC = () => {
         {/* Table */}
         <Card>
           <CardHeader>
-            <CardTitle>Solicitações ({filtered.length})</CardTitle>
+            <CardTitle className="flex items-center justify-between gap-3">
+              <span>Solicitações ({filtered.length})</span>
+              {isDev && selected.size >= 2 && (
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button size="sm" variant="default" disabled={merging}>
+                      <Merge className="w-4 h-4 mr-1" /> Agrupar {selected.size} reembolsos
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Agrupar reembolsos?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Os itens e adiantamentos serão consolidados no reembolso mais antigo selecionado. Os demais serão removidos. Só é permitido agrupar reembolsos do mesmo colaborador.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                      <AlertDialogAction onClick={mergeSelected}>Agrupar</AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              )}
+            </CardTitle>
           </CardHeader>
           <CardContent className="p-0">
             {loading ? (
