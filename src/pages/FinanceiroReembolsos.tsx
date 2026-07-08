@@ -605,6 +605,27 @@ const FinanceiroReembolsos: React.FC = () => {
                                   <SelectItem value="pago">Marcar como pago</SelectItem>
                                 </SelectContent>
                               </Select>
+                              {isDev && (
+                                <AlertDialog>
+                                  <AlertDialogTrigger asChild>
+                                    <Button size="sm" variant="ghost" className="h-8 px-2 text-red-600 hover:text-red-700" title="Excluir do sistema">
+                                      <Trash2 className="w-4 h-4" />
+                                    </Button>
+                                  </AlertDialogTrigger>
+                                  <AlertDialogContent>
+                                    <AlertDialogHeader>
+                                      <AlertDialogTitle>Excluir reembolso?</AlertDialogTitle>
+                                      <AlertDialogDescription>
+                                        Esta ação remove o reembolso <strong>{r.title}</strong> de {r.user_name}, todos os itens e comprovantes, permanentemente do sistema. Não pode ser desfeita.
+                                      </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                      <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                      <AlertDialogAction className="bg-red-600 hover:bg-red-700" onClick={() => deleteReport(r)}>Excluir</AlertDialogAction>
+                                    </AlertDialogFooter>
+                                  </AlertDialogContent>
+                                </AlertDialog>
+                              )}
                             </div>
                           </TableCell>
                         </TableRow>
