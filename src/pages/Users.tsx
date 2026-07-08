@@ -51,7 +51,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Plus, Search, MoreVertical, UserPlus, Key, UserX, UserCheck, Loader2, Shield, Trash2 } from 'lucide-react';
+import { Plus, Search, MoreVertical, UserPlus, Key, UserX, UserCheck, Loader2, Shield, Trash2, KeyRound, Eye, EyeOff, Copy } from 'lucide-react';
 import { z } from 'zod';
 
 const userSchema = z.object({
@@ -81,6 +81,8 @@ const Users: React.FC = () => {
   const [editRegion, setEditRegion] = useState<string>('');
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [showDefaultPassword, setShowDefaultPassword] = useState(false);
+  const DEFAULT_SYSTEM_PASSWORD = 'senha123';
 
   const [newUser, setNewUser] = useState({
     full_name: '',
@@ -517,6 +519,52 @@ const Users: React.FC = () => {
             </DialogContent>
           </Dialog>
         </div>
+
+        {/* Default System Password */}
+        <Card className="border-primary/30 bg-primary/5">
+          <CardContent className="pt-6">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-primary/10 text-primary">
+                  <KeyRound className="w-5 h-5" />
+                </div>
+                <div>
+                  <p className="text-sm font-semibold">Senha padrão do sistema</p>
+                  <p className="text-xs text-muted-foreground">
+                    Usada em novos cadastros e ao redefinir senhas.
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <code className="px-3 py-1.5 rounded-md bg-background border font-mono text-sm min-w-[110px] text-center">
+                  {showDefaultPassword ? DEFAULT_SYSTEM_PASSWORD : '••••••••'}
+                </code>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  onClick={() => setShowDefaultPassword((v) => !v)}
+                  title={showDefaultPassword ? 'Ocultar' : 'Mostrar'}
+                >
+                  {showDefaultPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  onClick={() => {
+                    navigator.clipboard.writeText(DEFAULT_SYSTEM_PASSWORD);
+                    toast({ title: 'Senha copiada', description: 'A senha padrão foi copiada para a área de transferência.' });
+                  }}
+                  title="Copiar"
+                >
+                  <Copy className="w-4 h-4" />
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
 
         {/* Search */}
         <Card>
