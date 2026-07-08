@@ -898,6 +898,56 @@ const FinanceiroReembolsos: React.FC = () => {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Add item dialog (dev only) */}
+      <Dialog open={!!addItemFor} onOpenChange={(o) => { if (!o) setAddItemFor(null); }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Adicionar comprovante</DialogTitle>
+            <DialogDescription>{addItemFor?.title} · {addItemFor?.user_name}</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div>
+              <Label>Categoria</Label>
+              <Select value={newItem.category} onValueChange={(v) => setNewItem(p => ({ ...p, category: v }))}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="alimentacao">Alimentação</SelectItem>
+                  <SelectItem value="transporte">Transporte</SelectItem>
+                  <SelectItem value="hospedagem">Hospedagem</SelectItem>
+                  <SelectItem value="combustivel">Combustível</SelectItem>
+                  <SelectItem value="outros">Outros</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>Descrição</Label>
+              <Input value={newItem.description} onChange={(e) => setNewItem(p => ({ ...p, description: e.target.value }))} />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label>Valor (R$)</Label>
+                <Input inputMode="decimal" placeholder="0,00" value={newItem.amount} onChange={(e) => setNewItem(p => ({ ...p, amount: e.target.value }))} />
+              </div>
+              <div>
+                <Label>Data</Label>
+                <Input type="date" value={newItem.expense_date} onChange={(e) => setNewItem(p => ({ ...p, expense_date: e.target.value }))} />
+              </div>
+            </div>
+            <div>
+              <Label>Comprovante (imagem/PDF)</Label>
+              <Input type="file" accept="image/*,application/pdf" onChange={(e) => setNewItem(p => ({ ...p, file: e.target.files?.[0] || null }))} />
+            </div>
+            <div className="flex justify-end gap-2 pt-2">
+              <Button variant="outline" onClick={() => setAddItemFor(null)}>Cancelar</Button>
+              <Button onClick={submitAddItem} disabled={savingItem}>
+                {savingItem && <Loader2 className="w-4 h-4 mr-1 animate-spin" />}
+                Adicionar
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </DashboardLayout>
   );
 };
