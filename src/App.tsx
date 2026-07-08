@@ -118,7 +118,7 @@ const App = () => (
                   <Route path="/reserva-salas" element={<ProtectedRoute><RoomReservations /></ProtectedRoute>} />
                   <Route path="/gravacoes" element={<ProtectedRoute allowedRoles={['dev', 'marketing']}><Recordings /></ProtectedRoute>} />
                   <Route path="/solicitacoes" element={<ProtectedRoute allowedRoles={['dev', 'marketing']}><Solicitacoes /></ProtectedRoute>} />
-                  <Route path="/reembolsos" element={<ProtectedRoute allowedRoles={['dev', 'admin', 'vendedor']}><Reembolsos /></ProtectedRoute>} />
+                  <Route path="/reembolsos" element={<ProtectedRoute allowedRoles={['dev', 'admin', 'vendedor', 'financeiro']}><Reembolsos /></ProtectedRoute>} />
                   <Route path="/reuniao/:code" element={<ProtectedRoute><MeetingErrorBoundary><MeetingRoom /></MeetingErrorBoundary></ProtectedRoute>} />
                   
                   <Route path="/entrar/:code" element={<GuestJoin />} />
