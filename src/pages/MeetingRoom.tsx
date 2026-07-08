@@ -114,6 +114,7 @@ export default function MeetingRoom() {
   // Local state - microphone starts OFF for all users
   const [isMuted, setIsMuted] = useState(true);
   const [isVideoOn, setIsVideoOn] = useState(true);
+  const [bgBlurEnabled, setBgBlurEnabled] = useState(false);
   const [isScreenSharing, setIsScreenSharing] = useState(false);
   const [showChat, setShowChat] = useState(false);
   const [showParticipants, setShowParticipants] = useState(false);
@@ -1268,6 +1269,26 @@ export default function MeetingRoom() {
         .eq("user_id", user.id);
     }
   }, [isVideoOn, callObject, meeting, user, hasModeratorAccess, globalVideoEnabled]);
+
+  const toggleBackgroundBlur = useCallback(async () => {
+    if (!callObject) return;
+    const next = !bgBlurEnabled;
+    try {
+      await callObject.updateInputSettings({
+        video: {
+          processor: next
+            ? { type: "background-blur", config: { strength: 0.6 } }
+            : { type: "none" },
+        },
+      });
+      setBgBlurEnabled(next);
+      toast.success(next ? "Fundo desfocado ativado" : "Fundo desfocado desativado");
+    } catch (err) {
+      console.error("Error toggling background blur:", err);
+      toast.error("Seu navegador/dispositivo não suporta desfoque de fundo");
+    }
+  }, [bgBlurEnabled, callObject]);
+
 
   const toggleScreenShare = useCallback(async () => {
     if (!callObject) {
@@ -2758,6 +2779,17 @@ export default function MeetingRoom() {
                 disabled={!callObject}
               >
                 {isScreenSharing ? <ScreenShareOff className="w-4 h-4" /> : <ScreenShare className="w-4 h-4" />}
+              </Button>
+
+              <Button
+                variant={bgBlurEnabled ? "default" : "secondary"}
+                size="sm"
+                className={cn("rounded-full w-11 h-11", bgBlurEnabled && "bg-primary hover:bg-primary/90")}
+                onClick={toggleBackgroundBlur}
+                disabled={!callObject || !isVideoOn}
+                title="Desfocar fundo"
+              >
+                <Sparkles className="w-4 h-4" />
               </Button>
 
               <Button
