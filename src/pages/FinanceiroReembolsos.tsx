@@ -159,7 +159,7 @@ const FinanceiroReembolsos: React.FC = () => {
       const PAGE_H = 841.89;
       const MARGIN = 50;
       const CONTENT_W = PAGE_W - MARGIN * 2;
-      const BRAND = rgb(0.05, 0.36, 0.24); // corporate green
+      const BRAND = rgb(0, 0, 0); // preto
       const MUTED = rgb(0.45, 0.45, 0.45);
       const LINE = rgb(0.85, 0.85, 0.85);
 
