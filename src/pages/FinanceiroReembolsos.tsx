@@ -22,7 +22,7 @@ import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { PDFDocument, StandardFonts, rgb, PDFFont, PDFPage } from 'pdf-lib';
-import logoUrl from '@/assets/logo-digitale-full.png';
+import logoUrl from '@/assets/logo-white.png';
 
 type ExpenseStatus = 'pendente' | 'aprovado' | 'rejeitado' | 'pago';
 
@@ -159,7 +159,7 @@ const FinanceiroReembolsos: React.FC = () => {
       const PAGE_H = 841.89;
       const MARGIN = 50;
       const CONTENT_W = PAGE_W - MARGIN * 2;
-      const BRAND = rgb(0.05, 0.36, 0.24); // corporate green
+      const BRAND = rgb(0, 0, 0); // preto
       const MUTED = rgb(0.45, 0.45, 0.45);
       const LINE = rgb(0.85, 0.85, 0.85);
 
@@ -288,7 +288,7 @@ const FinanceiroReembolsos: React.FC = () => {
 
       const drawTableHeader = () => {
         ensureSpace(22);
-        page.drawRectangle({ x: MARGIN, y: y - 4, width: CONTENT_W, height: 18, color: rgb(0.95, 0.97, 0.95) });
+        page.drawRectangle({ x: MARGIN, y: y - 4, width: CONTENT_W, height: 18, color: rgb(0.94, 0.94, 0.94) });
         page.drawText('Data', { x: COLS.date + 4, y: y + 2, size: 9, font: fontBold, color: BRAND });
         page.drawText('Categoria', { x: COLS.cat, y: y + 2, size: 9, font: fontBold, color: BRAND });
         page.drawText('Descrição', { x: COLS.desc, y: y + 2, size: 9, font: fontBold, color: BRAND });
