@@ -119,7 +119,7 @@ const navItems: NavItem[] = [
   { label: "Inativos", href: "/inativos", icon: UserX, roles: ["dev", "admin"] },
   { label: "Equipe", href: "/equipe", icon: UsersRound, roles: ["dev", "admin", "gerente", "vendedor", "criacao", "sdr", "marketing"] },
   { label: "Arquivos", href: "/arquivos", icon: Upload, roles: ["dev", "admin"] },
-  { label: "Relatórios", href: "/relatorios", icon: BarChart3, roles: ["dev", "admin", "gerente"] },
+  { label: "Relatórios", href: "/relatorios", icon: BarChart3, roles: ["dev", "admin", "gerente", "financeiro"] },
   { label: "Tabelas de Preços", href: "/precos", icon: DollarSign, roles: ["dev", "admin", "gerente", "vendedor", "sdr"] },
   { label: "Materiais Comerciais", href: "/downloads", icon: FileText, roles: ["dev", "admin", "gerente", "vendedor", "criacao", "sdr", "marketing"] },
   { label: "Material Criação", href: "/material-criacao", icon: Package, roles: ["dev", "criacao", "marketing"] },
