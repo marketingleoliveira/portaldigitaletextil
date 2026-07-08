@@ -123,16 +123,16 @@ const navItems: NavItem[] = [
   { label: "Tabelas de Preços", href: "/precos", icon: DollarSign, roles: ["dev", "admin", "gerente", "vendedor", "sdr"] },
   { label: "Materiais Comerciais", href: "/downloads", icon: FileText, roles: ["dev", "admin", "gerente", "vendedor", "criacao", "sdr", "marketing"] },
   { label: "Material Criação", href: "/material-criacao", icon: Package, roles: ["dev", "criacao", "marketing"] },
-  { label: "Notificações", href: "/notificacoes", icon: Bell, roles: ["dev", "admin", "gerente", "vendedor", "criacao", "sdr", "marketing", "qualidade"] },
+  { label: "Notificações", href: "/notificacoes", icon: Bell, roles: ["dev", "admin", "gerente", "vendedor", "criacao", "sdr", "marketing", "qualidade", "financeiro"] },
   {
     label: "Solicitar Ajuda",
     href: "/tickets",
     icon: TicketIcon,
-    roles: ["dev", "admin", "gerente", "vendedor", "criacao", "sdr", "marketing", "qualidade"],
+    roles: ["dev", "admin", "gerente", "vendedor", "criacao", "sdr", "marketing", "qualidade", "financeiro"],
     highlight: true,
   },
-  { label: "FAQ", href: "/ajuda", icon: HelpCircle, roles: ["dev", "admin", "gerente", "vendedor", "criacao", "sdr", "marketing", "qualidade"] },
-  { label: "Atualizações", href: "/atualizacoes", icon: Rocket, roles: ["dev", "admin", "gerente", "vendedor", "criacao", "sdr", "marketing", "qualidade"] },
+  { label: "FAQ", href: "/ajuda", icon: HelpCircle, roles: ["dev", "admin", "gerente", "vendedor", "criacao", "sdr", "marketing", "qualidade", "financeiro"] },
+  { label: "Atualizações", href: "/atualizacoes", icon: Rocket, roles: ["dev", "admin", "gerente", "vendedor", "criacao", "sdr", "marketing", "qualidade", "financeiro"] },
 ];
 
 interface DashboardLayoutProps {
