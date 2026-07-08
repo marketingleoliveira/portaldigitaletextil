@@ -68,6 +68,7 @@ Deno.serve(async (req) => {
     });
 
     const body = await resp.text();
+    console.log("sac upstream status:", resp.status, "body_preview:", body.slice(0, 500));
     return new Response(body, {
       status: resp.status,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
