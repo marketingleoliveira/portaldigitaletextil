@@ -2782,6 +2782,17 @@ export default function MeetingRoom() {
               </Button>
 
               <Button
+                variant={bgBlurEnabled ? "default" : "secondary"}
+                size="sm"
+                className={cn("rounded-full w-11 h-11", bgBlurEnabled && "bg-primary hover:bg-primary/90")}
+                onClick={toggleBackgroundBlur}
+                disabled={!callObject || !isVideoOn}
+                title="Desfocar fundo"
+              >
+                <Sparkles className="w-4 h-4" />
+              </Button>
+
+              <Button
                 variant={handRaised ? "default" : "secondary"}
                 size="sm"
                 className={cn("rounded-full w-11 h-11", handRaised && "bg-yellow-500 hover:bg-yellow-600")}
