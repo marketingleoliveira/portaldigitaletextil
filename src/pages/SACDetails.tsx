@@ -17,10 +17,7 @@ const SACDetails = () => {
     enabled: !!id,
     queryFn: async () => {
       const { data, error } = await supabase.functions.invoke("sac-proxy", {
-        body: undefined,
-        // pass id via query string
-        // @ts-expect-error - options.query is supported by supabase-js
-        query: { id },
+        body: { id },
       });
       if (error) throw error;
       return data;
