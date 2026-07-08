@@ -436,8 +436,26 @@ const FinanceiroReembolsos: React.FC = () => {
           })}
           <Card>
             <CardContent className="pt-4">
-              <p className="text-xs text-muted-foreground uppercase">Total gasto</p>
-              <p className="text-xl font-bold mt-1">{formatBRL(kpis.total)}</p>
+              <p className="text-xs text-muted-foreground uppercase">Adiantado</p>
+              <p className="text-lg font-bold mt-1">{formatBRL(kpis.totalAdvance)}</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="pt-4">
+              <p className="text-xs text-muted-foreground uppercase">Gasto</p>
+              <p className="text-lg font-bold mt-1">{formatBRL(kpis.totalSpent)}</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="pt-4">
+              <p className="text-xs text-muted-foreground uppercase">A Reembolsar</p>
+              <p className="text-lg font-bold mt-1 text-emerald-600">{formatBRL(kpis.toReimburse)}</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="pt-4">
+              <p className="text-xs text-muted-foreground uppercase">A Devolver</p>
+              <p className="text-lg font-bold mt-1 text-amber-600">{formatBRL(kpis.toReturn)}</p>
             </CardContent>
           </Card>
         </div>
