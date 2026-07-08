@@ -16,8 +16,10 @@ import {
 } from '@/components/ui/dialog';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
-  Wallet, Search, Loader2, ExternalLink, CheckCircle2, XCircle, Clock, BadgeDollarSign, FileDown, Trash2,
+  Wallet, Search, Loader2, ExternalLink, CheckCircle2, XCircle, Clock, BadgeDollarSign, FileDown, Trash2, Merge, Plus,
 } from 'lucide-react';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -78,6 +80,21 @@ const FinanceiroReembolsos: React.FC = () => {
   const [detailReport, setDetailReport] = useState<Report | null>(null);
   const { realRole } = useAuth();
   const isDev = realRole === 'dev';
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [merging, setMerging] = useState(false);
+  const [addItemFor, setAddItemFor] = useState<Report | null>(null);
+  const [newItem, setNewItem] = useState<{ category: string; description: string; amount: string; expense_date: string; file: File | null }>({
+    category: 'alimentacao', description: '', amount: '', expense_date: format(new Date(), 'yyyy-MM-dd'), file: null,
+  });
+  const [savingItem, setSavingItem] = useState(false);
+
+  const toggleSelect = (id: string) => {
+    setSelected(prev => {
+      const n = new Set(prev);
+      n.has(id) ? n.delete(id) : n.add(id);
+      return n;
+    });
+  };
 
   const deleteReport = async (r: Report) => {
     const toastId = toast.loading('Excluindo reembolso...');
@@ -96,6 +113,94 @@ const FinanceiroReembolsos: React.FC = () => {
       toast.error('Erro ao excluir: ' + (e?.message || ''), { id: toastId });
     }
   };
+
+  const mergeSelected = async () => {
+    const ids = Array.from(selected);
+    if (ids.length < 2) { toast.error('Selecione pelo menos 2 reembolsos'); return; }
+    const chosen = reports.filter(r => ids.includes(r.id));
+    const userIds = new Set(chosen.map(r => r.user_id));
+    if (userIds.size > 1) { toast.error('Só é possível agrupar reembolsos do mesmo colaborador'); return; }
+    setMerging(true);
+    const toastId = toast.loading('Agrupando reembolsos...');
+    try {
+      // Target = mais antigo (mantém histórico)
+      const target = [...chosen].sort((a, b) => a.created_at.localeCompare(b.created_at))[0];
+      const sources = chosen.filter(r => r.id !== target.id);
+      const totalAdv = chosen.reduce((s, r) => s + Number(r.company_advance || 0), 0);
+      const mergedNotes = [target.notes, ...sources.map(s => `[Agrupado de "${s.title}"]${s.notes ? ' ' + s.notes : ''}`)].filter(Boolean).join('\n');
+
+      // Move items dos sources para o target
+      const { error: upErr } = await supabase
+        .from('expense_items')
+        .update({ report_id: target.id })
+        .in('report_id', sources.map(s => s.id));
+      if (upErr) throw upErr;
+
+      // Atualiza target: soma adiantados + notas
+      const { error: rErr } = await supabase
+        .from('expense_reports')
+        .update({ company_advance: totalAdv, notes: mergedNotes })
+        .eq('id', target.id);
+      if (rErr) throw rErr;
+
+      // Remove sources (sem itens agora)
+      const { error: dErr } = await supabase
+        .from('expense_reports')
+        .delete()
+        .in('id', sources.map(s => s.id));
+      if (dErr) throw dErr;
+
+      toast.success(`${sources.length + 1} reembolsos agrupados em "${target.title}"`, { id: toastId });
+      setSelected(new Set());
+      await fetchAll();
+    } catch (e: any) {
+      toast.error('Erro ao agrupar: ' + (e?.message || ''), { id: toastId });
+    } finally {
+      setMerging(false);
+    }
+  };
+
+  const openAddItem = (r: Report) => {
+    setNewItem({ category: 'alimentacao', description: '', amount: '', expense_date: format(new Date(), 'yyyy-MM-dd'), file: null });
+    setAddItemFor(r);
+  };
+
+  const submitAddItem = async () => {
+    if (!addItemFor) return;
+    const amt = parseFloat(newItem.amount.replace(',', '.')) || 0;
+    if (amt <= 0) { toast.error('Informe um valor válido'); return; }
+    setSavingItem(true);
+    try {
+      let receipt_path: string | null = null;
+      let receipt_url: string | null = null;
+      if (newItem.file) {
+        const ext = newItem.file.name.split('.').pop() || 'bin';
+        receipt_path = `${addItemFor.user_id}/${addItemFor.id}/${Date.now()}.${ext}`;
+        const { error: upErr } = await supabase.storage.from('reembolsos').upload(receipt_path, newItem.file, { contentType: newItem.file.type || undefined });
+        if (upErr) throw upErr;
+        const { data } = await supabase.storage.from('reembolsos').createSignedUrl(receipt_path, 60 * 60 * 24 * 365);
+        receipt_url = data?.signedUrl || null;
+      }
+      const { error } = await supabase.from('expense_items').insert({
+        report_id: addItemFor.id,
+        category: newItem.category,
+        description: newItem.description || null,
+        amount: amt,
+        expense_date: newItem.expense_date,
+        receipt_path,
+        receipt_url,
+      });
+      if (error) throw error;
+      toast.success('Comprovante adicionado');
+      setAddItemFor(null);
+      await fetchAll();
+    } catch (e: any) {
+      toast.error('Erro ao adicionar: ' + (e?.message || ''));
+    } finally {
+      setSavingItem(false);
+    }
+  };
+
 
   const fetchAll = async () => {
     setLoading(true);
@@ -515,7 +620,30 @@ const FinanceiroReembolsos: React.FC = () => {
         {/* Table */}
         <Card>
           <CardHeader>
-            <CardTitle>Solicitações ({filtered.length})</CardTitle>
+            <CardTitle className="flex items-center justify-between gap-3">
+              <span>Solicitações ({filtered.length})</span>
+              {isDev && selected.size >= 2 && (
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button size="sm" variant="default" disabled={merging}>
+                      <Merge className="w-4 h-4 mr-1" /> Agrupar {selected.size} reembolsos
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Agrupar reembolsos?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Os itens e adiantamentos serão consolidados no reembolso mais antigo selecionado. Os demais serão removidos. Só é permitido agrupar reembolsos do mesmo colaborador.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                      <AlertDialogAction onClick={mergeSelected}>Agrupar</AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              )}
+            </CardTitle>
           </CardHeader>
           <CardContent className="p-0">
             {loading ? (
@@ -531,6 +659,7 @@ const FinanceiroReembolsos: React.FC = () => {
                 <Table>
                   <TableHeader>
                     <TableRow>
+                      {isDev && <TableHead className="w-8"></TableHead>}
                       <TableHead>Colaborador</TableHead>
                       <TableHead>Viagem</TableHead>
                       <TableHead>Período</TableHead>
@@ -548,6 +677,11 @@ const FinanceiroReembolsos: React.FC = () => {
                       const Icon = meta.icon;
                       return (
                         <TableRow key={r.id} className="cursor-pointer" onClick={() => setDetailReport(r)}>
+                          {isDev && (
+                            <TableCell onClick={(e) => e.stopPropagation()} className="w-8">
+                              <Checkbox checked={selected.has(r.id)} onCheckedChange={() => toggleSelect(r.id)} />
+                            </TableCell>
+                          )}
                           <TableCell>
                             <div className="flex items-center gap-2">
                               <Avatar className="w-8 h-8">
@@ -594,6 +728,11 @@ const FinanceiroReembolsos: React.FC = () => {
                               >
                                 <FileDown className="w-4 h-4" />
                               </Button>
+                              {isDev && (
+                                <Button size="sm" variant="ghost" className="h-8 px-2" title="Adicionar comprovante" onClick={() => openAddItem(r)}>
+                                  <Plus className="w-4 h-4" />
+                                </Button>
+                              )}
                               <Select value={r.status} onValueChange={(v) => updateStatus(r.id, v as ExpenseStatus)}>
                                 <SelectTrigger className="w-[130px] h-8 text-xs">
                                   <SelectValue />
@@ -757,6 +896,56 @@ const FinanceiroReembolsos: React.FC = () => {
               </div>
             </>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Add item dialog (dev only) */}
+      <Dialog open={!!addItemFor} onOpenChange={(o) => { if (!o) setAddItemFor(null); }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Adicionar comprovante</DialogTitle>
+            <DialogDescription>{addItemFor?.title} · {addItemFor?.user_name}</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div>
+              <Label>Categoria</Label>
+              <Select value={newItem.category} onValueChange={(v) => setNewItem(p => ({ ...p, category: v }))}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="alimentacao">Alimentação</SelectItem>
+                  <SelectItem value="transporte">Transporte</SelectItem>
+                  <SelectItem value="hospedagem">Hospedagem</SelectItem>
+                  <SelectItem value="combustivel">Combustível</SelectItem>
+                  <SelectItem value="outros">Outros</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>Descrição</Label>
+              <Input value={newItem.description} onChange={(e) => setNewItem(p => ({ ...p, description: e.target.value }))} />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label>Valor (R$)</Label>
+                <Input inputMode="decimal" placeholder="0,00" value={newItem.amount} onChange={(e) => setNewItem(p => ({ ...p, amount: e.target.value }))} />
+              </div>
+              <div>
+                <Label>Data</Label>
+                <Input type="date" value={newItem.expense_date} onChange={(e) => setNewItem(p => ({ ...p, expense_date: e.target.value }))} />
+              </div>
+            </div>
+            <div>
+              <Label>Comprovante (imagem/PDF)</Label>
+              <Input type="file" accept="image/*,application/pdf" onChange={(e) => setNewItem(p => ({ ...p, file: e.target.files?.[0] || null }))} />
+            </div>
+            <div className="flex justify-end gap-2 pt-2">
+              <Button variant="outline" onClick={() => setAddItemFor(null)}>Cancelar</Button>
+              <Button onClick={submitAddItem} disabled={savingItem}>
+                {savingItem && <Loader2 className="w-4 h-4 mr-1 animate-spin" />}
+                Adicionar
+              </Button>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
     </DashboardLayout>
