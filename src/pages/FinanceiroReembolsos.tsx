@@ -659,6 +659,7 @@ const FinanceiroReembolsos: React.FC = () => {
                 <Table>
                   <TableHeader>
                     <TableRow>
+                      {isDev && <TableHead className="w-8"></TableHead>}
                       <TableHead>Colaborador</TableHead>
                       <TableHead>Viagem</TableHead>
                       <TableHead>Período</TableHead>
