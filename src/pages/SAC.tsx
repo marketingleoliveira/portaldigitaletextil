@@ -41,6 +41,7 @@ const SAC = () => {
     queryKey: ["sac-list"],
     queryFn: async () => {
       const { data, error } = await supabase.functions.invoke("sac-proxy");
+      console.log("sac-proxy raw response:", JSON.stringify(data), "error:", error);
       if (error) throw error;
       return data;
     },
