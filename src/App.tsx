@@ -54,6 +54,7 @@ import RoomReservations from "./pages/RoomReservations";
 import Recordings from "./pages/Recordings";
 import Solicitacoes from "./pages/Solicitacoes";
 import Reembolsos from "./pages/Reembolsos";
+import FinanceiroReembolsos from "./pages/FinanceiroReembolsos";
 
 const queryClient = new QueryClient();
 
