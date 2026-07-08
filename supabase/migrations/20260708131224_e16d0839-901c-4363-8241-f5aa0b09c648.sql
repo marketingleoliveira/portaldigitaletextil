@@ -1,0 +1,1 @@
+CREATE POLICY "Financeiro can view all time records" ON public.time_records FOR SELECT USING (has_role(auth.uid(), 'financeiro'::app_role));
