@@ -44,7 +44,15 @@ Deno.serve(async (req) => {
     }
 
     const url = new URL(req.url);
-    const id = url.searchParams.get('id');
+    let id = url.searchParams.get('id');
+    if (!id && (req.method === 'POST')) {
+      try {
+        const body = await req.json();
+        if (body?.id) id = String(body.id);
+      } catch {
+        // no body
+      }
+    }
     const target = id ? `${SAC_URL}?id=${encodeURIComponent(id)}` : SAC_URL;
 
     const resp = await fetch(target, {
