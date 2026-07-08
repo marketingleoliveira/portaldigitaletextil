@@ -264,6 +264,43 @@ const ReembolsosManager: React.FC<Props> = ({ userId, canEdit, canDelete = false
     if (up.path) toast.success('Comprovante enviado');
   };
 
+  // Multi-file: first file preenche a linha atual; arquivos extras criam novas linhas (1 comprovante por item)
+  const handleFilesPick = async (i: number, files: FileList | null) => {
+    if (!files || files.length === 0) return;
+    const arr = Array.from(files);
+    const [first, ...rest] = arr;
+    await handleFilePick(i, first);
+    if (rest.length === 0) return;
+
+    // Categoria herdada da linha atual
+    const baseCategory = drafts[i]?.category || 'outros';
+    // Cria placeholders imediatamente
+    const placeholders: DraftItem[] = rest.map(f => ({
+      category: baseCategory,
+      description: '',
+      amount: '',
+      expense_date: '',
+      file: f,
+      fileName: f.name,
+      uploading: true,
+    }));
+    let startIndex = 0;
+    setDrafts(d => {
+      startIndex = d.length;
+      return [...d, ...placeholders];
+    });
+    // Upload em paralelo
+    const ups = await Promise.all(rest.map(f => uploadReceipt(f)));
+    setDrafts(d => d.map((x, idx) => {
+      const rel = idx - startIndex;
+      if (rel >= 0 && rel < ups.length) {
+        return { ...x, uploadedUrl: ups[rel].url, uploadedPath: ups[rel].path, uploading: false };
+      }
+      return x;
+    }));
+    if (ups.some(u => u.path)) toast.success(`${ups.filter(u => u.path).length} comprovante(s) enviado(s)`);
+  };
+
 
   const handleSubmit = async () => {
     if (!title.trim()) { toast.error('Informe um título para a viagem'); return; }
@@ -890,11 +927,12 @@ const ReembolsosManager: React.FC<Props> = ({ userId, canEdit, canDelete = false
                       </Button>
                     </div>
                     <div className="col-span-12">
-                      <Label className="text-xs flex items-center gap-1"><Upload className="w-3 h-3" /> Comprovante</Label>
+                      <Label className="text-xs flex items-center gap-1"><Upload className="w-3 h-3" /> Comprovante(s)</Label>
                       <Input
                         type="file"
+                        multiple
                         accept="image/*,application/pdf"
-                        onChange={(e) => { const f = e.target.files?.[0] || null; handleFilePick(i, f); }}
+                        onChange={(e) => { handleFilesPick(i, e.target.files); e.currentTarget.value = ''; }}
                       />
                       {d.uploading && <p className="text-[11px] text-muted-foreground mt-1">Enviando...</p>}
                       {!d.uploading && d.fileName && (
