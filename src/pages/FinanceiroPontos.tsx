@@ -165,20 +165,22 @@ const FinanceiroPontos: React.FC = () => {
 
       try {
         const logoUrl = (await import('@/assets/logo-digitale-full.png')).default;
-        const loadImage = (src: string): Promise<string> => new Promise((resolve, reject) => {
+        const loadImage = (src: string): Promise<{ dataUrl: string; w: number; h: number }> => new Promise((resolve, reject) => {
           const img = new Image();
           img.crossOrigin = 'anonymous';
           img.onload = () => {
             const canvas = document.createElement('canvas');
             canvas.width = img.width; canvas.height = img.height;
             canvas.getContext('2d')?.drawImage(img, 0, 0);
-            resolve(canvas.toDataURL('image/png'));
+            resolve({ dataUrl: canvas.toDataURL('image/png'), w: img.width, h: img.height });
           };
           img.onerror = reject;
           img.src = src;
         });
-        const logoBase64 = await loadImage(logoUrl);
-        doc.addImage(logoBase64, 'PNG', margin, 10, 50, 15);
+        const { dataUrl, w, h } = await loadImage(logoUrl);
+        const targetH = 14;
+        const targetW = (w / h) * targetH;
+        doc.addImage(dataUrl, 'PNG', margin, 12, targetW, targetH);
       } catch { /* ignore */ }
 
       doc.setFontSize(18); doc.setFont('helvetica', 'bold');
