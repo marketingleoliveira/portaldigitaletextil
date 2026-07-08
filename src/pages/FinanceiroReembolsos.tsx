@@ -146,7 +146,8 @@ const FinanceiroReembolsos: React.FC = () => {
 
       // ---- Summary page ----
       let page = pdfDoc.addPage([595.28, 841.89]); // A4
-      const { width, height } = page.size();
+      const width = page.getWidth();
+      const height = page.getHeight();
       let y = height - 50;
       const drawText = (text: string, opts: { x?: number; size?: number; bold?: boolean; color?: [number, number, number] } = {}) => {
         page.drawText(text, {
