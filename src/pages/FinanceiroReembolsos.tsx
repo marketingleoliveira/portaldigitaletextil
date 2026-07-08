@@ -728,6 +728,11 @@ const FinanceiroReembolsos: React.FC = () => {
                               >
                                 <FileDown className="w-4 h-4" />
                               </Button>
+                              {isDev && (
+                                <Button size="sm" variant="ghost" className="h-8 px-2" title="Adicionar comprovante" onClick={() => openAddItem(r)}>
+                                  <Plus className="w-4 h-4" />
+                                </Button>
+                              )}
                               <Select value={r.status} onValueChange={(v) => updateStatus(r.id, v as ExpenseStatus)}>
                                 <SelectTrigger className="w-[130px] h-8 text-xs">
                                   <SelectValue />
