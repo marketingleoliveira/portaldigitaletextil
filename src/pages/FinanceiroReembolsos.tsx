@@ -511,7 +511,7 @@ const FinanceiroReembolsos: React.FC = () => {
                       <TableHead>Período</TableHead>
                       <TableHead className="text-right">Adiantado</TableHead>
                       <TableHead className="text-right">Gasto</TableHead>
-                      <TableHead className="text-right">Reembolsar</TableHead>
+                      <TableHead className="text-right">Saldo</TableHead>
                       <TableHead>Status</TableHead>
                       <TableHead className="text-right">Ações</TableHead>
                     </TableRow>
