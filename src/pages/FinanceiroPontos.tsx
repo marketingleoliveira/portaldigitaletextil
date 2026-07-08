@@ -9,12 +9,17 @@ import { Badge } from '@/components/ui/badge';
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/components/ui/table';
-import { Clock, Search, Loader2, Download, FileText } from 'lucide-react';
+import { Clock, Search, Loader2, Download, FileText, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import { useAuth } from '@/contexts/AuthContext';
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription,
+  AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 
 interface UserRow {
   id: string;
@@ -53,6 +58,20 @@ const FinanceiroPontos: React.FC = () => {
   const [rows, setRows] = useState<UserRow[]>([]);
   const [search, setSearch] = useState('');
   const [exportingId, setExportingId] = useState<string | null>(null);
+  const { realRole } = useAuth();
+  const isDev = realRole === 'dev';
+
+  const deleteUserRecords = async (u: UserRow) => {
+    const toastId = toast.loading('Excluindo registros de ponto...');
+    try {
+      const { error } = await supabase.from('time_records').delete().eq('user_id', u.id);
+      if (error) throw error;
+      toast.success(`Registros de ponto de ${u.full_name} excluídos do sistema`, { id: toastId });
+      setRows(prev => prev.filter(r => r.id !== u.id));
+    } catch (e: any) {
+      toast.error('Erro ao excluir: ' + (e?.message || ''), { id: toastId });
+    }
+  };
 
   useEffect(() => {
     const load = async () => {
@@ -363,6 +382,27 @@ const FinanceiroPontos: React.FC = () => {
                               : <FileText className="h-4 w-4 mr-1" />}
                             PDF
                           </Button>
+                          {isDev && (
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button size="sm" variant="outline" className="text-red-600 hover:text-red-700 border-red-200">
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>Excluir registros de ponto?</AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    Todos os <strong>{u.total_records}</strong> registros de ponto de <strong>{u.full_name}</strong> serão removidos permanentemente do sistema. Esta ação não pode ser desfeita.
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                  <AlertDialogAction className="bg-red-600 hover:bg-red-700" onClick={() => deleteUserRecords(u)}>Excluir</AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                          )}
                         </div>
                       </TableCell>
                     </TableRow>

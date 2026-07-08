@@ -16,13 +16,18 @@ import {
 } from '@/components/ui/dialog';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
-  Wallet, Search, Loader2, ExternalLink, CheckCircle2, XCircle, Clock, BadgeDollarSign, FileDown,
+  Wallet, Search, Loader2, ExternalLink, CheckCircle2, XCircle, Clock, BadgeDollarSign, FileDown, Trash2,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { PDFDocument, StandardFonts, rgb, PDFFont, PDFPage } from 'pdf-lib';
 import logoUrl from '@/assets/logo-white.png';
+import { useAuth } from '@/contexts/AuthContext';
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription,
+  AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 
 type ExpenseStatus = 'pendente' | 'aprovado' | 'rejeitado' | 'pago';
 
@@ -71,6 +76,26 @@ const FinanceiroReembolsos: React.FC = () => {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<'todos' | ExpenseStatus>('todos');
   const [detailReport, setDetailReport] = useState<Report | null>(null);
+  const { realRole } = useAuth();
+  const isDev = realRole === 'dev';
+
+  const deleteReport = async (r: Report) => {
+    const toastId = toast.loading('Excluindo reembolso...');
+    try {
+      const its = items[r.id] || [];
+      const paths = its.map(i => i.receipt_path).filter(Boolean) as string[];
+      if (paths.length) {
+        await supabase.storage.from('reembolsos').remove(paths);
+      }
+      const { error } = await supabase.from('expense_reports').delete().eq('id', r.id);
+      if (error) throw error;
+      toast.success('Reembolso excluído do sistema', { id: toastId });
+      setReports(prev => prev.filter(x => x.id !== r.id));
+      setItems(prev => { const n = { ...prev }; delete n[r.id]; return n; });
+    } catch (e: any) {
+      toast.error('Erro ao excluir: ' + (e?.message || ''), { id: toastId });
+    }
+  };
 
   const fetchAll = async () => {
     setLoading(true);
@@ -580,6 +605,27 @@ const FinanceiroReembolsos: React.FC = () => {
                                   <SelectItem value="pago">Marcar como pago</SelectItem>
                                 </SelectContent>
                               </Select>
+                              {isDev && (
+                                <AlertDialog>
+                                  <AlertDialogTrigger asChild>
+                                    <Button size="sm" variant="ghost" className="h-8 px-2 text-red-600 hover:text-red-700" title="Excluir do sistema">
+                                      <Trash2 className="w-4 h-4" />
+                                    </Button>
+                                  </AlertDialogTrigger>
+                                  <AlertDialogContent>
+                                    <AlertDialogHeader>
+                                      <AlertDialogTitle>Excluir reembolso?</AlertDialogTitle>
+                                      <AlertDialogDescription>
+                                        Esta ação remove o reembolso <strong>{r.title}</strong> de {r.user_name}, todos os itens e comprovantes, permanentemente do sistema. Não pode ser desfeita.
+                                      </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                      <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                      <AlertDialogAction className="bg-red-600 hover:bg-red-700" onClick={() => deleteReport(r)}>Excluir</AlertDialogAction>
+                                    </AlertDialogFooter>
+                                  </AlertDialogContent>
+                                </AlertDialog>
+                              )}
                             </div>
                           </TableCell>
                         </TableRow>
