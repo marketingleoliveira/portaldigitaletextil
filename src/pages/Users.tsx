@@ -51,7 +51,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Plus, Search, MoreVertical, UserPlus, Key, UserX, UserCheck, Loader2, Shield, Trash2 } from 'lucide-react';
+import { Plus, Search, MoreVertical, UserPlus, Key, UserX, UserCheck, Loader2, Shield, Trash2, KeyRound, Eye, EyeOff, Copy } from 'lucide-react';
 import { z } from 'zod';
 
 const userSchema = z.object({
