@@ -72,6 +72,8 @@ const FinanceiroPontos: React.FC = () => {
       toast.error('Erro ao excluir: ' + (e?.message || ''), { id: toastId });
     }
   };
+
+  useEffect(() => {
     const load = async () => {
       setLoading(true);
       try {
