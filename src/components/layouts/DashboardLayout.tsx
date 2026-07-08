@@ -56,6 +56,7 @@ import {
   Briefcase,
   Receipt,
   Wallet,
+  Inbox,
 } from "lucide-react";
 
 import { useTimeClockReminder } from "@/hooks/useTimeClockReminder";
