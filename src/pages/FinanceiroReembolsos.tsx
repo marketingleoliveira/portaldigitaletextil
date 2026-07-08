@@ -417,17 +417,28 @@ const FinanceiroReembolsos: React.FC = () => {
                             </Badge>
                           </TableCell>
                           <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
-                            <Select value={r.status} onValueChange={(v) => updateStatus(r.id, v as ExpenseStatus)}>
-                              <SelectTrigger className="w-[130px] ml-auto h-8 text-xs">
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="pendente">Pendente</SelectItem>
-                                <SelectItem value="aprovado">Aprovar</SelectItem>
-                                <SelectItem value="rejeitado">Rejeitar</SelectItem>
-                                <SelectItem value="pago">Marcar como pago</SelectItem>
-                              </SelectContent>
-                            </Select>
+                            <div className="flex items-center justify-end gap-1">
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="h-8 px-2"
+                                title="Exportar PDF com comprovantes"
+                                onClick={() => exportReportPdf(r)}
+                              >
+                                <FileDown className="w-4 h-4" />
+                              </Button>
+                              <Select value={r.status} onValueChange={(v) => updateStatus(r.id, v as ExpenseStatus)}>
+                                <SelectTrigger className="w-[130px] h-8 text-xs">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="pendente">Pendente</SelectItem>
+                                  <SelectItem value="aprovado">Aprovar</SelectItem>
+                                  <SelectItem value="rejeitado">Rejeitar</SelectItem>
+                                  <SelectItem value="pago">Marcar como pago</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
                           </TableCell>
                         </TableRow>
                       );
