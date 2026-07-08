@@ -382,6 +382,27 @@ const FinanceiroPontos: React.FC = () => {
                               : <FileText className="h-4 w-4 mr-1" />}
                             PDF
                           </Button>
+                          {isDev && (
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button size="sm" variant="outline" className="text-red-600 hover:text-red-700 border-red-200">
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>Excluir registros de ponto?</AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    Todos os <strong>{u.total_records}</strong> registros de ponto de <strong>{u.full_name}</strong> serão removidos permanentemente do sistema. Esta ação não pode ser desfeita.
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                  <AlertDialogAction className="bg-red-600 hover:bg-red-700" onClick={() => deleteUserRecords(u)}>Excluir</AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                          )}
                         </div>
                       </TableCell>
                     </TableRow>
