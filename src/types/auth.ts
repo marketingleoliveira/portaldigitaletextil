@@ -118,6 +118,7 @@ export const ROLE_LABELS: Record<AppRole, string> = {
   sdr: 'SDR',
   marketing: 'Marketing',
   qualidade: 'Qualidade',
+  financeiro: 'Financeiro',
 };
 
 export const ROLE_COLORS: Record<AppRole, string> = {
@@ -129,6 +130,7 @@ export const ROLE_COLORS: Record<AppRole, string> = {
   sdr: 'bg-role-sdr',
   marketing: 'bg-role-marketing',
   qualidade: 'bg-role-qualidade',
+  financeiro: 'bg-role-financeiro',
 };
 
 // Helper to check if role has full access (dev or admin/diretor)
