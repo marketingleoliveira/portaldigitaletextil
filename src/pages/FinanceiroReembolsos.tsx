@@ -527,6 +527,13 @@ const FinanceiroReembolsos: React.FC = () => {
 
                 <div className="flex flex-wrap gap-2 pt-2 border-t">
                   <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => exportReportPdf(detailReport)}
+                  >
+                    <FileDown className="w-4 h-4 mr-1" /> Exportar PDF
+                  </Button>
+                  <Button
                     variant="outline"
                     size="sm"
                     onClick={() => updateStatus(detailReport.id, 'pendente')}
