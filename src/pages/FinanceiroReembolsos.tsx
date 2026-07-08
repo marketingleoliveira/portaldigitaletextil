@@ -76,6 +76,26 @@ const FinanceiroReembolsos: React.FC = () => {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<'todos' | ExpenseStatus>('todos');
   const [detailReport, setDetailReport] = useState<Report | null>(null);
+  const { realRole } = useAuth();
+  const isDev = realRole === 'dev';
+
+  const deleteReport = async (r: Report) => {
+    const toastId = toast.loading('Excluindo reembolso...');
+    try {
+      const its = items[r.id] || [];
+      const paths = its.map(i => i.receipt_path).filter(Boolean) as string[];
+      if (paths.length) {
+        await supabase.storage.from('reembolsos').remove(paths);
+      }
+      const { error } = await supabase.from('expense_reports').delete().eq('id', r.id);
+      if (error) throw error;
+      toast.success('Reembolso excluído do sistema', { id: toastId });
+      setReports(prev => prev.filter(x => x.id !== r.id));
+      setItems(prev => { const n = { ...prev }; delete n[r.id]; return n; });
+    } catch (e: any) {
+      toast.error('Erro ao excluir: ' + (e?.message || ''), { id: toastId });
+    }
+  };
 
   const fetchAll = async () => {
     setLoading(true);
