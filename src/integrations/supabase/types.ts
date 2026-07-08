@@ -2035,6 +2035,7 @@ export type Database = {
         | "sdr"
         | "marketing"
         | "qualidade"
+        | "financeiro"
       lead_source:
         | "indicacao"
         | "site"
@@ -2201,6 +2202,7 @@ export const Constants = {
         "sdr",
         "marketing",
         "qualidade",
+        "financeiro",
       ],
       lead_source: [
         "indicacao",
