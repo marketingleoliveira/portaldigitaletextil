@@ -288,7 +288,7 @@ const FinanceiroReembolsos: React.FC = () => {
 
       const drawTableHeader = () => {
         ensureSpace(22);
-        page.drawRectangle({ x: MARGIN, y: y - 4, width: CONTENT_W, height: 18, color: rgb(0.95, 0.97, 0.95) });
+        page.drawRectangle({ x: MARGIN, y: y - 4, width: CONTENT_W, height: 18, color: rgb(0.94, 0.94, 0.94) });
         page.drawText('Data', { x: COLS.date + 4, y: y + 2, size: 9, font: fontBold, color: BRAND });
         page.drawText('Categoria', { x: COLS.cat, y: y + 2, size: 9, font: fontBold, color: BRAND });
         page.drawText('Descrição', { x: COLS.desc, y: y + 2, size: 9, font: fontBold, color: BRAND });
