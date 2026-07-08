@@ -114,6 +114,7 @@ export default function MeetingRoom() {
   // Local state - microphone starts OFF for all users
   const [isMuted, setIsMuted] = useState(true);
   const [isVideoOn, setIsVideoOn] = useState(true);
+  const [bgBlurEnabled, setBgBlurEnabled] = useState(false);
   const [isScreenSharing, setIsScreenSharing] = useState(false);
   const [showChat, setShowChat] = useState(false);
   const [showParticipants, setShowParticipants] = useState(false);
