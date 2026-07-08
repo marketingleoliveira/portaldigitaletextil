@@ -93,6 +93,7 @@ const navItems: NavItem[] = [
     roles: ["dev", "financeiro"],
     children: [
       { label: "Reembolsos", href: "/financeiro/reembolsos", icon: Receipt, roles: ["dev", "financeiro"] },
+      { label: "Pontos", href: "/financeiro/pontos", icon: Clock, roles: ["dev", "financeiro"] },
     ],
   },
   {
