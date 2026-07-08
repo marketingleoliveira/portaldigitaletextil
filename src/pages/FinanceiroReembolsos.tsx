@@ -112,6 +112,94 @@ const FinanceiroReembolsos: React.FC = () => {
     }
   };
 
+  const mergeSelected = async () => {
+    const ids = Array.from(selected);
+    if (ids.length < 2) { toast.error('Selecione pelo menos 2 reembolsos'); return; }
+    const chosen = reports.filter(r => ids.includes(r.id));
+    const userIds = new Set(chosen.map(r => r.user_id));
+    if (userIds.size > 1) { toast.error('Só é possível agrupar reembolsos do mesmo colaborador'); return; }
+    setMerging(true);
+    const toastId = toast.loading('Agrupando reembolsos...');
+    try {
+      // Target = mais antigo (mantém histórico)
+      const target = [...chosen].sort((a, b) => a.created_at.localeCompare(b.created_at))[0];
+      const sources = chosen.filter(r => r.id !== target.id);
+      const totalAdv = chosen.reduce((s, r) => s + Number(r.company_advance || 0), 0);
+      const mergedNotes = [target.notes, ...sources.map(s => `[Agrupado de "${s.title}"]${s.notes ? ' ' + s.notes : ''}`)].filter(Boolean).join('\n');
+
+      // Move items dos sources para o target
+      const { error: upErr } = await supabase
+        .from('expense_items')
+        .update({ report_id: target.id })
+        .in('report_id', sources.map(s => s.id));
+      if (upErr) throw upErr;
+
+      // Atualiza target: soma adiantados + notas
+      const { error: rErr } = await supabase
+        .from('expense_reports')
+        .update({ company_advance: totalAdv, notes: mergedNotes })
+        .eq('id', target.id);
+      if (rErr) throw rErr;
+
+      // Remove sources (sem itens agora)
+      const { error: dErr } = await supabase
+        .from('expense_reports')
+        .delete()
+        .in('id', sources.map(s => s.id));
+      if (dErr) throw dErr;
+
+      toast.success(`${sources.length + 1} reembolsos agrupados em "${target.title}"`, { id: toastId });
+      setSelected(new Set());
+      await fetchAll();
+    } catch (e: any) {
+      toast.error('Erro ao agrupar: ' + (e?.message || ''), { id: toastId });
+    } finally {
+      setMerging(false);
+    }
+  };
+
+  const openAddItem = (r: Report) => {
+    setNewItem({ category: 'alimentacao', description: '', amount: '', expense_date: format(new Date(), 'yyyy-MM-dd'), file: null });
+    setAddItemFor(r);
+  };
+
+  const submitAddItem = async () => {
+    if (!addItemFor) return;
+    const amt = parseFloat(newItem.amount.replace(',', '.')) || 0;
+    if (amt <= 0) { toast.error('Informe um valor válido'); return; }
+    setSavingItem(true);
+    try {
+      let receipt_path: string | null = null;
+      let receipt_url: string | null = null;
+      if (newItem.file) {
+        const ext = newItem.file.name.split('.').pop() || 'bin';
+        receipt_path = `${addItemFor.user_id}/${addItemFor.id}/${Date.now()}.${ext}`;
+        const { error: upErr } = await supabase.storage.from('reembolsos').upload(receipt_path, newItem.file, { contentType: newItem.file.type || undefined });
+        if (upErr) throw upErr;
+        const { data } = await supabase.storage.from('reembolsos').createSignedUrl(receipt_path, 60 * 60 * 24 * 365);
+        receipt_url = data?.signedUrl || null;
+      }
+      const { error } = await supabase.from('expense_items').insert({
+        report_id: addItemFor.id,
+        category: newItem.category,
+        description: newItem.description || null,
+        amount: amt,
+        expense_date: newItem.expense_date,
+        receipt_path,
+        receipt_url,
+      });
+      if (error) throw error;
+      toast.success('Comprovante adicionado');
+      setAddItemFor(null);
+      await fetchAll();
+    } catch (e: any) {
+      toast.error('Erro ao adicionar: ' + (e?.message || ''));
+    } finally {
+      setSavingItem(false);
+    }
+  };
+
+
   const fetchAll = async () => {
     setLoading(true);
     const { data: reps, error } = await supabase
