@@ -94,6 +94,7 @@ const Team: React.FC = () => {
   const sdrs = orgMembers.filter((m) => m.role === 'sdr');
   const vendedores = orgMembers.filter((m) => m.role === 'vendedor');
   const qualidade = orgMembers.filter((m) => m.role === 'qualidade');
+  const financeiro = orgMembers.filter((m) => m.role === 'financeiro');
 
   const handleMemberClick = (member: TeamMember) => {
     setSelectedMember(member);
@@ -370,6 +371,22 @@ const Team: React.FC = () => {
                 </div>
               </div>
             )}
+            {/* Financeiro */}
+            {financeiro.length > 0 && (
+              <div className="space-y-4">
+                <div className="flex items-center gap-2">
+                  <BadgeCheck className="w-5 h-5 text-emerald-600" />
+                  <h3 className="font-semibold text-lg">Financeiro</h3>
+                  <Badge variant="secondary" className="ml-2">{financeiro.length}</Badge>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+                  {financeiro.map((member) => (
+                    <MemberCard key={member.id} member={member} size="sm" />
+                  ))}
+                </div>
+              </div>
+            )}
+
 
             {/* Vendedores - Bottom Level */}
             {vendedores.length > 0 && (

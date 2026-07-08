@@ -128,7 +128,7 @@ const navItems: NavItem[] = [
   { label: "Categorias", href: "/categorias", icon: FolderOpen, roles: ["dev", "admin", "criacao"] },
   { label: "Usuários", href: "/usuarios", icon: Users, roles: ["dev", "admin"] },
   { label: "Inativos", href: "/inativos", icon: UserX, roles: ["dev", "admin"] },
-  { label: "Equipe", href: "/equipe", icon: UsersRound, roles: ["dev", "admin", "gerente", "vendedor", "criacao", "sdr", "marketing"] },
+  { label: "Equipe", href: "/equipe", icon: UsersRound, roles: ["dev", "admin", "gerente", "vendedor", "criacao", "sdr", "marketing", "financeiro"] },
   { label: "Arquivos", href: "/arquivos", icon: Upload, roles: ["dev", "admin"] },
   { label: "Relatórios", href: "/relatorios", icon: BarChart3, roles: ["dev", "admin", "gerente"] },
   { label: "Tabelas de Preços", href: "/precos", icon: DollarSign, roles: ["dev", "admin", "gerente", "vendedor", "sdr"] },
