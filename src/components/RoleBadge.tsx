@@ -20,6 +20,7 @@ const RoleBadge: React.FC<RoleBadgeProps> = ({ role, region, showIcon = true, si
     sdr: User,
     marketing: Megaphone,
     qualidade: BadgeCheck,
+    financeiro: Wallet,
   };
 
   const Icon = icons[role];
@@ -34,6 +35,7 @@ const RoleBadge: React.FC<RoleBadgeProps> = ({ role, region, showIcon = true, si
     sdr: "secondary",
     marketing: "secondary",
     qualidade: "secondary",
+    financeiro: "secondary",
   };
 
   // For vendedor with region, show "Vendedor SP" format
