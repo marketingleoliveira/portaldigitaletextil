@@ -180,51 +180,35 @@ const Users: React.FC = () => {
     const tempPassword = generatePassword();
 
     try {
-      // Create auth user via admin API would require edge function
-      // For now, we'll use signUp which requires email confirmation
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: newUser.email,
-        password: tempPassword,
-        options: {
-          data: {
-            full_name: newUser.full_name,
-            phone: newUser.phone,
-          },
-          emailRedirectTo: `${window.location.origin}/login`,
+      // Use admin edge function (signups are disabled on the auth instance)
+      const { data, error: fnError } = await supabase.functions.invoke('create-user', {
+        body: {
+          email: newUser.email,
+          password: tempPassword,
+          full_name: newUser.full_name,
+          role: newUser.role,
+          region: newUser.role === 'vendedor' ? newUser.region || null : null,
+          is_active: true,
         },
       });
 
-      if (authError) throw authError;
+      if (fnError) throw fnError;
+      if (data?.error) throw new Error(data.error);
 
-      if (authData.user) {
-        // Create role
-        await supabase.from('user_roles').insert({
-          user_id: authData.user.id,
-          role: newUser.role,
-        });
+      toast({
+        title: 'Usuário criado',
+        description: `Senha inicial: ${tempPassword}`,
+      });
 
-        // Update profile with region if vendedor
-        if (newUser.role === 'vendedor' && newUser.region) {
-          await supabase.from('profiles').update({
-            region: newUser.region,
-          }).eq('id', authData.user.id);
-        }
-
-        toast({
-          title: 'Usuário criado',
-          description: `Senha inicial: ${tempPassword}`,
-        });
-
-        setDialogOpen(false);
-        setNewUser({
-          full_name: '',
-          email: '',
-          phone: '',
-          role: 'vendedor',
-          region: '',
-        });
-        fetchUsers();
-      }
+      setDialogOpen(false);
+      setNewUser({
+        full_name: '',
+        email: '',
+        phone: '',
+        role: 'vendedor',
+        region: '',
+      });
+      fetchUsers();
     } catch (error: any) {
       let message = 'Erro ao criar usuário';
       if (error.message?.includes('already registered')) {
