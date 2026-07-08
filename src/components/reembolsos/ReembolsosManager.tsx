@@ -849,7 +849,12 @@ const ReembolsosManager: React.FC<Props> = ({ userId, canEdit, canDelete = false
 
       {/* New / Edit Dialog */}
       <Dialog open={dialogOpen} onOpenChange={(o) => { setDialogOpen(o); if (!o) resetForm(); }}>
-        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+        <DialogContent
+          className="max-w-3xl max-h-[90vh] overflow-y-auto"
+          onPointerDownOutside={(e) => e.preventDefault()}
+          onInteractOutside={(e) => e.preventDefault()}
+          onEscapeKeyDown={(e) => e.preventDefault()}
+        >
           <DialogHeader>
             <DialogTitle>{editingReport ? 'Editar Solicitação' : 'Nova Solicitação de Reembolso'}</DialogTitle>
             <DialogDescription>
