@@ -78,6 +78,21 @@ const FinanceiroReembolsos: React.FC = () => {
   const [detailReport, setDetailReport] = useState<Report | null>(null);
   const { realRole } = useAuth();
   const isDev = realRole === 'dev';
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [merging, setMerging] = useState(false);
+  const [addItemFor, setAddItemFor] = useState<Report | null>(null);
+  const [newItem, setNewItem] = useState<{ category: string; description: string; amount: string; expense_date: string; file: File | null }>({
+    category: 'alimentacao', description: '', amount: '', expense_date: format(new Date(), 'yyyy-MM-dd'), file: null,
+  });
+  const [savingItem, setSavingItem] = useState(false);
+
+  const toggleSelect = (id: string) => {
+    setSelected(prev => {
+      const n = new Set(prev);
+      n.has(id) ? n.delete(id) : n.add(id);
+      return n;
+    });
+  };
 
   const deleteReport = async (r: Report) => {
     const toastId = toast.loading('Excluindo reembolso...');
