@@ -58,8 +58,20 @@ const FinanceiroPontos: React.FC = () => {
   const [rows, setRows] = useState<UserRow[]>([]);
   const [search, setSearch] = useState('');
   const [exportingId, setExportingId] = useState<string | null>(null);
+  const { realRole } = useAuth();
+  const isDev = realRole === 'dev';
 
-  useEffect(() => {
+  const deleteUserRecords = async (u: UserRow) => {
+    const toastId = toast.loading('Excluindo registros de ponto...');
+    try {
+      const { error } = await supabase.from('time_records').delete().eq('user_id', u.id);
+      if (error) throw error;
+      toast.success(`Registros de ponto de ${u.full_name} excluídos do sistema`, { id: toastId });
+      setRows(prev => prev.filter(r => r.id !== u.id));
+    } catch (e: any) {
+      toast.error('Erro ao excluir: ' + (e?.message || ''), { id: toastId });
+    }
+  };
     const load = async () => {
       setLoading(true);
       try {
