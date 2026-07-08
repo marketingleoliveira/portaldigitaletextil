@@ -382,7 +382,7 @@ const Reports: React.FC = () => {
       const margin = 20;
 
       // Load logo image
-      const loadImage = (src: string): Promise<string> => {
+      const loadImage = (src: string): Promise<{ dataUrl: string; w: number; h: number }> => {
         return new Promise((resolve, reject) => {
           const img = new Image();
           img.crossOrigin = 'anonymous';
@@ -392,20 +392,20 @@ const Reports: React.FC = () => {
             canvas.height = img.height;
             const ctx = canvas.getContext('2d');
             ctx?.drawImage(img, 0, 0);
-            resolve(canvas.toDataURL('image/png'));
+            resolve({ dataUrl: canvas.toDataURL('image/png'), w: img.width, h: img.height });
           };
           img.onerror = reject;
           img.src = src;
         });
       };
 
-      // Try to add logo
+      // Try to add logo (preserving aspect ratio)
       try {
         const logoUrl = (await import('@/assets/logo-digitale-full.png')).default;
-        const logoBase64 = await loadImage(logoUrl);
-        const logoWidth = 50;
-        const logoHeight = 15;
-        doc.addImage(logoBase64, 'PNG', margin, 10, logoWidth, logoHeight);
+        const { dataUrl, w, h } = await loadImage(logoUrl);
+        const logoHeight = 14;
+        const logoWidth = (w / h) * logoHeight;
+        doc.addImage(dataUrl, 'PNG', margin, 12, logoWidth, logoHeight);
       } catch (logoError) {
         console.warn('Could not load logo:', logoError);
       }
