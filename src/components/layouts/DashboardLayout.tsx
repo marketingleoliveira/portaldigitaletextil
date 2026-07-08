@@ -85,7 +85,16 @@ const navItems: NavItem[] = [
   { label: "Reserva de Salas", href: "/reserva-salas", icon: DoorOpen, roles: ["dev", "admin", "gerente", "vendedor", "criacao", "sdr", "marketing", "qualidade", "financeiro"] },
   { label: "Localizar", href: "/localizar", icon: MapPin, roles: ["dev"] },
   { label: "Metas", href: "/metas", icon: Target, roles: ["dev", "admin", "gerente", "vendedor"] },
-  { label: "Reembolso", href: "/reembolsos", icon: Receipt, roles: ["dev", "admin", "vendedor", "financeiro"] },
+  { label: "Reembolso", href: "/reembolsos", icon: Receipt, roles: ["dev", "admin", "vendedor"] },
+  {
+    label: "Financeiro",
+    href: "/financeiro/reembolsos",
+    icon: Wallet,
+    roles: ["dev", "financeiro"],
+    children: [
+      { label: "Reembolsos", href: "/financeiro/reembolsos", icon: Receipt, roles: ["dev", "financeiro"] },
+    ],
+  },
   {
     label: "CRM",
     href: "/crm-alimentador",
