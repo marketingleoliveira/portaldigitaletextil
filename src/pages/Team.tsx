@@ -230,6 +230,50 @@ const Team: React.FC = () => {
           </Card>
         )}
 
+        {/* DIRETORIA Section - Below Dev */}
+        {diretoriaMembers.length > 0 && (
+          <Card className="border-role-admin/30 bg-gradient-to-r from-role-admin/5 to-transparent">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Shield className="w-5 h-5 text-role-admin" />
+                Diretoria
+              </CardTitle>
+              <CardDescription>
+                Direção executiva da empresa
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                {diretoriaMembers.map((member) => (
+                  <MemberCard key={member.id} member={member} />
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* GERÊNCIA Section - Below Diretoria */}
+        {gerenciaMembers.length > 0 && (
+          <Card className="border-role-gerente/30 bg-gradient-to-r from-role-gerente/5 to-transparent">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <UserCog className="w-5 h-5 text-role-gerente" />
+                Gerência
+              </CardTitle>
+              <CardDescription>
+                Gerentes responsáveis pelas áreas da empresa
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                {gerenciaMembers.map((member) => (
+                  <MemberCard key={member.id} member={member} />
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         <Separator />
 
         {/* Org Chart */}
