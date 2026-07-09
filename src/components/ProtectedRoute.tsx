@@ -82,7 +82,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, allowedRoles 
     }
     
     // Check if user has permission (DEV always has access)
-    const hasAccess = allowedRoles.includes(user.role) || user.role === 'dev';
+    const hasAccess = allowedRoles.includes(user.role) || user.role === 'dev' || user.role === 'diretoria';
     if (!hasAccess) {
       return <Navigate to="/dashboard" replace />;
     }

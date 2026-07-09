@@ -1,4 +1,4 @@
-export type AppRole = 'admin' | 'gerente' | 'vendedor' | 'dev' | 'criacao' | 'sdr' | 'marketing' | 'qualidade' | 'financeiro';
+export type AppRole = 'admin' | 'gerente' | 'vendedor' | 'dev' | 'criacao' | 'sdr' | 'marketing' | 'qualidade' | 'financeiro' | 'diretoria';
 
 export interface UserProfile {
   id: string;
@@ -119,6 +119,7 @@ export const ROLE_LABELS: Record<AppRole, string> = {
   marketing: 'Marketing',
   qualidade: 'Qualidade',
   financeiro: 'Financeiro',
+  diretoria: 'Diretoria',
 };
 
 export const ROLE_COLORS: Record<AppRole, string> = {
@@ -131,16 +132,17 @@ export const ROLE_COLORS: Record<AppRole, string> = {
   marketing: 'bg-role-marketing',
   qualidade: 'bg-role-qualidade',
   financeiro: 'bg-role-financeiro',
+  diretoria: 'bg-role-admin',
 };
 
-// Helper to check if role has full access (dev or admin/diretor)
+// Helper to check if role has full access (dev or admin/diretor/diretoria)
 export const hasFullAccess = (role: AppRole | null | undefined): boolean => {
-  return role === 'dev' || role === 'admin';
+  return role === 'dev' || role === 'admin' || role === 'diretoria';
 };
 
 // Helper to check if role is manager or above
 export const isManagerOrAbove = (role: AppRole | null | undefined): boolean => {
-  return role === 'dev' || role === 'admin' || role === 'gerente';
+  return role === 'dev' || role === 'admin' || role === 'diretoria' || role === 'gerente';
 };
 
 // Brazilian states/regions for vendedor subcargo
