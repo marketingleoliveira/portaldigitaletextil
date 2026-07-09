@@ -1,7 +1,7 @@
 import React from 'react';
 import { Badge } from '@/components/ui/badge';
 import { AppRole, ROLE_LABELS } from '@/types/auth';
-import { Shield, UserCog, User, Code, Palette, Megaphone, BadgeCheck, Wallet } from 'lucide-react';
+import { Shield, UserCog, User, Code, Palette, Megaphone, BadgeCheck, Wallet, Crown } from 'lucide-react';
 
 interface RoleBadgeProps {
   role: AppRole;
