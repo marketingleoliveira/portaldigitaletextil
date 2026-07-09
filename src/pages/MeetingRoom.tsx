@@ -2924,79 +2924,70 @@ export default function MeetingRoom() {
             </div>
           </div>
 
-          {/* Desktop: single row */}
-          <div className="hidden sm:flex h-20 items-center justify-center px-4 gap-2">
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant={isMuted ? "destructive" : "secondary"}
-                  size="lg"
-                  className="rounded-full w-12 h-12"
-                  onClick={toggleMute}
-                  disabled={!callObject || (!hasModeratorAccess && !globalAudioEnabled && isMuted)}
-                >
-                  {isMuted ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>{isMuted ? "Ativar microfone" : "Desativar microfone"}</TooltipContent>
-            </Tooltip>
+          {/* Desktop: single row with labels */}
+          <div className="hidden sm:flex h-20 items-center justify-center px-3 gap-1.5 flex-wrap">
+            <Button
+              variant={isMuted ? "destructive" : "secondary"}
+              size="sm"
+              className="rounded-full h-11 px-3 gap-2"
+              onClick={toggleMute}
+              disabled={!callObject || (!hasModeratorAccess && !globalAudioEnabled && isMuted)}
+            >
+              {isMuted ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
+              <span className="text-xs font-medium">{isMuted ? "Ativar mic" : "Mudo"}</span>
+            </Button>
 
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant={isVideoOn ? "secondary" : "destructive"}
-                  size="lg"
-                  className="rounded-full w-12 h-12"
-                  onClick={toggleVideo}
-                  disabled={!callObject || (!hasModeratorAccess && !globalVideoEnabled && !isVideoOn)}
-                >
-                  {isVideoOn ? <Video className="w-5 h-5" /> : <VideoOff className="w-5 h-5" />}
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>{isVideoOn ? "Desativar câmera" : "Ativar câmera"}</TooltipContent>
-            </Tooltip>
+            <Button
+              variant={isVideoOn ? "secondary" : "destructive"}
+              size="sm"
+              className="rounded-full h-11 px-3 gap-2"
+              onClick={toggleVideo}
+              disabled={!callObject || (!hasModeratorAccess && !globalVideoEnabled && !isVideoOn)}
+            >
+              {isVideoOn ? <Video className="w-4 h-4" /> : <VideoOff className="w-4 h-4" />}
+              <span className="text-xs font-medium">{isVideoOn ? "Câmera" : "Ativar câmera"}</span>
+            </Button>
 
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant={isScreenSharing ? "default" : "secondary"}
-                  size="lg"
-                  className={cn("rounded-full w-12 h-12", isScreenSharing && "bg-green-600 hover:bg-green-700")}
-                  onClick={toggleScreenShare}
-                  disabled={!callObject}
-                >
-                  {isScreenSharing ? <ScreenShareOff className="w-5 h-5" /> : <ScreenShare className="w-5 h-5" />}
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>{isScreenSharing ? "Parar compartilhamento" : "Compartilhar tela"}</TooltipContent>
-            </Tooltip>
+            <Button
+              variant={isScreenSharing ? "default" : "secondary"}
+              size="sm"
+              className={cn("rounded-full h-11 px-3 gap-2", isScreenSharing && "bg-green-600 hover:bg-green-700")}
+              onClick={toggleScreenShare}
+              disabled={!callObject}
+            >
+              {isScreenSharing ? <ScreenShareOff className="w-4 h-4" /> : <ScreenShare className="w-4 h-4" />}
+              <span className="text-xs font-medium">{isScreenSharing ? "Parar" : "Apresentar"}</span>
+            </Button>
 
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant={handRaised ? "default" : "secondary"}
-                  size="lg"
-                  className={cn("rounded-full w-12 h-12", handRaised && "bg-yellow-500 hover:bg-yellow-600")}
-                  onClick={toggleHandRaise}
-                  disabled={!callObject}
-                >
-                  <Hand className={cn("w-5 h-5", handRaised && "animate-bounce")} />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>{handRaised ? "Baixar a mão" : "Levantar a mão"}</TooltipContent>
-            </Tooltip>
+            <Button
+              variant={handRaised ? "default" : "secondary"}
+              size="sm"
+              className={cn("rounded-full h-11 px-3 gap-2", handRaised && "bg-yellow-500 hover:bg-yellow-600")}
+              onClick={toggleHandRaise}
+              disabled={!callObject}
+            >
+              <Hand className={cn("w-4 h-4", handRaised && "animate-bounce")} />
+              <span className="text-xs font-medium">{handRaised ? "Baixar mão" : "Levantar mão"}</span>
+            </Button>
+
+            <Button
+              variant={bgBlurEnabled ? "default" : "secondary"}
+              size="sm"
+              className={cn("rounded-full h-11 px-3 gap-2", bgBlurEnabled && "bg-primary hover:bg-primary/90")}
+              onClick={toggleBackgroundBlur}
+              disabled={!callObject || !isVideoOn}
+            >
+              <Sparkles className="w-4 h-4" />
+              <span className="text-xs font-medium">Desfocar</span>
+            </Button>
 
             <Popover>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <PopoverTrigger asChild>
-                    <Button variant="secondary" size="lg" className="rounded-full w-12 h-12" disabled={!callObject}>
-                      <Sparkles className="w-5 h-5" />
-                    </Button>
-                  </PopoverTrigger>
-                </TooltipTrigger>
-                <TooltipContent>Reagir</TooltipContent>
-              </Tooltip>
+              <PopoverTrigger asChild>
+                <Button variant="secondary" size="sm" className="rounded-full h-11 px-3 gap-2" disabled={!callObject}>
+                  <span className="text-base leading-none">😀</span>
+                  <span className="text-xs font-medium">Reagir</span>
+                </Button>
+              </PopoverTrigger>
               <PopoverContent className="w-auto p-2" side="top">
                 <div className="flex gap-1">
                   {REACTIONS.map((emoji) => (
@@ -3013,11 +3004,12 @@ export default function MeetingRoom() {
                 <DropdownMenuTrigger asChild>
                   <Button
                     variant={(isRecording || isLocalRecording) ? "destructive" : "secondary"}
-                    size="lg"
-                    className="rounded-full w-12 h-12"
+                    size="sm"
+                    className="rounded-full h-11 px-3 gap-2"
                     disabled={!callObject}
                   >
-                    {(isRecording || isLocalRecording) ? <Square className="w-5 h-5" /> : <Circle className="w-5 h-5 fill-current" />}
+                    {(isRecording || isLocalRecording) ? <Square className="w-4 h-4" /> : <Circle className="w-4 h-4 fill-current" />}
+                    <span className="text-xs font-medium">{(isRecording || isLocalRecording) ? "Parar" : "Gravar"}</span>
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="center">
@@ -3043,74 +3035,58 @@ export default function MeetingRoom() {
             )}
 
             {hasModeratorAccess && (
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="destructive"
-                    size="lg"
-                    className="rounded-full h-12 px-4 gap-2"
-                    onClick={() => setShowModeration(true)}
-                  >
-                    <Shield className="w-5 h-5" />
-                    <span className="text-sm font-medium">MODERAÇÃO</span>
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>Controles de moderação</TooltipContent>
-              </Tooltip>
+              <Button
+                variant="destructive"
+                size="sm"
+                className="rounded-full h-11 px-3 gap-2"
+                onClick={() => setShowModeration(true)}
+              >
+                <Shield className="w-4 h-4" />
+                <span className="text-xs font-medium">Moderação</span>
+              </Button>
             )}
 
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant={isPiPActive ? "default" : "secondary"}
-                  size="lg"
-                  className={cn("rounded-full w-12 h-12", isPiPActive && "bg-blue-600 hover:bg-blue-700")}
-                  onClick={togglePiP}
-                  disabled={!callObject}
-                >
-                  <PictureInPicture2 className="w-5 h-5" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>{isPiPActive ? "Sair do Picture-in-Picture" : "Picture-in-Picture"}</TooltipContent>
-            </Tooltip>
+            <Button
+              variant={isPiPActive ? "default" : "secondary"}
+              size="sm"
+              className={cn("rounded-full h-11 px-3 gap-2", isPiPActive && "bg-blue-600 hover:bg-blue-700")}
+              onClick={togglePiP}
+              disabled={!callObject}
+            >
+              <PictureInPicture2 className="w-4 h-4" />
+              <span className="text-xs font-medium">Mini</span>
+            </Button>
 
-            <div className="w-px h-8 bg-gray-600 mx-2" />
+            <div className="w-px h-8 bg-gray-600 mx-1" />
 
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button variant="secondary" size="lg" className="rounded-full w-12 h-12 relative" onClick={() => setShowChat(true)}>
-                  <MessageSquare className="w-5 h-5" />
-                  {unreadMessages > 0 && (
-                    <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-[10px] rounded-full flex items-center justify-center animate-pulse">
-                      {unreadMessages > 9 ? "9+" : unreadMessages}
-                    </span>
-                  )}
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>Chat</TooltipContent>
-            </Tooltip>
+            <Button variant="secondary" size="sm" className="rounded-full h-11 px-3 gap-2 relative" onClick={() => setShowChat(true)}>
+              <MessageSquare className="w-4 h-4" />
+              <span className="text-xs font-medium">Chat</span>
+              {unreadMessages > 0 && (
+                <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-[10px] rounded-full flex items-center justify-center animate-pulse">
+                  {unreadMessages > 9 ? "9+" : unreadMessages}
+                </span>
+              )}
+            </Button>
 
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button variant="secondary" size="lg" className="rounded-full w-12 h-12 relative" onClick={() => setShowParticipants(true)}>
-                  <Users className="w-5 h-5" />
-                  <span className="absolute -top-1 -right-1 w-5 h-5 bg-primary text-primary-foreground text-xs rounded-full flex items-center justify-center">
-                    {participantCount}
-                  </span>
-                  {raisedHands.size > 0 && (
-                    <span className="absolute -top-1 -left-1 w-4 h-4 bg-yellow-500 rounded-full flex items-center justify-center animate-bounce">
-                      <Hand className="w-2.5 h-2.5 text-white" />
-                    </span>
-                  )}
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>Participantes</TooltipContent>
-            </Tooltip>
+            <Button variant="secondary" size="sm" className="rounded-full h-11 px-3 gap-2 relative" onClick={() => setShowParticipants(true)}>
+              <Users className="w-4 h-4" />
+              <span className="text-xs font-medium">Pessoas</span>
+              <span className="ml-1 min-w-5 h-5 px-1 bg-primary text-primary-foreground text-[10px] rounded-full flex items-center justify-center">
+                {participantCount}
+              </span>
+              {raisedHands.size > 0 && (
+                <span className="absolute -top-1 -left-1 w-4 h-4 bg-yellow-500 rounded-full flex items-center justify-center animate-bounce">
+                  <Hand className="w-2.5 h-2.5 text-white" />
+                </span>
+              )}
+            </Button>
 
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="secondary" size="lg" className="rounded-full w-12 h-12">
-                  <MoreVertical className="w-5 h-5" />
+                <Button variant="secondary" size="sm" className="rounded-full h-11 px-3 gap-2">
+                  <MoreVertical className="w-4 h-4" />
+                  <span className="text-xs font-medium">Mais</span>
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="min-w-[180px]">
@@ -3137,20 +3113,21 @@ export default function MeetingRoom() {
               </DropdownMenuContent>
             </DropdownMenu>
 
-            <div className="w-px h-8 bg-gray-600 mx-2" />
+            <div className="w-px h-8 bg-gray-600 mx-1" />
 
-            <Button variant="destructive" size="lg" className="rounded-full px-6 h-12" onClick={leaveMeeting}>
-              <Phone className="w-5 h-5 rotate-[135deg]" />
+            <Button variant="destructive" size="sm" className="rounded-full h-11 px-4 gap-2" onClick={leaveMeeting}>
+              <Phone className="w-4 h-4 rotate-[135deg]" />
+              <span className="text-xs font-medium">Sair</span>
             </Button>
 
             {isHost && (
               <Button
                 variant="outline"
-                size="lg"
-                className="rounded-full px-4 h-12 border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground text-sm"
+                size="sm"
+                className="rounded-full h-11 px-4 gap-2 border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground"
                 onClick={endMeeting}
               >
-                Encerrar
+                <span className="text-xs font-medium">Encerrar reunião</span>
               </Button>
             )}
           </div>
