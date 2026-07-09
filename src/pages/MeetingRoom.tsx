@@ -1271,24 +1271,40 @@ export default function MeetingRoom() {
     }
   }, [isVideoOn, callObject, meeting, user, hasModeratorAccess, globalVideoEnabled]);
 
-  const toggleBackgroundBlur = useCallback(async () => {
-    if (!callObject) return;
-    const next = !bgBlurEnabled;
-    try {
-      await callObject.updateInputSettings({
-        video: {
-          processor: next
-            ? { type: "background-blur", config: { strength: 0.6 } }
-            : { type: "none" },
-        },
-      });
-      setBgBlurEnabled(next);
-      toast.success(next ? "Fundo desfocado ativado" : "Fundo desfocado desativado");
-    } catch (err) {
-      console.error("Error toggling background blur:", err);
-      toast.error("Seu navegador/dispositivo não suporta desfoque de fundo");
-    }
-  }, [bgBlurEnabled, callObject]);
+  const applyBackgroundEffect = useCallback(
+    async (effect: "none" | "blur-light" | "blur-strong") => {
+      if (!callObject) return;
+      try {
+        let processor: any = { type: "none" };
+        if (effect === "blur-light") {
+          processor = { type: "background-blur", config: { strength: 0.4 } };
+        } else if (effect === "blur-strong") {
+          processor = { type: "background-blur", config: { strength: 0.9 } };
+        }
+        await callObject.updateInputSettings({ video: { processor } });
+        setBgEffect(effect);
+        setBgBlurEnabled(effect !== "none");
+        toast.success(
+          effect === "none"
+            ? "Fundo original"
+            : effect === "blur-light"
+            ? "Desfoque leve aplicado"
+            : "Desfoque forte aplicado"
+        );
+      } catch (err) {
+        console.error("Error applying background effect:", err);
+        toast.error("Seu navegador/dispositivo não suporta efeitos de fundo");
+      }
+    },
+    [callObject]
+  );
+
+  const toggleBackgroundBlur = useCallback(
+    () => applyBackgroundEffect(bgEffect === "none" ? "blur-strong" : "none"),
+    [applyBackgroundEffect, bgEffect]
+  );
+
+
 
 
   const toggleScreenShare = useCallback(async () => {
