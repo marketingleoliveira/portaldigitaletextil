@@ -115,6 +115,7 @@ export default function MeetingRoom() {
   const [isMuted, setIsMuted] = useState(true);
   const [isVideoOn, setIsVideoOn] = useState(true);
   const [bgBlurEnabled, setBgBlurEnabled] = useState(false);
+  const [bgEffect, setBgEffect] = useState<"none" | "blur-light" | "blur-strong">("none");
   const [isScreenSharing, setIsScreenSharing] = useState(false);
   const [showChat, setShowChat] = useState(false);
   const [showParticipants, setShowParticipants] = useState(false);
@@ -1270,24 +1271,40 @@ export default function MeetingRoom() {
     }
   }, [isVideoOn, callObject, meeting, user, hasModeratorAccess, globalVideoEnabled]);
 
-  const toggleBackgroundBlur = useCallback(async () => {
-    if (!callObject) return;
-    const next = !bgBlurEnabled;
-    try {
-      await callObject.updateInputSettings({
-        video: {
-          processor: next
-            ? { type: "background-blur", config: { strength: 0.6 } }
-            : { type: "none" },
-        },
-      });
-      setBgBlurEnabled(next);
-      toast.success(next ? "Fundo desfocado ativado" : "Fundo desfocado desativado");
-    } catch (err) {
-      console.error("Error toggling background blur:", err);
-      toast.error("Seu navegador/dispositivo não suporta desfoque de fundo");
-    }
-  }, [bgBlurEnabled, callObject]);
+  const applyBackgroundEffect = useCallback(
+    async (effect: "none" | "blur-light" | "blur-strong") => {
+      if (!callObject) return;
+      try {
+        let processor: any = { type: "none" };
+        if (effect === "blur-light") {
+          processor = { type: "background-blur", config: { strength: 0.4 } };
+        } else if (effect === "blur-strong") {
+          processor = { type: "background-blur", config: { strength: 0.9 } };
+        }
+        await callObject.updateInputSettings({ video: { processor } });
+        setBgEffect(effect);
+        setBgBlurEnabled(effect !== "none");
+        toast.success(
+          effect === "none"
+            ? "Fundo original"
+            : effect === "blur-light"
+            ? "Desfoque leve aplicado"
+            : "Desfoque forte aplicado"
+        );
+      } catch (err) {
+        console.error("Error applying background effect:", err);
+        toast.error("Seu navegador/dispositivo não suporta efeitos de fundo");
+      }
+    },
+    [callObject]
+  );
+
+  const toggleBackgroundBlur = useCallback(
+    () => applyBackgroundEffect(bgEffect === "none" ? "blur-strong" : "none"),
+    [applyBackgroundEffect, bgEffect]
+  );
+
+
 
 
   const toggleScreenShare = useCallback(async () => {
@@ -2781,16 +2798,41 @@ export default function MeetingRoom() {
                 {isScreenSharing ? <ScreenShareOff className="w-4 h-4" /> : <ScreenShare className="w-4 h-4" />}
               </Button>
 
-              <Button
-                variant={bgBlurEnabled ? "default" : "secondary"}
-                size="sm"
-                className={cn("rounded-full w-11 h-11", bgBlurEnabled && "bg-primary hover:bg-primary/90")}
-                onClick={toggleBackgroundBlur}
-                disabled={!callObject || !isVideoOn}
-                title="Desfocar fundo"
-              >
-                <Sparkles className="w-4 h-4" />
-              </Button>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant={bgBlurEnabled ? "default" : "secondary"}
+                    size="sm"
+                    className={cn("rounded-full w-11 h-11", bgBlurEnabled && "bg-primary hover:bg-primary/90")}
+                    disabled={!callObject || !isVideoOn}
+                    title="Plano de fundo"
+                  >
+                    <Sparkles className="w-4 h-4" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent side="top" className="w-56 p-2">
+                  <div className="text-xs font-medium text-muted-foreground px-2 py-1">Plano de fundo</div>
+                  <button
+                    onClick={() => applyBackgroundEffect("none")}
+                    className={cn("w-full text-left px-2 py-2 rounded hover:bg-accent text-sm", bgEffect === "none" && "bg-accent font-medium")}
+                  >
+                    Nenhum (original)
+                  </button>
+                  <button
+                    onClick={() => applyBackgroundEffect("blur-light")}
+                    className={cn("w-full text-left px-2 py-2 rounded hover:bg-accent text-sm", bgEffect === "blur-light" && "bg-accent font-medium")}
+                  >
+                    Desfoque leve
+                  </button>
+                  <button
+                    onClick={() => applyBackgroundEffect("blur-strong")}
+                    className={cn("w-full text-left px-2 py-2 rounded hover:bg-accent text-sm", bgEffect === "blur-strong" && "bg-accent font-medium")}
+                  >
+                    Desfoque forte
+                  </button>
+                </PopoverContent>
+              </Popover>
+
 
               <Button
                 variant={handRaised ? "default" : "secondary"}
@@ -2970,16 +3012,41 @@ export default function MeetingRoom() {
               <span className="text-xs font-medium">{handRaised ? "Baixar mão" : "Levantar mão"}</span>
             </Button>
 
-            <Button
-              variant={bgBlurEnabled ? "default" : "secondary"}
-              size="sm"
-              className={cn("rounded-full h-11 px-3 gap-2", bgBlurEnabled && "bg-primary hover:bg-primary/90")}
-              onClick={toggleBackgroundBlur}
-              disabled={!callObject || !isVideoOn}
-            >
-              <Sparkles className="w-4 h-4" />
-              <span className="text-xs font-medium">Desfocar</span>
-            </Button>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant={bgBlurEnabled ? "default" : "secondary"}
+                  size="sm"
+                  className={cn("rounded-full h-11 px-3 gap-2", bgBlurEnabled && "bg-primary hover:bg-primary/90")}
+                  disabled={!callObject || !isVideoOn}
+                >
+                  <Sparkles className="w-4 h-4" />
+                  <span className="text-xs font-medium">Fundo</span>
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent side="top" className="w-56 p-2">
+                <div className="text-xs font-medium text-muted-foreground px-2 py-1">Plano de fundo</div>
+                <button
+                  onClick={() => applyBackgroundEffect("none")}
+                  className={cn("w-full text-left px-2 py-2 rounded hover:bg-accent text-sm", bgEffect === "none" && "bg-accent font-medium")}
+                >
+                  Nenhum (original)
+                </button>
+                <button
+                  onClick={() => applyBackgroundEffect("blur-light")}
+                  className={cn("w-full text-left px-2 py-2 rounded hover:bg-accent text-sm", bgEffect === "blur-light" && "bg-accent font-medium")}
+                >
+                  Desfoque leve
+                </button>
+                <button
+                  onClick={() => applyBackgroundEffect("blur-strong")}
+                  className={cn("w-full text-left px-2 py-2 rounded hover:bg-accent text-sm", bgEffect === "blur-strong" && "bg-accent font-medium")}
+                >
+                  Desfoque forte
+                </button>
+              </PopoverContent>
+            </Popover>
+
 
             <Popover>
               <PopoverTrigger asChild>
