@@ -3012,16 +3012,41 @@ export default function MeetingRoom() {
               <span className="text-xs font-medium">{handRaised ? "Baixar mão" : "Levantar mão"}</span>
             </Button>
 
-            <Button
-              variant={bgBlurEnabled ? "default" : "secondary"}
-              size="sm"
-              className={cn("rounded-full h-11 px-3 gap-2", bgBlurEnabled && "bg-primary hover:bg-primary/90")}
-              onClick={toggleBackgroundBlur}
-              disabled={!callObject || !isVideoOn}
-            >
-              <Sparkles className="w-4 h-4" />
-              <span className="text-xs font-medium">Desfocar</span>
-            </Button>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant={bgBlurEnabled ? "default" : "secondary"}
+                  size="sm"
+                  className={cn("rounded-full h-11 px-3 gap-2", bgBlurEnabled && "bg-primary hover:bg-primary/90")}
+                  disabled={!callObject || !isVideoOn}
+                >
+                  <Sparkles className="w-4 h-4" />
+                  <span className="text-xs font-medium">Fundo</span>
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent side="top" className="w-56 p-2">
+                <div className="text-xs font-medium text-muted-foreground px-2 py-1">Plano de fundo</div>
+                <button
+                  onClick={() => applyBackgroundEffect("none")}
+                  className={cn("w-full text-left px-2 py-2 rounded hover:bg-accent text-sm", bgEffect === "none" && "bg-accent font-medium")}
+                >
+                  Nenhum (original)
+                </button>
+                <button
+                  onClick={() => applyBackgroundEffect("blur-light")}
+                  className={cn("w-full text-left px-2 py-2 rounded hover:bg-accent text-sm", bgEffect === "blur-light" && "bg-accent font-medium")}
+                >
+                  Desfoque leve
+                </button>
+                <button
+                  onClick={() => applyBackgroundEffect("blur-strong")}
+                  className={cn("w-full text-left px-2 py-2 rounded hover:bg-accent text-sm", bgEffect === "blur-strong" && "bg-accent font-medium")}
+                >
+                  Desfoque forte
+                </button>
+              </PopoverContent>
+            </Popover>
+
 
             <Popover>
               <PopoverTrigger asChild>
