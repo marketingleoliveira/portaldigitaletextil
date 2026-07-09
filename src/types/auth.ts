@@ -119,6 +119,7 @@ export const ROLE_LABELS: Record<AppRole, string> = {
   marketing: 'Marketing',
   qualidade: 'Qualidade',
   financeiro: 'Financeiro',
+  diretoria: 'Diretoria',
 };
 
 export const ROLE_COLORS: Record<AppRole, string> = {
