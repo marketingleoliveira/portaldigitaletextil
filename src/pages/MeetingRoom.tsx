@@ -115,6 +115,7 @@ export default function MeetingRoom() {
   const [isMuted, setIsMuted] = useState(true);
   const [isVideoOn, setIsVideoOn] = useState(true);
   const [bgBlurEnabled, setBgBlurEnabled] = useState(false);
+  const [bgEffect, setBgEffect] = useState<"none" | "blur-light" | "blur-strong">("none");
   const [isScreenSharing, setIsScreenSharing] = useState(false);
   const [showChat, setShowChat] = useState(false);
   const [showParticipants, setShowParticipants] = useState(false);
