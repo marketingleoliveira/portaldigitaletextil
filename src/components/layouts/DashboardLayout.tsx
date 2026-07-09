@@ -177,8 +177,9 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
   const isUserDataLoading = loading;
 
   // Filter nav items - if role not available, show minimal nav
-  const filteredNavItems = user?.role
-    ? navItems.filter((item) => item.roles.includes(user.role!))
+  const effectiveRoleForNav = user?.role === 'diretoria' ? 'dev' : user?.role;
+  const filteredNavItems = effectiveRoleForNav
+    ? navItems.filter((item) => item.roles.includes(effectiveRoleForNav))
     : navItems.filter((item) => item.roles.includes("vendedor")); // Default to minimal access
 
   const handleSignOut = async () => {
@@ -231,7 +232,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
               ) : (
                 filteredNavItems.map((item) => {
                   const visibleChildren = (item.children || []).filter((c) =>
-                    user?.role ? c.roles.includes(user.role) : c.roles.includes("vendedor"),
+                    effectiveRoleForNav ? c.roles.includes(effectiveRoleForNav) : c.roles.includes("vendedor"),
                   );
                   const hasChildren = visibleChildren.length > 0;
                   const childActive = visibleChildren.some(
