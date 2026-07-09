@@ -208,29 +208,7 @@ const Team: React.FC = () => {
           <p className="text-muted-foreground">Organograma e membros da equipe</p>
         </div>
 
-        {/* DEV Section - Separate */}
-        {devMembers.length > 0 && (
-          <Card className="border-role-dev/30 bg-gradient-to-r from-role-dev/5 to-transparent">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Code className="w-5 h-5 text-role-dev" />
-                Desenvolvimento
-              </CardTitle>
-              <CardDescription>
-                Equipe de desenvolvimento e suporte técnico
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                {devMembers.map((member) => (
-                  <MemberCard key={member.id} member={member} />
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* DIRETORIA Section - Below Dev */}
+        {/* DIRETORIA Section */}
         {diretoriaMembers.length > 0 && (
           <Card className="border-role-admin/30 bg-gradient-to-r from-role-admin/5 to-transparent">
             <CardHeader>
@@ -267,6 +245,28 @@ const Team: React.FC = () => {
             <CardContent>
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                 {gerenciaMembers.map((member) => (
+                  <MemberCard key={member.id} member={member} />
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* DESENVOLVIMENTO Section - Below Gerência */}
+        {devMembers.length > 0 && (
+          <Card className="border-role-dev/30 bg-gradient-to-r from-role-dev/5 to-transparent">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Code className="w-5 h-5 text-role-dev" />
+                Desenvolvimento
+              </CardTitle>
+              <CardDescription>
+                Equipe de desenvolvimento e suporte técnico
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                {devMembers.map((member) => (
                   <MemberCard key={member.id} member={member} />
                 ))}
               </div>
