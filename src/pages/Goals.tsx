@@ -615,7 +615,7 @@ const Goals: React.FC = () => {
               Acompanhe suas metas e progresso
             </p>
           </div>
-          {isDev && (
+          {isAdmin && (
             <Button onClick={() => handleOpenDialog()} className="gap-2">
               <Plus className="w-4 h-4" />
               Nova Meta
