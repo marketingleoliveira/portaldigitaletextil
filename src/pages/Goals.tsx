@@ -104,7 +104,7 @@ const unitOptions = [
   { value: '%', label: 'Porcentagem (%)' },
 ];
 
-const allRoles: AppRole[] = ['dev', 'admin', 'gerente', 'vendedor'];
+const allRoles: AppRole[] = ['dev', 'admin', 'gerente', 'vendedor', 'diretoria'];
 
 // Format value based on unit type
 const formatValue = (value: number, unit: string): string => {
@@ -148,7 +148,7 @@ const Goals: React.FC = () => {
     target_value: '',
     unit: 'unidades',
     period_type: 'monthly' as 'daily' | 'weekly' | 'monthly' | 'yearly',
-    visible_to_roles: ['vendedor', 'gerente', 'admin', 'dev'] as AppRole[],
+    visible_to_roles: ['vendedor', 'gerente', 'admin', 'dev', 'diretoria'] as AppRole[],
     goal_type: 'team' as 'team' | 'individual',
     target_user_id: '' as string,
   });
@@ -290,7 +290,7 @@ const Goals: React.FC = () => {
       target_value: '',
       unit: 'unidades',
       period_type: 'monthly',
-      visible_to_roles: ['vendedor', 'gerente', 'admin', 'dev'],
+      visible_to_roles: ['vendedor', 'gerente', 'admin', 'dev', 'diretoria'],
       goal_type: 'team',
       target_user_id: '',
     });

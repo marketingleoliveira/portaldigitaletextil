@@ -68,7 +68,7 @@ import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 
-const ALL_ROLES: AppRole[] = ['admin', 'gerente', 'vendedor'];
+const ALL_ROLES: AppRole[] = ['admin', 'gerente', 'vendedor', 'diretoria'];
 
 interface Category {
   id: string;
