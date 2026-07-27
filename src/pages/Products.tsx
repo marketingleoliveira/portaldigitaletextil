@@ -158,7 +158,7 @@ const ProductForm: React.FC<ProductFormProps> = ({ formProduct, setFormProduct, 
     <div className="space-y-2">
       <Label>Visibilidade por Cargo</Label>
       <div className="flex flex-wrap gap-4 pt-2">
-        {(['vendedor', 'gerente', 'admin'] as AppRole[]).map((role) => (
+        {(['vendedor', 'gerente', 'admin', 'diretoria'] as AppRole[]).map((role) => (
           <div key={role} className="flex items-center space-x-2">
             <Checkbox
               id={`${idPrefix}visibility-${role}`}
@@ -218,7 +218,7 @@ const Products: React.FC = () => {
     catalog_url: '',
     technical_sheet_url: '',
     category_id: '',
-    visibility: ['vendedor', 'gerente', 'admin'] as AppRole[],
+    visibility: ['vendedor', 'gerente', 'admin', 'diretoria'] as AppRole[],
   });
 
   const canManageProducts = isManagerOrAbove(user?.role);
@@ -233,7 +233,7 @@ const Products: React.FC = () => {
       catalog_url: '',
       technical_sheet_url: '',
       category_id: '',
-      visibility: ['vendedor', 'gerente', 'admin'],
+      visibility: ['vendedor', 'gerente', 'admin', 'diretoria'],
     });
   };
 

@@ -87,12 +87,12 @@ const Team: React.FC = () => {
   const diretoriaMembers = members.filter((m) => m.role === 'diretoria');
   const gerenciaMembers = members.filter((m) => m.role === 'gerente');
   const orgMembers = members.filter(
-    (m) => m.role !== 'dev' && m.role !== 'diretoria' && m.role !== 'gerente',
+    (m) => m.role !== 'dev' && m.role !== 'diretoria',
   );
 
   // Group by role for org chart
   const admins = orgMembers.filter((m) => m.role === 'admin');
-  const gerentes: TeamMember[] = [];
+  const gerentes = orgMembers.filter((m) => m.role === 'gerente');
   const criacao = orgMembers.filter((m) => m.role === 'criacao');
   const marketing = orgMembers.filter((m) => m.role === 'marketing');
   const sdrs = orgMembers.filter((m) => m.role === 'sdr');
