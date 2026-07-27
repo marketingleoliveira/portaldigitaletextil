@@ -224,7 +224,7 @@ const GoalHistory: React.FC = () => {
           </SelectContent>
         </Select>
 
-        {isDev && allVendedores.length > 0 && (
+        {isAdmin && allVendedores.length > 0 && (
           <Select value={filterUser} onValueChange={setFilterUser}>
             <SelectTrigger className="w-[200px]">
               <SelectValue placeholder="Vendedor" />
