@@ -195,7 +195,7 @@ const GoalHistory: React.FC = () => {
   });
 
   // Get all vendedores for the filter (not just those with goals)
-  const allVendedores = isDev
+  const allVendedores = isAdmin
     ? users.filter((u) => u.role === 'vendedor')
     : [];
 
