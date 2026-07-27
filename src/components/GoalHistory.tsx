@@ -307,7 +307,7 @@ const GoalHistory: React.FC = () => {
                       ) : (
                         <span className="flex items-center gap-1">
                           <User className="w-3 h-3" />
-                          {isDev ? getUserName(goal.target_user_id) : 'Individual'}
+                          {isAdmin ? getUserName(goal.target_user_id) : 'Individual'}
                         </span>
                       )}
                     </Badge>
