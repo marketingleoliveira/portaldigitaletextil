@@ -116,7 +116,7 @@ const formatValue = (value: number, unit: string): string => {
 
 const Goals: React.FC = () => {
   const { user } = useAuth();
-  const isAdmin = user?.role ? hasFullAccess(user.role) : false;
+  const isAdmin = user?.role ? (hasFullAccess(user.role) || user.role === 'gerente') : false;
   const isDev = user?.role === 'dev';
 
   const [goals, setGoals] = useState<Goal[]>([]);

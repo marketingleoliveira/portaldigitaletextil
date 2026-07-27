@@ -105,7 +105,7 @@ const FileManagement: React.FC = () => {
     description: '',
     category_id: '',
     subcategory_id: '',
-    visibility: ['vendedor'] as AppRole[],
+    visibility: ['vendedor', 'gerente', 'admin', 'diretoria'] as AppRole[],
     regions: [] as string[],
   });
   const [editFormData, setEditFormData] = useState({
@@ -126,7 +126,7 @@ const FileManagement: React.FC = () => {
     url: '',
     category_id: '',
     subcategory_id: '',
-    visibility: ['vendedor'] as AppRole[],
+    visibility: ['vendedor', 'gerente', 'admin', 'diretoria'] as AppRole[],
     regions: [] as string[],
   });
   const [savingLink, setSavingLink] = useState(false);
