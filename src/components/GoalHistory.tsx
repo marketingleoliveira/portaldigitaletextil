@@ -248,7 +248,7 @@ const GoalHistory: React.FC = () => {
           <CardContent className="py-12 text-center">
             <History className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
             <p className="text-muted-foreground font-medium">
-              {filterUser !== 'all' && isDev
+              {filterUser !== 'all' && isAdmin
                 ? `Nenhuma meta registrada para ${getUserName(filterUser)}`
                 : 'Nenhuma meta no histórico'}
             </p>
