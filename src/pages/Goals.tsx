@@ -925,7 +925,7 @@ const Goals: React.FC = () => {
                                   </CardDescription>
                                 )}
                               </div>
-                              {isDev && (
+                              {isAdmin && (
                                 <div className="flex gap-1">
                                   <Button
                                     variant="ghost"
