@@ -125,7 +125,7 @@ const GoalHistory: React.FC = () => {
       setProgress(allProgress);
 
       // Fetch all profiles and roles for dev view
-      if (isDev) {
+      if (isAdmin) {
         const { data: usersData } = await supabase
           .from('profiles')
           .select('id, full_name, region')
