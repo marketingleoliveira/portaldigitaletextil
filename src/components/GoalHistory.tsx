@@ -73,6 +73,7 @@ const formatValue = (value: number, unit: string): string => {
 
 const GoalHistory: React.FC = () => {
   const { user } = useAuth();
+  const isAdmin = user?.role === 'dev' || user?.role === 'diretoria' || user?.role === 'gerente' || user?.role === 'admin';
   const isDev = user?.role === 'dev';
 
   const [goals, setGoals] = useState<HistoricalGoal[]>([]);
