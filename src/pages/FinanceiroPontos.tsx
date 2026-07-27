@@ -59,7 +59,7 @@ const FinanceiroPontos: React.FC = () => {
   const [search, setSearch] = useState('');
   const [exportingId, setExportingId] = useState<string | null>(null);
   const { realRole } = useAuth();
-  const isDev = realRole === 'dev';
+  const isDev = realRole === 'dev' || realRole === 'diretoria' || realRole === 'gerente';
 
   const deleteUserRecords = async (u: UserRow) => {
     const toastId = toast.loading('Excluindo registros de ponto...');

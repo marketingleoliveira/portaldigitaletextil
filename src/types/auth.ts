@@ -137,7 +137,7 @@ export const ROLE_COLORS: Record<AppRole, string> = {
 
 // Helper to check if role has full access (dev or admin/diretor/diretoria)
 export const hasFullAccess = (role: AppRole | null | undefined): boolean => {
-  return role === 'dev' || role === 'admin' || role === 'diretoria';
+  return role === 'dev' || role === 'admin' || role === 'diretoria' || role === 'gerente';
 };
 
 // Helper to check if role is manager or above
