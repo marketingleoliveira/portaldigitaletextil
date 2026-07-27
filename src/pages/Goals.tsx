@@ -514,16 +514,16 @@ const Goals: React.FC = () => {
 
   const teamGoals = useMemo(() => filteredGoals.filter(g => g.goal_type === 'team'), [filteredGoals]);
   
-  // Metas individuais: DEV vê todas, demais usuários veem apenas as suas próprias
+  // Metas individuais: DEV, Diretor e Gerente veem todas, demais usuários veem apenas as suas próprias
   const individualGoals = useMemo(() => {
     return filteredGoals.filter(g => {
       if (g.goal_type !== 'individual') return false;
-      // DEV pode ver todas as metas individuais
-      if (isDev) return true;
+      // DEV, Diretor e Gerente podem ver todas as metas individuais
+      if (isDev || user?.role === 'diretoria' || user?.role === 'gerente' || user?.role === 'admin') return true;
       // Outros usuários só veem suas próprias metas individuais
       return g.target_user_id === user?.id;
     });
-  }, [filteredGoals, isDev, user?.id]);
+  }, [filteredGoals, isDev, user?.id, user?.role]);
 
   const stats = useMemo(() => {
     const totalGoals = goals.length;
