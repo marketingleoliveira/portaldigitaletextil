@@ -107,7 +107,7 @@ const GoalHistory: React.FC = () => {
       const allProgress = (allProgressData || []) as GoalProgress[];
 
       // Vendedores: only see goals assigned to them or team goals they participated in
-      if (!isDev) {
+      if (!isAdmin) {
         const userParticipatedGoalIds = new Set(
           allProgress
             .filter((p) => p.user_id === user?.id)
