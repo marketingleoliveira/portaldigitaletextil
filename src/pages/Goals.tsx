@@ -1331,7 +1331,7 @@ const Goals: React.FC = () => {
           </DialogHeader>
 
           <div className="space-y-4">
-            {isDev && (
+            {isAdmin && (
               <div className="space-y-2">
                 <Label>Usuário</Label>
                 <Select
