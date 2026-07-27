@@ -79,7 +79,7 @@ const FinanceiroReembolsos: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState<'todos' | ExpenseStatus>('todos');
   const [detailReport, setDetailReport] = useState<Report | null>(null);
   const { realRole } = useAuth();
-  const isDev = realRole === 'dev';
+  const isDev = realRole === 'dev' || realRole === 'diretoria' || realRole === 'gerente';
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [merging, setMerging] = useState(false);
   const [addItemFor, setAddItemFor] = useState<Report | null>(null);

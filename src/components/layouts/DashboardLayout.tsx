@@ -177,7 +177,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
   const isUserDataLoading = loading;
 
   // Filter nav items - if role not available, show minimal nav
-  const effectiveRoleForNav = user?.role === 'diretoria' ? 'dev' : user?.role;
+  const effectiveRoleForNav = (user?.role === 'diretoria' || user?.role === 'gerente') ? 'dev' : user?.role;
   const filteredNavItems = effectiveRoleForNav
     ? navItems.filter((item) => item.roles.includes(effectiveRoleForNav))
     : navItems.filter((item) => item.roles.includes("vendedor")); // Default to minimal access

@@ -91,11 +91,11 @@ const App = () => (
                   <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
                   <Route path="/produtos" element={<ProtectedRoute><Products /></ProtectedRoute>} />
                   <Route path="/produtos/:id" element={<ProtectedRoute><ProductDetails /></ProtectedRoute>} />
-                  <Route path="/categorias" element={<ProtectedRoute allowedRoles={['dev', 'admin', 'criacao']}><Categories /></ProtectedRoute>} />
-                  <Route path="/usuarios" element={<ProtectedRoute allowedRoles={['dev', 'admin']}><Users /></ProtectedRoute>} />
-                  <Route path="/inativos" element={<ProtectedRoute allowedRoles={['dev', 'admin']}><InactiveUsers /></ProtectedRoute>} />
+                  <Route path="/categorias" element={<ProtectedRoute allowedRoles={['dev', 'admin', 'criacao', 'diretoria', 'gerente']}><Categories /></ProtectedRoute>} />
+                  <Route path="/usuarios" element={<ProtectedRoute allowedRoles={['dev', 'admin', 'diretoria', 'gerente']}><Users /></ProtectedRoute>} />
+                  <Route path="/inativos" element={<ProtectedRoute allowedRoles={['dev', 'admin', 'diretoria', 'gerente']}><InactiveUsers /></ProtectedRoute>} />
                   <Route path="/equipe" element={<ProtectedRoute><Team /></ProtectedRoute>} />
-                  <Route path="/arquivos" element={<ProtectedRoute allowedRoles={['dev', 'admin', 'criacao']}><FileManagement /></ProtectedRoute>} />
+                  <Route path="/arquivos" element={<ProtectedRoute allowedRoles={['dev', 'admin', 'criacao', 'diretoria', 'gerente']}><FileManagement /></ProtectedRoute>} />
                   <Route path="/material-criacao" element={<ProtectedRoute allowedRoles={['dev', 'criacao', 'marketing']}><CreationMaterials /></ProtectedRoute>} />
                   <Route path="/downloads" element={<ProtectedRoute><Downloads /></ProtectedRoute>} />
                   <Route path="/notificacoes" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
@@ -106,9 +106,9 @@ const App = () => (
                   <Route path="/tickets/novo" element={<ProtectedRoute><NewTicket /></ProtectedRoute>} />
                   <Route path="/tickets/:id" element={<ProtectedRoute><TicketDetails /></ProtectedRoute>} />
                   <Route path="/ponto" element={<ProtectedRoute><TimeClock /></ProtectedRoute>} />
-                  <Route path="/localizar" element={<ProtectedRoute allowedRoles={['dev']}><Localizar /></ProtectedRoute>} />
+                  <Route path="/localizar" element={<ProtectedRoute allowedRoles={['dev', 'admin', 'diretoria', 'gerente']}><Localizar /></ProtectedRoute>} />
                   <Route path="/metas" element={<ProtectedRoute><Goals /></ProtectedRoute>} />
-                  <Route path="/crm-alimentador" element={<ProtectedRoute allowedRoles={['dev', 'sdr']}><CRMFeeder /></ProtectedRoute>} />
+                  <Route path="/crm-alimentador" element={<ProtectedRoute allowedRoles={['dev', 'sdr', 'admin', 'diretoria', 'gerente']}><CRMFeeder /></ProtectedRoute>} />
                   <Route path="/crm" element={<ProtectedRoute allowedRoles={['dev', 'vendedor', 'gerente', 'admin']}><CRM /></ProtectedRoute>} />
 
                   <Route path="/agendamentos" element={<ProtectedRoute allowedRoles={['dev', 'vendedor', 'gerente', 'admin']}><Agendamentos /></ProtectedRoute>} />
@@ -120,11 +120,11 @@ const App = () => (
                   <Route path="/depoimentos" element={<ProtectedRoute allowedRoles={['dev', 'marketing']}><Depoimentos /></ProtectedRoute>} />
                   <Route path="/reunioes" element={<ProtectedRoute><Meetings /></ProtectedRoute>} />
                   <Route path="/reserva-salas" element={<ProtectedRoute><RoomReservations /></ProtectedRoute>} />
-                  <Route path="/gravacoes" element={<ProtectedRoute allowedRoles={['dev', 'marketing']}><Recordings /></ProtectedRoute>} />
+                  <Route path="/gravacoes" element={<ProtectedRoute allowedRoles={['dev', 'marketing', 'admin', 'diretoria', 'gerente']}><Recordings /></ProtectedRoute>} />
                   <Route path="/solicitacoes" element={<ProtectedRoute allowedRoles={['dev', 'marketing']}><Solicitacoes /></ProtectedRoute>} />
-                  <Route path="/reembolsos" element={<ProtectedRoute allowedRoles={['dev', 'admin', 'vendedor']}><Reembolsos /></ProtectedRoute>} />
-                  <Route path="/financeiro/reembolsos" element={<ProtectedRoute allowedRoles={['dev', 'financeiro']}><FinanceiroReembolsos /></ProtectedRoute>} />
-                  <Route path="/financeiro/pontos" element={<ProtectedRoute allowedRoles={['dev', 'financeiro']}><FinanceiroPontos /></ProtectedRoute>} />
+                  <Route path="/reembolsos" element={<ProtectedRoute allowedRoles={['dev', 'admin', 'vendedor', 'diretoria', 'gerente']}><Reembolsos /></ProtectedRoute>} />
+                  <Route path="/financeiro/reembolsos" element={<ProtectedRoute allowedRoles={['dev', 'financeiro', 'admin', 'diretoria', 'gerente']}><FinanceiroReembolsos /></ProtectedRoute>} />
+                  <Route path="/financeiro/pontos" element={<ProtectedRoute allowedRoles={['dev', 'financeiro', 'admin', 'diretoria', 'gerente']}><FinanceiroPontos /></ProtectedRoute>} />
                   <Route path="/sac" element={<ProtectedRoute><SAC /></ProtectedRoute>} />
                   <Route path="/sac/:id" element={<ProtectedRoute><SACDetails /></ProtectedRoute>} />
                   <Route path="/reuniao/:code" element={<ProtectedRoute><MeetingErrorBoundary><MeetingRoom /></MeetingErrorBoundary></ProtectedRoute>} />
