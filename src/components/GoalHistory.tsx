@@ -182,7 +182,7 @@ const GoalHistory: React.FC = () => {
 
   const filteredGoals = goals.filter((g) => {
     if (filterPeriod !== 'all' && g.period_type !== filterPeriod) return false;
-    if (isDev && filterUser !== 'all') {
+    if (isAdmin && filterUser !== 'all') {
       if (filterUser === 'team') return g.goal_type === 'team';
       // Show individual goals assigned to user OR team goals where user has progress
       const isAssigned = g.target_user_id === filterUser;
