@@ -165,7 +165,7 @@ const GoalHistory: React.FC = () => {
   };
 
   const getProgressForGoal = (goalId: string) => {
-    if (isDev) {
+    if (isAdmin) {
       return progress
         .filter((p) => p.goal_id === goalId)
         .reduce((sum, p) => sum + p.current_value, 0);
