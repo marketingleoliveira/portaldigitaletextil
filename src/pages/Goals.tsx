@@ -976,7 +976,7 @@ const Goals: React.FC = () => {
                                       Certificado
                                     </Button>
                                   )}
-                                  {isDev && (
+                                  {isAdmin && (
                                     <Button
                                       variant="outline"
                                       size="sm"
