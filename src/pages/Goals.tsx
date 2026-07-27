@@ -514,16 +514,16 @@ const Goals: React.FC = () => {
 
   const teamGoals = useMemo(() => filteredGoals.filter(g => g.goal_type === 'team'), [filteredGoals]);
   
-  // Metas individuais: DEV vê todas, demais usuários veem apenas as suas próprias
+  // Metas individuais: DEV, Diretor e Gerente veem todas, demais usuários veem apenas as suas próprias
   const individualGoals = useMemo(() => {
     return filteredGoals.filter(g => {
       if (g.goal_type !== 'individual') return false;
-      // DEV pode ver todas as metas individuais
-      if (isDev) return true;
+      // DEV, Diretor e Gerente podem ver todas as metas individuais
+      if (isDev || user?.role === 'diretoria' || user?.role === 'gerente' || user?.role === 'admin') return true;
       // Outros usuários só veem suas próprias metas individuais
       return g.target_user_id === user?.id;
     });
-  }, [filteredGoals, isDev, user?.id]);
+  }, [filteredGoals, isDev, user?.id, user?.role]);
 
   const stats = useMemo(() => {
     const totalGoals = goals.length;
@@ -615,7 +615,7 @@ const Goals: React.FC = () => {
               Acompanhe suas metas e progresso
             </p>
           </div>
-          {isDev && (
+          {isAdmin && (
             <Button onClick={() => handleOpenDialog()} className="gap-2">
               <Plus className="w-4 h-4" />
               Nova Meta
@@ -692,8 +692,8 @@ const Goals: React.FC = () => {
               </TabsContent>
             </Tabs>
 
-            {/* Team Goals Section - Only visible to DEV and not on historico tab */}
-            {isDev && selectedTab !== 'historico' && (
+            {/* Team Goals Section - Only visible to admin roles and not on historico tab */}
+            {isAdmin && selectedTab !== 'historico' && (
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
@@ -925,7 +925,7 @@ const Goals: React.FC = () => {
                                   </CardDescription>
                                 )}
                               </div>
-                              {isDev && (
+                              {isAdmin && (
                                 <div className="flex gap-1">
                                   <Button
                                     variant="ghost"
@@ -976,7 +976,7 @@ const Goals: React.FC = () => {
                                       Certificado
                                     </Button>
                                   )}
-                                  {isDev && (
+                                  {isAdmin && (
                                     <Button
                                       variant="outline"
                                       size="sm"
@@ -1331,7 +1331,7 @@ const Goals: React.FC = () => {
           </DialogHeader>
 
           <div className="space-y-4">
-            {isDev && (
+            {isAdmin && (
               <div className="space-y-2">
                 <Label>Usuário</Label>
                 <Select

@@ -73,6 +73,7 @@ const formatValue = (value: number, unit: string): string => {
 
 const GoalHistory: React.FC = () => {
   const { user } = useAuth();
+  const isAdmin = user?.role === 'dev' || user?.role === 'diretoria' || user?.role === 'gerente' || user?.role === 'admin';
   const isDev = user?.role === 'dev';
 
   const [goals, setGoals] = useState<HistoricalGoal[]>([]);
@@ -106,7 +107,7 @@ const GoalHistory: React.FC = () => {
       const allProgress = (allProgressData || []) as GoalProgress[];
 
       // Vendedores: only see goals assigned to them or team goals they participated in
-      if (!isDev) {
+      if (!isAdmin) {
         const userParticipatedGoalIds = new Set(
           allProgress
             .filter((p) => p.user_id === user?.id)
@@ -124,7 +125,7 @@ const GoalHistory: React.FC = () => {
       setProgress(allProgress);
 
       // Fetch all profiles and roles for dev view
-      if (isDev) {
+      if (isAdmin) {
         const { data: usersData } = await supabase
           .from('profiles')
           .select('id, full_name, region')
@@ -164,7 +165,7 @@ const GoalHistory: React.FC = () => {
   };
 
   const getProgressForGoal = (goalId: string) => {
-    if (isDev) {
+    if (isAdmin) {
       return progress
         .filter((p) => p.goal_id === goalId)
         .reduce((sum, p) => sum + p.current_value, 0);
@@ -181,7 +182,7 @@ const GoalHistory: React.FC = () => {
 
   const filteredGoals = goals.filter((g) => {
     if (filterPeriod !== 'all' && g.period_type !== filterPeriod) return false;
-    if (isDev && filterUser !== 'all') {
+    if (isAdmin && filterUser !== 'all') {
       if (filterUser === 'team') return g.goal_type === 'team';
       // Show individual goals assigned to user OR team goals where user has progress
       const isAssigned = g.target_user_id === filterUser;
@@ -194,7 +195,7 @@ const GoalHistory: React.FC = () => {
   });
 
   // Get all vendedores for the filter (not just those with goals)
-  const allVendedores = isDev
+  const allVendedores = isAdmin
     ? users.filter((u) => u.role === 'vendedor')
     : [];
 
@@ -223,7 +224,7 @@ const GoalHistory: React.FC = () => {
           </SelectContent>
         </Select>
 
-        {isDev && allVendedores.length > 0 && (
+        {isAdmin && allVendedores.length > 0 && (
           <Select value={filterUser} onValueChange={setFilterUser}>
             <SelectTrigger className="w-[200px]">
               <SelectValue placeholder="Vendedor" />
@@ -247,7 +248,7 @@ const GoalHistory: React.FC = () => {
           <CardContent className="py-12 text-center">
             <History className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
             <p className="text-muted-foreground font-medium">
-              {filterUser !== 'all' && isDev
+              {filterUser !== 'all' && isAdmin
                 ? `Nenhuma meta registrada para ${getUserName(filterUser)}`
                 : 'Nenhuma meta no histórico'}
             </p>
@@ -306,7 +307,7 @@ const GoalHistory: React.FC = () => {
                       ) : (
                         <span className="flex items-center gap-1">
                           <User className="w-3 h-3" />
-                          {isDev ? getUserName(goal.target_user_id) : 'Individual'}
+                          {isAdmin ? getUserName(goal.target_user_id) : 'Individual'}
                         </span>
                       )}
                     </Badge>
