@@ -1857,9 +1857,10 @@ export default function MeetingRoom() {
   };
 
   const copyMeetingLink = () => {
-    const link = `${window.location.origin}/reuniao/${code}`;
+    // Override: Use guest entry link (/entrar/:code) instead of direct meeting link
+    const link = `${window.location.origin}/entrar/${code}`;
     navigator.clipboard.writeText(link);
-    toast.success("Link copiado!");
+    toast.success("Link para convidados copiado!");
   };
 
   const toggleFullscreen = async () => {
