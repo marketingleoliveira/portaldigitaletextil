@@ -405,11 +405,13 @@ export default function Meetings() {
                         )}
                         <Button
                           variant="ghost"
-                          size="icon"
+                          size="sm"
                           onClick={() => copyGuestLink(meeting.meeting_code)}
                           title="Copiar link para convidados"
+                          className="gap-2"
                         >
                           <UserPlus className="w-4 h-4" />
+                          <span className="hidden sm:inline">ENVIAR LINK</span>
                         </Button>
                         <Button
                           variant="default"
