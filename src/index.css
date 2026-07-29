@@ -279,6 +279,20 @@
   }
 }
 
+@keyframes blink-yellow {
+  0%, 100% {
+    background-color: transparent;
+  }
+  50% {
+    background-color: #facc15; /* yellow-400 */
+    color: #000;
+  }
+}
+
+.animate-blink-yellow {
+  animation: blink-yellow 1.5s infinite;
+}
+
 .animate-float-up {
   animation: float-up 3s ease-out forwards;
 }
