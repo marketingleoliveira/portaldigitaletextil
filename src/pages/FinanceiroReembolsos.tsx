@@ -16,7 +16,7 @@ import {
 } from '@/components/ui/dialog';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
-  Wallet, Search, Loader2, ExternalLink, CheckCircle2, XCircle, Clock, BadgeDollarSign, FileDown, Trash2, Merge, Plus,
+  Wallet, Search, Loader2, ExternalLink, CheckCircle2, XCircle, Clock, BadgeDollarSign, FileDown, Trash2, Merge, Plus, FileText,
 } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
@@ -267,7 +267,7 @@ const FinanceiroReembolsos: React.FC = () => {
     if (detailReport?.id === id) setDetailReport({ ...detailReport, status });
   };
 
-  const exportReportPdf = async (report: Report) => {
+  const exportReportPdf = async (report: Report, includeReceipts: boolean = true) => {
     const toastId = toast.loading('Gerando PDF...');
     try {
       const reportItems = items[report.id] || [];
@@ -446,7 +446,8 @@ const FinanceiroReembolsos: React.FC = () => {
       }
 
       // ---- Attach receipts ----
-      for (const it of reportItems) {
+      if (includeReceipts) {
+        for (const it of reportItems) {
         if (!it.receipt_url) continue;
         try {
           const resp = await fetch(it.receipt_url);
@@ -494,7 +495,8 @@ const FinanceiroReembolsos: React.FC = () => {
       const a = document.createElement('a');
       const safe = (report.user_name || 'reembolso').replace(/[^a-z0-9]+/gi, '_');
       a.href = url;
-      a.download = `reembolso_${safe}_${report.id.slice(0, 8)}.pdf`;
+      const type = includeReceipts ? 'completo' : 'simplificado';
+      a.download = `reembolso_${type}_${safe}_${report.id.slice(0, 8)}.pdf`;
       a.click();
       URL.revokeObjectURL(url);
       toast.success('PDF gerado com sucesso', { id: toastId });
@@ -719,15 +721,15 @@ const FinanceiroReembolsos: React.FC = () => {
                           </TableCell>
                           <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                             <div className="flex items-center justify-end gap-1">
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                className="h-8 px-2"
-                                title="Exportar PDF com comprovantes"
-                                onClick={() => exportReportPdf(r)}
-                              >
-                                <FileDown className="w-4 h-4" />
-                              </Button>
+                              <Select onValueChange={(v) => exportReportPdf(r, v === 'full')}>
+                                <SelectTrigger className="w-[40px] h-8 p-0 border-none bg-transparent hover:bg-accent focus:ring-0 focus:ring-offset-0">
+                                  <FileDown className="w-4 h-4 mx-auto" />
+                                </SelectTrigger>
+                                <SelectContent align="end">
+                                  <SelectItem value="full">Relatório Completo (com recibos)</SelectItem>
+                                  <SelectItem value="simple">Relatório Simplificado (sem recibos)</SelectItem>
+                                </SelectContent>
+                              </Select>
                               {isDev && (
                                 <Button size="sm" variant="ghost" className="h-8 px-2" title="Adicionar comprovante" onClick={() => openAddItem(r)}>
                                   <Plus className="w-4 h-4" />
@@ -853,13 +855,16 @@ const FinanceiroReembolsos: React.FC = () => {
                 </div>
 
                 <div className="flex flex-wrap gap-2 pt-2 border-t">
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    onClick={() => exportReportPdf(detailReport)}
-                  >
-                    <FileDown className="w-4 h-4 mr-1" /> Exportar PDF
-                  </Button>
+                  <Select onValueChange={(v) => exportReportPdf(detailReport, v === 'full')}>
+                    <SelectTrigger className="w-auto h-9 px-3 gap-2 bg-secondary text-secondary-foreground hover:bg-secondary/80">
+                      <FileDown className="w-4 h-4" />
+                      <span className="text-sm font-medium">Exportar PDF</span>
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="full">Completo (com recibos)</SelectItem>
+                      <SelectItem value="simple">Simplificado (sem recibos)</SelectItem>
+                    </SelectContent>
+                  </Select>
                   <Button
                     variant="outline"
                     size="sm"
