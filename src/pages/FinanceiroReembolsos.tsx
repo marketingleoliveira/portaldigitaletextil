@@ -478,6 +478,7 @@ const FinanceiroReembolsos: React.FC = () => {
           console.warn('Falha ao anexar comprovante', it.id, e);
         }
       }
+    }
 
       // ---- Footer with page numbers ----
       const total = pages.length;
