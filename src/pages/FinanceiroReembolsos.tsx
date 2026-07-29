@@ -448,37 +448,37 @@ const FinanceiroReembolsos: React.FC = () => {
       // ---- Attach receipts ----
       if (includeReceipts) {
         for (const it of reportItems) {
-        if (!it.receipt_url) continue;
-        try {
-          const resp = await fetch(it.receipt_url);
-          if (!resp.ok) continue;
-          const buf = new Uint8Array(await resp.arrayBuffer());
-          const ct = (resp.headers.get('content-type') || '').toLowerCase();
-          const isPdf = ct.includes('pdf') || it.receipt_url.toLowerCase().includes('.pdf');
-          const isJpg = ct.includes('jpeg') || /\.jpe?g($|\?)/i.test(it.receipt_url);
-          const isPng = ct.includes('png') || /\.png($|\?)/i.test(it.receipt_url);
+          if (!it.receipt_url) continue;
+          try {
+            const resp = await fetch(it.receipt_url);
+            if (!resp.ok) continue;
+            const buf = new Uint8Array(await resp.arrayBuffer());
+            const ct = (resp.headers.get('content-type') || '').toLowerCase();
+            const isPdf = ct.includes('pdf') || it.receipt_url.toLowerCase().includes('.pdf');
+            const isJpg = ct.includes('jpeg') || /\.jpe?g($|\?)/i.test(it.receipt_url);
+            const isPng = ct.includes('png') || /\.png($|\?)/i.test(it.receipt_url);
 
-          if (isPdf) {
-            const src = await PDFDocument.load(buf, { ignoreEncryption: true });
-            const copied = await pdfDoc.copyPages(src, src.getPageIndices());
-            copied.forEach(p => { pdfDoc.addPage(p); pages.push(p); });
-          } else if (isJpg || isPng) {
-            const img = isJpg ? await pdfDoc.embedJpg(buf) : await pdfDoc.embedPng(buf);
-            const p = newPage();
-            const caption = `Comprovante — ${it.category} — ${formatBRL(Number(it.amount || 0))}`;
-            p.drawText(caption, { x: MARGIN, y: PAGE_H - 105, size: 10, font: fontBold, color: rgb(0.15, 0.15, 0.15) });
-            const maxW = CONTENT_W;
-            const maxH = PAGE_H - 180;
-            const scale = Math.min(maxW / img.width, maxH / img.height, 1);
-            const w = img.width * scale;
-            const h = img.height * scale;
-            p.drawImage(img, { x: (PAGE_W - w) / 2, y: (PAGE_H - 130 - h) / 2 + 20, width: w, height: h });
+            if (isPdf) {
+              const src = await PDFDocument.load(buf, { ignoreEncryption: true });
+              const copied = await pdfDoc.copyPages(src, src.getPageIndices());
+              copied.forEach(p => { pdfDoc.addPage(p); pages.push(p); });
+            } else if (isJpg || isPng) {
+              const img = isJpg ? await pdfDoc.embedJpg(buf) : await pdfDoc.embedPng(buf);
+              const p = newPage();
+              const caption = `Comprovante — ${it.category} — ${formatBRL(Number(it.amount || 0))}`;
+              p.drawText(caption, { x: MARGIN, y: PAGE_H - 105, size: 10, font: fontBold, color: rgb(0.15, 0.15, 0.15) });
+              const maxW = CONTENT_W;
+              const maxH = PAGE_H - 180;
+              const scale = Math.min(maxW / img.width, maxH / img.height, 1);
+              const w = img.width * scale;
+              const h = img.height * scale;
+              p.drawImage(img, { x: (PAGE_W - w) / 2, y: (PAGE_H - 130 - h) / 2 + 20, width: w, height: h });
+            }
+          } catch (e) {
+            console.warn('Falha ao anexar comprovante', it.id, e);
           }
-        } catch (e) {
-          console.warn('Falha ao anexar comprovante', it.id, e);
         }
       }
-    }
 
       // ---- Footer with page numbers ----
       const total = pages.length;
