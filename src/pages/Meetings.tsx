@@ -408,7 +408,7 @@ export default function Meetings() {
                           size="sm"
                           onClick={() => copyGuestLink(meeting.meeting_code)}
                           title="Copiar link para convidados"
-                          className="gap-2"
+                          className="gap-2 animate-blink-yellow hover:animate-none"
                         >
                           <UserPlus className="w-4 h-4" />
                           <span className="hidden sm:inline">ENVIAR LINK</span>
