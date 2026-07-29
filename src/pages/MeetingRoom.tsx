@@ -2944,7 +2944,7 @@ export default function MeetingRoom() {
                 <DropdownMenuContent align="end" className="min-w-[180px]">
                   <DropdownMenuItem onClick={copyMeetingLink}>
                     <Copy className="w-4 h-4 mr-2" />
-                    Copiar link
+                    Convidar (copiar link)
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={toggleFullscreen}>
                     {isFullscreen ? (
@@ -3160,7 +3160,7 @@ export default function MeetingRoom() {
               <DropdownMenuContent align="end" className="min-w-[180px]">
                 <DropdownMenuItem onClick={copyMeetingLink}>
                   <Copy className="w-4 h-4 mr-2" />
-                  Copiar link
+                  Convidar (copiar link)
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={toggleFullscreen}>
                   {isFullscreen ? (
