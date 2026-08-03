@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { AuthUser } from '@/types/auth';
+import { AuthUser, isDevLevel } from '@/types/auth';
 import { NotificationAlert } from '@/types/notifications';
 
 interface UnreadCount {
@@ -61,7 +61,7 @@ export const useRealtimeNotifications = (user: AuthUser | null) => {
 
       // Get unread ticket messages only from OPEN tickets
       let unreadTicketMessages = 0;
-      const hasFullAccess = user.role === 'admin' || user.role === 'dev';
+      const hasFullAccess = isDevLevel(user.role) || user.role === 'admin';
       
       if (hasFullAccess) {
         // Admin/Dev sees messages from users on open tickets only
@@ -298,7 +298,7 @@ export const useRealtimeNotifications = (user: AuthUser | null) => {
             return;
           }
           
-          const hasFullAccess = user.role === 'admin' || user.role === 'dev';
+          const hasFullAccess = isDevLevel(user.role) || user.role === 'admin';
           
           // If admin/dev and message is from user, show alert
           if (hasFullAccess && !newMessage.is_admin_reply) {
@@ -343,7 +343,7 @@ export const useRealtimeNotifications = (user: AuthUser | null) => {
         },
         async (payload) => {
           const newTicket = payload.new as any;
-          const hasFullAccess = user.role === 'admin' || user.role === 'dev';
+          const hasFullAccess = isDevLevel(user.role) || user.role === 'admin';
           
           // Only admins/devs should receive new ticket alerts
           if (hasFullAccess && newTicket.user_id !== user.id) {

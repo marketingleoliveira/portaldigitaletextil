@@ -14,6 +14,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { format, isSameDay, parseISO, startOfMonth, endOfMonth, eachDayOfInterval, isToday, isSameMonth, startOfWeek, endOfWeek, addMonths, subMonths } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Plus, Clock, Building2, Phone, FileText, Upload, Check, Trash2, ChevronLeft, ChevronRight, Loader2, Paperclip, Pencil, Link2, ExternalLink } from 'lucide-react';
+import { isDevLevel } from '@/types/auth';
 
 const STATUS_MAP: Record<string, { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline' }> = {
   pendente: { label: 'Pendente', variant: 'outline' },
@@ -490,7 +491,7 @@ const Depoimentos: React.FC = () => {
                       Marcar como Realizado
                     </Button>
                   )}
-                  {user?.role === 'dev' && (
+                  {isDevLevel(user?.role) && (
                     <Button variant="destructive" size="sm" onClick={() => { deleteTestimonial.mutate(detailDialog.id); setDetailDialog(null); }}>
                       <Trash2 className="w-4 h-4 mr-1" />
                       Excluir

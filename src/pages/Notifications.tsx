@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import { supabase } from '@/integrations/supabase/client';
-import { Notification, AppRole, isManagerOrAbove } from '@/types/auth';
+import { Notification, AppRole, isManagerOrAbove, isDevLevel } from '@/types/auth';
 import RoleBadge from '@/components/RoleBadge';
 import { useToast } from '@/hooks/use-toast';
 import { useUnreadNotifications } from '@/hooks/useUnreadNotifications';
@@ -63,7 +63,7 @@ const Notifications: React.FC = () => {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
   const canCreateNotifications = isManagerOrAbove(user?.role);
-  const isDev = user?.role === 'dev';
+  const isDev = isDevLevel(user?.role);
 
   useEffect(() => {
     fetchNotifications();

@@ -14,7 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from 'sonner';
-import { hasFullAccess, AppRole } from '@/types/auth';
+import { hasFullAccess, AppRole, isDevLevel } from '@/types/auth';
 import MeritCertificate from '@/components/MeritCertificate';
 import GoalHistory from '@/components/GoalHistory';
 import {
@@ -117,7 +117,7 @@ const formatValue = (value: number, unit: string): string => {
 const Goals: React.FC = () => {
   const { user } = useAuth();
   const isAdmin = user?.role ? (hasFullAccess(user.role) || user.role === 'gerente') : false;
-  const isDev = user?.role === 'dev';
+  const isDev = isDevLevel(user?.role);
 
   const [goals, setGoals] = useState<Goal[]>([]);
   const [progress, setProgress] = useState<GoalProgress[]>([]);
@@ -669,9 +669,9 @@ const Goals: React.FC = () => {
         </div>
 
         {/* Main content: Goals (left) and Ranking (right for managers+) */}
-        <div className={`grid grid-cols-1 gap-6 ${(user?.role === 'gerente' || user?.role === 'admin' || user?.role === 'dev') ? 'xl:grid-cols-3' : ''}`}>
+        <div className={`grid grid-cols-1 gap-6 ${(user?.role === 'gerente' || user?.role === 'admin' || isDevLevel(user?.role)) ? 'xl:grid-cols-3' : ''}`}>
           {/* Goals Section */}
-          <div className={`space-y-6 ${(user?.role === 'gerente' || user?.role === 'admin' || user?.role === 'dev') ? 'xl:col-span-2' : ''}`}>
+          <div className={`space-y-6 ${(user?.role === 'gerente' || user?.role === 'admin' || isDevLevel(user?.role)) ? 'xl:col-span-2' : ''}`}>
             {/* Tabs for filtering */}
             <Tabs value={selectedTab} onValueChange={setSelectedTab}>
               <TabsList>
@@ -1002,7 +1002,7 @@ const Goals: React.FC = () => {
           </div>
 
           {/* Seller Ranking - Right (1 column) - Only visible to gerente, admin, dev */}
-          {(user?.role === 'gerente' || user?.role === 'admin' || user?.role === 'dev') && (
+          {(user?.role === 'gerente' || user?.role === 'admin' || isDevLevel(user?.role)) && (
           <div className="xl:col-span-1">
             <Card className="sticky top-4">
               <CardHeader>

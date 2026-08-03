@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
-import { hasFullAccess } from '@/types/auth';
+import { hasFullAccess, isDevLevel } from '@/types/auth';
 import DashboardLayout from '@/components/layouts/DashboardLayout';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -38,7 +38,7 @@ const Updates: React.FC = () => {
     version: '',
   });
 
-  const isDev = user?.role === 'dev';
+  const isDev = isDevLevel(user?.role);
 
   useEffect(() => {
     fetchUpdates();
