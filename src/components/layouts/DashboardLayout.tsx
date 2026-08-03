@@ -66,7 +66,7 @@ import NotificationBanner from "@/components/NotificationBanner";
 import PersistentNotificationAlert from "@/components/PersistentNotificationAlert";
 import { Eye, EyeOff } from "lucide-react";
 
-import { AppRole, ROLE_LABELS } from "@/types/auth";
+import { AppRole, ROLE_LABELS, isDevLevel } from "@/types/auth";
 import { UsersRound } from "lucide-react";
 
 interface NavItem {
@@ -177,7 +177,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
   const isUserDataLoading = loading;
 
   // Filter nav items - if role not available, show minimal nav
-  const effectiveRoleForNav = (user?.role === 'diretoria' || user?.role === 'gerente') ? 'dev' : user?.role;
+  const effectiveRoleForNav = isDevLevel(user?.role) ? 'dev' : user?.role;
   const filteredNavItems = effectiveRoleForNav
     ? navItems.filter((item) => item.roles.includes(effectiveRoleForNav))
     : navItems.filter((item) => item.roles.includes("vendedor")); // Default to minimal access
