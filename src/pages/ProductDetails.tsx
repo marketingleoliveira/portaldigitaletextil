@@ -40,9 +40,11 @@ const ProductDetails: React.FC = () => {
 
   const handleDownloadCatalog = async () => {
     if (!product?.catalog_url) return;
-    
-    await logDownload('catalog', product.id);
+
+    // Abrir na mesma interação do clique (antes de qualquer await) para não
+    // ser bloqueado pelo bloqueador de pop-ups do navegador.
     window.open(product.catalog_url, '_blank');
+    void logDownload('catalog', product.id);
     toast({
       title: 'Download iniciado',
       description: 'Baixando catálogo do produto',
@@ -51,9 +53,10 @@ const ProductDetails: React.FC = () => {
 
   const handleDownloadTechnicalSheet = async () => {
     if (!product?.technical_sheet_url) return;
-    
-    await logDownload('technical_sheet', product.id);
+
     window.open(product.technical_sheet_url, '_blank');
+    void logDownload('technical_sheet', product.id);
+
     toast({
       title: 'Download iniciado',
       description: 'Baixando ficha técnica',
