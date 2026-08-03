@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
-import { AppRole, UserProfile, AuthUser } from '@/types/auth';
+import { AppRole, UserProfile, AuthUser, isDevLevel } from '@/types/auth';
 import { getIpAddress } from '@/hooks/useIpAddress';
 
 interface AuthContextType {
@@ -230,7 +230,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const realRole = user?.role ?? null;
   const effectiveRole: AppRole | null =
-    realRole === 'dev' && viewAsRole ? viewAsRole : realRole;
+    isDevLevel(realRole) && viewAsRole ? viewAsRole : realRole;
   const exposedUser: AuthUser | null = user
     ? { ...user, role: effectiveRole }
     : null;
@@ -245,7 +245,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         signOut,
         updatePassword,
         realRole,
-        viewAsRole: realRole === 'dev' ? viewAsRole : null,
+        viewAsRole: isDevLevel(realRole) ? viewAsRole : null,
         setViewAsRole,
       }}
     >
