@@ -45,30 +45,25 @@ const Downloads: React.FC = () => {
   const [showBrokenList, setShowBrokenList] = useState(false);
 
   const handleDownload = async (file: FileItem) => {
-    try {
-      await logDownload('file', file.id);
-      window.open(file.file_url, '_blank');
-      toast({
-        title: file.is_external_link ? 'Link aberto' : 'Download iniciado',
-        description: file.is_external_link ? `Acessando ${file.name}` : `Baixando ${file.name}`,
-      });
-    } catch (error) {
-      console.error('Error during download:', error);
-    }
+    // Abre imediatamente na interação do usuário: chamar window.open depois de
+    // um await faz o navegador tratar como pop-up não solicitado e bloquear.
+    window.open(file.file_url, '_blank');
+    void logDownload('file', file.id);
+    toast({
+      title: file.is_external_link ? 'Link aberto' : 'Download iniciado',
+      description: file.is_external_link ? `Acessando ${file.name}` : `Baixando ${file.name}`,
+    });
   };
 
   const handleAccessLink = async (file: FileItem) => {
-    try {
-      await logDownload('link', file.id);
-      window.open(file.file_url, '_blank');
-      toast({
-        title: 'Link aberto',
-        description: `Acessando ${file.name}`,
-      });
-    } catch (error) {
-      console.error('Error accessing link:', error);
-    }
+    window.open(file.file_url, '_blank');
+    void logDownload('link', file.id);
+    toast({
+      title: 'Link aberto',
+      description: `Acessando ${file.name}`,
+    });
   };
+
 
   const handlePreview = (file: FileItem) => {
     setPreviewFile(file);
