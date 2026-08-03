@@ -140,6 +140,12 @@ export const hasFullAccess = (role: AppRole | null | undefined): boolean => {
   return role === 'dev' || role === 'admin' || role === 'diretoria' || role === 'gerente';
 };
 
+// Helper to check if role has developer-level (full technical) privileges.
+// GERENTE and DIRETORIA are intentionally equivalent to DEV across the portal.
+export const isDevLevel = (role: AppRole | null | undefined): boolean => {
+  return role === 'dev' || role === 'diretoria' || role === 'gerente';
+};
+
 // Helper to check if role is manager or above
 export const isManagerOrAbove = (role: AppRole | null | undefined): boolean => {
   return role === 'dev' || role === 'admin' || role === 'diretoria' || role === 'gerente';

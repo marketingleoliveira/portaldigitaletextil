@@ -3,7 +3,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import DashboardLayout from '@/components/layouts/DashboardLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { supabase } from '@/integrations/supabase/client';
-import { AccessLog, AppRole, isManagerOrAbove } from '@/types/auth';
+import { AccessLog, AppRole, isManagerOrAbove, isDevLevel } from '@/types/auth';
 import {
   Table,
   TableBody,
@@ -847,7 +847,7 @@ const Reports: React.FC = () => {
                 <CardDescription>Histórico completo de solicitações de reembolso</CardDescription>
               </CardHeader>
               <CardContent>
-                <ReembolsosManager userId={selectedUser.id} userName={selectedUser.full_name} canEdit={user?.role === 'dev' || user?.role === 'admin'} canDelete={user?.role === 'dev'} isAdminView />
+                <ReembolsosManager userId={selectedUser.id} userName={selectedUser.full_name} canEdit={isDevLevel(user?.role) || user?.role === 'admin'} canDelete={isDevLevel(user?.role)} isAdminView />
               </CardContent>
             </Card>
           )}
@@ -922,7 +922,7 @@ const Reports: React.FC = () => {
                       Últimos 30 dias de registros de ponto
                     </CardDescription>
                   </div>
-                  {user?.role === 'dev' && (
+                  {isDevLevel(user?.role) && (
                     <div className="flex gap-2">
                       <Button
                         variant="outline"
@@ -967,7 +967,7 @@ const Reports: React.FC = () => {
                         <TableHead className="text-center">Saída Almoço (12h)</TableHead>
                         <TableHead className="text-center">Retorno (13h)</TableHead>
                         <TableHead className="text-center">Saída (18h)</TableHead>
-                        {user?.role === 'dev' && <TableHead className="text-center">Ações</TableHead>}
+                        {isDevLevel(user?.role) && <TableHead className="text-center">Ações</TableHead>}
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -999,7 +999,7 @@ const Reports: React.FC = () => {
                               {formatPunchTime(record.exit_time)}
                             </Badge>
                           </TableCell>
-                          {user?.role === 'dev' && (
+                          {isDevLevel(user?.role) && (
                             <TableCell className="text-center">
                               <div className="flex items-center justify-center gap-1">
                                 <Button

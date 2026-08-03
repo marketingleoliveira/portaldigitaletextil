@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { hasFullAccess } from '@/types/auth';
+import { hasFullAccess, isDevLevel } from '@/types/auth';
 import DashboardLayout from '@/components/layouts/DashboardLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -169,7 +169,7 @@ const Dashboard: React.FC = () => {
   ];
 
   const filteredStats = statsCards.filter(card => 
-    user?.role && (card.roles.includes(user.role) || user.role === 'dev')
+    user?.role && (card.roles.includes(user.role) || isDevLevel(user.role))
   );
 
   const quickActions = [
@@ -221,7 +221,7 @@ const Dashboard: React.FC = () => {
   ];
 
   const filteredActions = quickActions.filter(action => 
-    user?.role && (action.roles.includes(user.role) || user.role === 'dev')
+    user?.role && (action.roles.includes(user.role) || isDevLevel(user.role))
   );
 
   return (

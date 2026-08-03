@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { User, Phone, DollarSign, Trophy, GripVertical, UserCheck, Lock } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { usePendingReminders } from "@/hooks/useLeadReminders";
+import { isDevLevel } from '@/types/auth';
 
 interface CRMKanbanProps {
   leads: Lead[];
@@ -21,7 +22,7 @@ export function CRMKanban({ leads, onSelectLead }: CRMKanbanProps) {
   const updateLead = useUpdateLead();
   const { data: vendedores } = useVendedores();
   const { data: allReminders = [] } = usePendingReminders();
-  const isDev = user?.role === 'dev';
+  const isDev = isDevLevel(user?.role);
   const [draggedLeadId, setDraggedLeadId] = useState<string | null>(null);
   const [dropTarget, setDropTarget] = useState<LeadStatus | null>(null);
 

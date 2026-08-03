@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
-import { AppRole } from '@/types/auth';
+import { AppRole, isDevLevel } from '@/types/auth';
 import {
   Target,
   Trophy,
@@ -73,8 +73,8 @@ const formatValue = (value: number, unit: string): string => {
 
 const GoalHistory: React.FC = () => {
   const { user } = useAuth();
-  const isAdmin = user?.role === 'dev' || user?.role === 'diretoria' || user?.role === 'gerente' || user?.role === 'admin';
-  const isDev = user?.role === 'dev';
+  const isAdmin = isDevLevel(user?.role) || user?.role === 'diretoria' || user?.role === 'gerente' || user?.role === 'admin';
+  const isDev = isDevLevel(user?.role);
 
   const [goals, setGoals] = useState<HistoricalGoal[]>([]);
   const [progress, setProgress] = useState<GoalProgress[]>([]);

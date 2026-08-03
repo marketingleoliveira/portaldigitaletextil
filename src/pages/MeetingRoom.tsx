@@ -29,7 +29,7 @@ import ScreenShareLayout from "@/components/ScreenShareLayout";
 import { ScreenShareOptionsModal, ScreenShareType } from "@/components/ScreenShareOptionsModal";
 import { ScreenSharePreview } from "@/components/ScreenSharePreview";
 import { ScreenShareIndicator } from "@/components/ScreenShareIndicator";
-import { ROLE_LABELS } from "@/types/auth";
+import { ROLE_LABELS, isDevLevel } from "@/types/auth";
 import { ROLE_TEXT_COLORS, formatParticipantName } from "@/lib/meeting-utils";
 import { setUserInMeeting } from "@/hooks/useUserPresence";
 
@@ -180,7 +180,7 @@ export default function MeetingRoom() {
   const userRef = useRef(user);
 
   const isHost = meeting?.host_user_id === user?.id;
-  const isDev = user?.role === 'dev';
+  const isDev = isDevLevel(user?.role);
   const hasModeratorAccess = isHost || isDev;
 
   // Local recording hook
@@ -908,7 +908,7 @@ export default function MeetingRoom() {
           });
           
           // Check if current user has moderator access (host or dev)
-          const currentUserIsDev = userRef.current?.role === 'dev';
+          const currentUserIsDev = isDevLevel(userRef.current?.role);
           const currentUserIsHost = isHost;
           const currentUserHasModeratorAccess = currentUserIsHost || currentUserIsDev;
           
@@ -1118,7 +1118,7 @@ export default function MeetingRoom() {
       // Check if password is required (non-host and meeting has password)
       // Developers can bypass password protection
       const isUserHost = meetingData.host_user_id === user.id;
-      const isDeveloper = user.role === 'dev';
+      const isDeveloper = isDevLevel(user.role);
       if (!isUserHost && !isDeveloper && meetingData.password) {
         setLoading(false);
         setShowPasswordPrompt(true);

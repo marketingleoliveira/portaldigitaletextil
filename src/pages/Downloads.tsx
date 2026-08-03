@@ -4,7 +4,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { supabase } from '@/integrations/supabase/client';
-import { FileItem, AppRole } from '@/types/auth';
+import { FileItem, AppRole, isDevLevel } from '@/types/auth';
 import { 
   FileText, Download, Search, Loader2, FolderOpen, Eye, X,
   FileImage, FileVideo, FileAudio, FileSpreadsheet, FileType, File, Globe, ExternalLink,
@@ -385,7 +385,7 @@ const Downloads: React.FC = () => {
         </div>
 
         {/* Broken Files Warning - Dev only */}
-        {user?.role === 'dev' && (() => {
+        {isDevLevel(user?.role) && (() => {
           const brokenFiles = files.filter(f => isFileBroken(f.file_url));
           if (brokenFiles.length === 0) return null;
           return (
