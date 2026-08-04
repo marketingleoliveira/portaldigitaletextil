@@ -110,6 +110,12 @@ export default function MeetingRoom() {
   const callObjectRef = useRef<DailyCall | null>(null);
   const isInitializingRef = useRef(false);
   const hasInitializedRef = useRef(false);
+  // Guarda se a saída foi intencional (clicar em "Sair"/"Encerrar").
+  // Qualquer outra desconexão dispara reconexão automática.
+  const intentionalLeaveRef = useRef(false);
+  const roomUrlRef = useRef<string | null>(null);
+  const rejoinAttemptsRef = useRef(0);
+  const rejoinTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   
   // Local state - microphone starts OFF for all users
   const [isMuted, setIsMuted] = useState(true);
