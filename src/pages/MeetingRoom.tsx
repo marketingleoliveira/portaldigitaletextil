@@ -127,6 +127,8 @@ export default function MeetingRoom() {
   const [showParticipants, setShowParticipants] = useState(false);
   const [showModeration, setShowModeration] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  // Salvaguarda contra desconexão acidental: confirma antes de sair/encerrar
+  const [exitConfirm, setExitConfirm] = useState<null | "leave" | "end">(null);
   const [newMessage, setNewMessage] = useState("");
   
   // Recording state
@@ -914,6 +916,8 @@ export default function MeetingRoom() {
           const updatedMeeting = payload.new as { is_active: boolean; ended_at: string | null };
           if (!updatedMeeting.is_active || updatedMeeting.ended_at) {
             toast.info("A reunião foi encerrada pelo anfitrião");
+            // Encerramento legítimo: não tentar reconectar
+            intentionalLeaveRef.current = true;
             setTimeout(async () => {
               await cleanup();
               navigate("/reunioes");
@@ -995,21 +999,21 @@ export default function MeetingRoom() {
           // Global commands - only apply to non-moderators
           if (action === 'toggle_all_audio' && !currentUserHasModeratorAccess) {
             if (!enabled && callObject) {
-              callObject.setLocalAudio(false);
+              Promise.resolve(callObject.setLocalAudio(false)).catch((e) => console.warn("setLocalAudio falhou:", e));
               setIsMuted(true);
               toast.info("O anfitrião desativou todos os microfones");
             }
             setGlobalAudioEnabled(enabled);
           } else if (action === 'toggle_all_video' && !currentUserHasModeratorAccess) {
             if (!enabled && callObject) {
-              callObject.setLocalVideo(false);
+              Promise.resolve(callObject.setLocalVideo(false)).catch((e) => console.warn("setLocalVideo falhou:", e));
               setIsVideoOn(false);
               toast.info("O anfitrião desativou todas as câmeras");
             }
             setGlobalVideoEnabled(enabled);
           } else if (action === 'toggle_screen_share') {
             if (!enabled && isScreenSharing && callObject && !currentUserHasModeratorAccess) {
-              callObject.stopScreenShare();
+              try { callObject.stopScreenShare(); } catch (e) { console.warn("stopScreenShare falhou:", e); }
               setIsScreenSharing(false);
             }
             setGlobalScreenShareEnabled(enabled);
@@ -1022,11 +1026,11 @@ export default function MeetingRoom() {
             console.log('Processing individual command for this participant:', action);
             
             if (action === 'mute_participant' && callObject) {
-              callObject.setLocalAudio(false);
+              Promise.resolve(callObject.setLocalAudio(false)).catch((e) => console.warn("setLocalAudio falhou:", e));
               setIsMuted(true);
               toast.info("O moderador desativou seu microfone");
             } else if (action === 'disable_camera' && callObject) {
-              callObject.setLocalVideo(false);
+              Promise.resolve(callObject.setLocalVideo(false)).catch((e) => console.warn("setLocalVideo falhou:", e));
               setIsVideoOn(false);
               toast.info("O moderador desativou sua câmera");
             } else if (action === 'remove_participant') {
@@ -1310,45 +1314,69 @@ export default function MeetingRoom() {
 
   const toggleMute = useCallback(async () => {
     if (!callObject) return;
-    
+
     // Check if global audio is disabled (for non-moderators)
     if (!hasModeratorAccess && !globalAudioEnabled && isMuted) {
       toast.error("O moderador desativou os microfones");
       return;
     }
-    
+
     const newMuted = !isMuted;
-    await callObject.setLocalAudio(!newMuted);
-    setIsMuted(newMuted);
+    try {
+      await callObject.setLocalAudio(!newMuted);
+      setIsMuted(newMuted);
+    } catch (err) {
+      // Falha de microfone nunca deve derrubar a sessão
+      console.warn("Falha ao alternar microfone (mantém conexão):", err);
+      toast.warning("Microfone indisponível — você continua na reunião");
+      setIsMuted(true);
+      return;
+    }
 
     if (meeting && user) {
-      await supabase
-        .from("meeting_participants")
-        .update({ is_muted: newMuted })
-        .eq("meeting_id", meeting.id)
-        .eq("user_id", user.id);
+      try {
+        await supabase
+          .from("meeting_participants")
+          .update({ is_muted: newMuted })
+          .eq("meeting_id", meeting.id)
+          .eq("user_id", user.id);
+      } catch (err) {
+        console.warn("Falha ao sincronizar estado do microfone:", err);
+      }
     }
   }, [isMuted, callObject, meeting, user, hasModeratorAccess, globalAudioEnabled]);
 
   const toggleVideo = useCallback(async () => {
     if (!callObject) return;
-    
+
     // Check if global video is disabled (for non-moderators)
     if (!hasModeratorAccess && !globalVideoEnabled && !isVideoOn) {
       toast.error("O moderador desativou as câmeras");
       return;
     }
-    
+
     const newVideoOn = !isVideoOn;
-    await callObject.setLocalVideo(newVideoOn);
-    setIsVideoOn(newVideoOn);
+    try {
+      await callObject.setLocalVideo(newVideoOn);
+      setIsVideoOn(newVideoOn);
+    } catch (err) {
+      // Falha de câmera nunca deve derrubar a sessão
+      console.warn("Falha ao alternar câmera (mantém conexão):", err);
+      toast.warning("Câmera indisponível — você continua na reunião");
+      setIsVideoOn(false);
+      return;
+    }
 
     if (meeting && user) {
-      await supabase
-        .from("meeting_participants")
-        .update({ is_video_on: newVideoOn })
-        .eq("meeting_id", meeting.id)
-        .eq("user_id", user.id);
+      try {
+        await supabase
+          .from("meeting_participants")
+          .update({ is_video_on: newVideoOn })
+          .eq("meeting_id", meeting.id)
+          .eq("user_id", user.id);
+      } catch (err) {
+        console.warn("Falha ao sincronizar estado da câmera:", err);
+      }
     }
   }, [isVideoOn, callObject, meeting, user, hasModeratorAccess, globalVideoEnabled]);
 
@@ -2936,7 +2964,7 @@ export default function MeetingRoom() {
                 variant="destructive"
                 size="sm"
                 className="rounded-full w-11 h-11"
-                onClick={leaveMeeting}
+                onClick={() => setExitConfirm("leave")}
               >
                 <Phone className="w-4 h-4 rotate-[135deg]" />
               </Button>
@@ -3043,7 +3071,7 @@ export default function MeetingRoom() {
                   {isHost && (
                     <>
                       <DropdownMenuSeparator />
-                      <DropdownMenuItem onClick={endMeeting} className="text-destructive">
+                      <DropdownMenuItem onClick={() => setExitConfirm("end")} className="text-destructive">
                         <Phone className="w-4 h-4 mr-2 rotate-[135deg]" />
                         Encerrar reunião
                       </DropdownMenuItem>
@@ -3270,7 +3298,7 @@ export default function MeetingRoom() {
 
             <div className="w-px h-8 bg-gray-600 mx-1" />
 
-            <Button variant="destructive" size="sm" className="rounded-full h-11 px-4 gap-2" onClick={leaveMeeting}>
+            <Button variant="destructive" size="sm" className="rounded-full h-11 px-4 gap-2" onClick={() => setExitConfirm("leave")}>
               <Phone className="w-4 h-4 rotate-[135deg]" />
               <span className="text-xs font-medium">Sair</span>
             </Button>
@@ -3280,7 +3308,7 @@ export default function MeetingRoom() {
                 variant="outline"
                 size="sm"
                 className="rounded-full h-11 px-4 gap-2 border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground"
-                onClick={endMeeting}
+                onClick={() => setExitConfirm("end")}
               >
                 <span className="text-xs font-medium">Encerrar reunião</span>
               </Button>
@@ -3295,6 +3323,44 @@ export default function MeetingRoom() {
         onOpenChange={setShowScreenShareOptions}
         onSelect={startScreenShareWithType}
       />
+
+      {/* Confirmação de saída (evita desconexão acidental) */}
+      <Dialog open={exitConfirm !== null} onOpenChange={(open) => !open && setExitConfirm(null)}>
+        <DialogContent
+          className="sm:max-w-sm"
+          onInteractOutside={(e) => e.preventDefault()}
+        >
+          <DialogHeader>
+            <DialogTitle>
+              {exitConfirm === "end" ? "Encerrar reunião para todos?" : "Sair da reunião?"}
+            </DialogTitle>
+            <DialogDescription>
+              {exitConfirm === "end"
+                ? "Todos os participantes serão desconectados e a sala será fechada."
+                : "Você será desconectado desta reunião. Poderá entrar novamente pelo mesmo link."}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setExitConfirm(null)}>
+              Continuar na reunião
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={() => {
+                const action = exitConfirm;
+                setExitConfirm(null);
+                if (action === "end") {
+                  void endMeeting();
+                } else {
+                  void leaveMeeting();
+                }
+              }}
+            >
+              {exitConfirm === "end" ? "Encerrar para todos" : "Sair"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Screen Share Preview */}
       <ScreenSharePreview
