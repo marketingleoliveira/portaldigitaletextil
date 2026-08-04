@@ -2964,7 +2964,7 @@ export default function MeetingRoom() {
                 variant="destructive"
                 size="sm"
                 className="rounded-full w-11 h-11"
-                onClick={leaveMeeting}
+                onClick={() => setExitConfirm("leave")}
               >
                 <Phone className="w-4 h-4 rotate-[135deg]" />
               </Button>
@@ -3071,7 +3071,7 @@ export default function MeetingRoom() {
                   {isHost && (
                     <>
                       <DropdownMenuSeparator />
-                      <DropdownMenuItem onClick={endMeeting} className="text-destructive">
+                      <DropdownMenuItem onClick={() => setExitConfirm("end")} className="text-destructive">
                         <Phone className="w-4 h-4 mr-2 rotate-[135deg]" />
                         Encerrar reunião
                       </DropdownMenuItem>
@@ -3298,7 +3298,7 @@ export default function MeetingRoom() {
 
             <div className="w-px h-8 bg-gray-600 mx-1" />
 
-            <Button variant="destructive" size="sm" className="rounded-full h-11 px-4 gap-2" onClick={leaveMeeting}>
+            <Button variant="destructive" size="sm" className="rounded-full h-11 px-4 gap-2" onClick={() => setExitConfirm("leave")}>
               <Phone className="w-4 h-4 rotate-[135deg]" />
               <span className="text-xs font-medium">Sair</span>
             </Button>
@@ -3308,7 +3308,7 @@ export default function MeetingRoom() {
                 variant="outline"
                 size="sm"
                 className="rounded-full h-11 px-4 gap-2 border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground"
-                onClick={endMeeting}
+                onClick={() => setExitConfirm("end")}
               >
                 <span className="text-xs font-medium">Encerrar reunião</span>
               </Button>
@@ -3323,6 +3323,44 @@ export default function MeetingRoom() {
         onOpenChange={setShowScreenShareOptions}
         onSelect={startScreenShareWithType}
       />
+
+      {/* Confirmação de saída (evita desconexão acidental) */}
+      <Dialog open={exitConfirm !== null} onOpenChange={(open) => !open && setExitConfirm(null)}>
+        <DialogContent
+          className="sm:max-w-sm"
+          onInteractOutside={(e) => e.preventDefault()}
+        >
+          <DialogHeader>
+            <DialogTitle>
+              {exitConfirm === "end" ? "Encerrar reunião para todos?" : "Sair da reunião?"}
+            </DialogTitle>
+            <DialogDescription>
+              {exitConfirm === "end"
+                ? "Todos os participantes serão desconectados e a sala será fechada."
+                : "Você será desconectado desta reunião. Poderá entrar novamente pelo mesmo link."}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setExitConfirm(null)}>
+              Continuar na reunião
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={() => {
+                const action = exitConfirm;
+                setExitConfirm(null);
+                if (action === "end") {
+                  void endMeeting();
+                } else {
+                  void leaveMeeting();
+                }
+              }}
+            >
+              {exitConfirm === "end" ? "Encerrar para todos" : "Sair"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Screen Share Preview */}
       <ScreenSharePreview
