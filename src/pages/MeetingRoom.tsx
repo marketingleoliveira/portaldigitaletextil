@@ -1907,6 +1907,12 @@ export default function MeetingRoom() {
   };
 
   const leaveMeeting = async () => {
+    // Saída intencional: impede a reconexão automática
+    intentionalLeaveRef.current = true;
+    if (rejoinTimeoutRef.current) {
+      clearTimeout(rejoinTimeoutRef.current);
+      rejoinTimeoutRef.current = null;
+    }
     // Clear the global state when actually leaving
     const meetingKey = `${code}-${user?.id}`;
     globalMeetingState.delete(meetingKey);
