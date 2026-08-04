@@ -1031,6 +1031,7 @@ export default function MeetingRoom() {
               toast.info("O moderador desativou sua câmera");
             } else if (action === 'remove_participant') {
               toast.error("Você foi removido da reunião pelo moderador");
+              intentionalLeaveRef.current = true;
               setTimeout(async () => {
                 await cleanup();
                 navigate("/reunioes");
