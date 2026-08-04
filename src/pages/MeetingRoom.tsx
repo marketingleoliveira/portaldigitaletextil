@@ -914,6 +914,8 @@ export default function MeetingRoom() {
           const updatedMeeting = payload.new as { is_active: boolean; ended_at: string | null };
           if (!updatedMeeting.is_active || updatedMeeting.ended_at) {
             toast.info("A reunião foi encerrada pelo anfitrião");
+            // Encerramento legítimo: não tentar reconectar
+            intentionalLeaveRef.current = true;
             setTimeout(async () => {
               await cleanup();
               navigate("/reunioes");
