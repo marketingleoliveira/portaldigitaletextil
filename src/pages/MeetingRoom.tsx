@@ -127,6 +127,8 @@ export default function MeetingRoom() {
   const [showParticipants, setShowParticipants] = useState(false);
   const [showModeration, setShowModeration] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  // Salvaguarda contra desconexão acidental: confirma antes de sair/encerrar
+  const [exitConfirm, setExitConfirm] = useState<null | "leave" | "end">(null);
   const [newMessage, setNewMessage] = useState("");
   
   // Recording state
