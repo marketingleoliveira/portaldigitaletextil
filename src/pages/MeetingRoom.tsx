@@ -1310,45 +1310,69 @@ export default function MeetingRoom() {
 
   const toggleMute = useCallback(async () => {
     if (!callObject) return;
-    
+
     // Check if global audio is disabled (for non-moderators)
     if (!hasModeratorAccess && !globalAudioEnabled && isMuted) {
       toast.error("O moderador desativou os microfones");
       return;
     }
-    
+
     const newMuted = !isMuted;
-    await callObject.setLocalAudio(!newMuted);
-    setIsMuted(newMuted);
+    try {
+      await callObject.setLocalAudio(!newMuted);
+      setIsMuted(newMuted);
+    } catch (err) {
+      // Falha de microfone nunca deve derrubar a sessão
+      console.warn("Falha ao alternar microfone (mantém conexão):", err);
+      toast.warning("Microfone indisponível — você continua na reunião");
+      setIsMuted(true);
+      return;
+    }
 
     if (meeting && user) {
-      await supabase
-        .from("meeting_participants")
-        .update({ is_muted: newMuted })
-        .eq("meeting_id", meeting.id)
-        .eq("user_id", user.id);
+      try {
+        await supabase
+          .from("meeting_participants")
+          .update({ is_muted: newMuted })
+          .eq("meeting_id", meeting.id)
+          .eq("user_id", user.id);
+      } catch (err) {
+        console.warn("Falha ao sincronizar estado do microfone:", err);
+      }
     }
   }, [isMuted, callObject, meeting, user, hasModeratorAccess, globalAudioEnabled]);
 
   const toggleVideo = useCallback(async () => {
     if (!callObject) return;
-    
+
     // Check if global video is disabled (for non-moderators)
     if (!hasModeratorAccess && !globalVideoEnabled && !isVideoOn) {
       toast.error("O moderador desativou as câmeras");
       return;
     }
-    
+
     const newVideoOn = !isVideoOn;
-    await callObject.setLocalVideo(newVideoOn);
-    setIsVideoOn(newVideoOn);
+    try {
+      await callObject.setLocalVideo(newVideoOn);
+      setIsVideoOn(newVideoOn);
+    } catch (err) {
+      // Falha de câmera nunca deve derrubar a sessão
+      console.warn("Falha ao alternar câmera (mantém conexão):", err);
+      toast.warning("Câmera indisponível — você continua na reunião");
+      setIsVideoOn(false);
+      return;
+    }
 
     if (meeting && user) {
-      await supabase
-        .from("meeting_participants")
-        .update({ is_video_on: newVideoOn })
-        .eq("meeting_id", meeting.id)
-        .eq("user_id", user.id);
+      try {
+        await supabase
+          .from("meeting_participants")
+          .update({ is_video_on: newVideoOn })
+          .eq("meeting_id", meeting.id)
+          .eq("user_id", user.id);
+      } catch (err) {
+        console.warn("Falha ao sincronizar estado da câmera:", err);
+      }
     }
   }, [isVideoOn, callObject, meeting, user, hasModeratorAccess, globalVideoEnabled]);
 
