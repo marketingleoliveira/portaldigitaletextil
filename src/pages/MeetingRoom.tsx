@@ -243,6 +243,8 @@ export default function MeetingRoom() {
       // Event handlers
       call.on("joined-meeting", () => {
         setJoiningDaily(false);
+        rejoinAttemptsRef.current = 0;
+        setConnectionQuality('good');
         toast.success("Conectado à reunião!");
       });
 
