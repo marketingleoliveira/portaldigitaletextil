@@ -110,6 +110,12 @@ export default function MeetingRoom() {
   const callObjectRef = useRef<DailyCall | null>(null);
   const isInitializingRef = useRef(false);
   const hasInitializedRef = useRef(false);
+  // Guarda se a saída foi intencional (clicar em "Sair"/"Encerrar").
+  // Qualquer outra desconexão dispara reconexão automática.
+  const intentionalLeaveRef = useRef(false);
+  const roomUrlRef = useRef<string | null>(null);
+  const rejoinAttemptsRef = useRef(0);
+  const rejoinTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   
   // Local state - microphone starts OFF for all users
   const [isMuted, setIsMuted] = useState(true);
@@ -214,6 +220,8 @@ export default function MeetingRoom() {
     }
     
     isInitializingRef.current = true;
+    roomUrlRef.current = roomUrl;
+    intentionalLeaveRef.current = false;
     setJoiningDaily(true);
     
     try {
@@ -235,6 +243,8 @@ export default function MeetingRoom() {
       // Event handlers
       call.on("joined-meeting", () => {
         setJoiningDaily(false);
+        rejoinAttemptsRef.current = 0;
+        setConnectionQuality('good');
         toast.success("Conectado à reunião!");
       });
 
@@ -293,16 +303,61 @@ export default function MeetingRoom() {
         }
       });
 
+      // Reconexão automática: o usuário nunca deve ser desconectado por falhas
+      const scheduleRejoin = (reason: string) => {
+        if (intentionalLeaveRef.current) return;
+        if (rejoinTimeoutRef.current) return;
+        rejoinAttemptsRef.current += 1;
+        const delay = Math.min(2000 * rejoinAttemptsRef.current, 10000);
+        console.log(`Reconectando à reunião (${reason}) em ${delay}ms`);
+        rejoinTimeoutRef.current = setTimeout(async () => {
+          rejoinTimeoutRef.current = null;
+          if (intentionalLeaveRef.current) return;
+          try {
+            if (callObjectRef.current) {
+              try { await callObjectRef.current.destroy(); } catch { /* ignora */ }
+              callObjectRef.current = null;
+            }
+            isInitializingRef.current = false;
+            const url = roomUrlRef.current;
+            if (url) await initializeDaily(url);
+          } catch (err) {
+            console.error("Falha ao reconectar:", err);
+            scheduleRejoin("retry");
+          }
+        }, delay);
+      };
+
       call.on("error", (error) => {
         console.error("Daily error:", error);
-        const errorMsg = error?.errorMsg || "Erro na conexão de vídeo";
+        const errorMsg = error?.errorMsg || "";
+        const type = (error as { type?: string })?.type;
+
+        // Erros de dispositivo (câmera/microfone) NUNCA derrubam a sessão
+        if (
+          type === "cam-in-use" ||
+          type === "mic-in-use" ||
+          type === "cam-mic-in-use" ||
+          type === "permissions" ||
+          /camera|microphone|cam|mic/i.test(errorMsg)
+        ) {
+          toast.warning("Problema com câmera/microfone — você continua na reunião");
+          setJoiningDaily(false);
+          isInitializingRef.current = false;
+          return;
+        }
+
         if (errorMsg === "account-missing-payment-method") {
           toast.error("Conta Daily.co requer método de pagamento configurado");
-        } else {
-          toast.error("Erro na conexão de vídeo");
+          setJoiningDaily(false);
+          isInitializingRef.current = false;
+          return;
         }
+
+        toast.warning("Conexão instável — reconectando...");
         setJoiningDaily(false);
         isInitializingRef.current = false;
+        scheduleRejoin(errorMsg || "error");
       });
 
       // Handle non-fatal errors like screen share issues
@@ -314,11 +369,21 @@ export default function MeetingRoom() {
         }
       });
 
+      // Falha de câmera não deve encerrar a chamada
+      call.on("camera-error", (error) => {
+        console.warn("Camera error (ignorado, mantém conexão):", error);
+        setIsVideoOn(false);
+        toast.warning("Câmera indisponível — você continua conectado");
+      });
+
       call.on("left-meeting", () => {
         setParticipants({});
         callObjectRef.current = null;
         isInitializingRef.current = false;
         setConnectionQuality('disconnected');
+        if (!intentionalLeaveRef.current) {
+          scheduleRejoin("left-meeting");
+        }
       });
 
       // Network quality monitoring
@@ -433,10 +498,25 @@ export default function MeetingRoom() {
       const displayName = user.profile?.full_name || user.email || "Participante";
       const userNameWithRole = roleLabel ? `${displayName} (${roleLabel})` : displayName;
       
-      await call.join({
-        url: roomUrl,
-        userName: userNameWithRole,
-      });
+      try {
+        await call.join({
+          url: roomUrl,
+          userName: userNameWithRole,
+        });
+      } catch (joinErr) {
+        // Se a entrada falhar por câmera/microfone, entra sem mídia em vez de desconectar
+        console.warn("Falha ao entrar com mídia, tentando sem câmera/microfone:", joinErr);
+        try { await call.setLocalVideo(false); } catch { /* ignora */ }
+        try { await call.setLocalAudio(false); } catch { /* ignora */ }
+        setIsVideoOn(false);
+        await call.join({
+          url: roomUrl,
+          userName: userNameWithRole,
+          startVideoOff: true,
+          startAudioOff: true,
+        });
+        toast.warning("Conectado sem câmera/microfone — dispositivos indisponíveis");
+      }
 
       setCallObject(call);
       
@@ -951,6 +1031,7 @@ export default function MeetingRoom() {
               toast.info("O moderador desativou sua câmera");
             } else if (action === 'remove_participant') {
               toast.error("Você foi removido da reunião pelo moderador");
+              intentionalLeaveRef.current = true;
               setTimeout(async () => {
                 await cleanup();
                 navigate("/reunioes");
@@ -1827,6 +1908,12 @@ export default function MeetingRoom() {
   };
 
   const leaveMeeting = async () => {
+    // Saída intencional: impede a reconexão automática
+    intentionalLeaveRef.current = true;
+    if (rejoinTimeoutRef.current) {
+      clearTimeout(rejoinTimeoutRef.current);
+      rejoinTimeoutRef.current = null;
+    }
     // Clear the global state when actually leaving
     const meetingKey = `${code}-${user?.id}`;
     globalMeetingState.delete(meetingKey);
