@@ -220,6 +220,8 @@ export default function MeetingRoom() {
     }
     
     isInitializingRef.current = true;
+    roomUrlRef.current = roomUrl;
+    intentionalLeaveRef.current = false;
     setJoiningDaily(true);
     
     try {
