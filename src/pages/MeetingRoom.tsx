@@ -494,10 +494,25 @@ export default function MeetingRoom() {
       const displayName = user.profile?.full_name || user.email || "Participante";
       const userNameWithRole = roleLabel ? `${displayName} (${roleLabel})` : displayName;
       
-      await call.join({
-        url: roomUrl,
-        userName: userNameWithRole,
-      });
+      try {
+        await call.join({
+          url: roomUrl,
+          userName: userNameWithRole,
+        });
+      } catch (joinErr) {
+        // Se a entrada falhar por câmera/microfone, entra sem mídia em vez de desconectar
+        console.warn("Falha ao entrar com mídia, tentando sem câmera/microfone:", joinErr);
+        try { await call.setLocalVideo(false); } catch { /* ignora */ }
+        try { await call.setLocalAudio(false); } catch { /* ignora */ }
+        setIsVideoOn(false);
+        await call.join({
+          url: roomUrl,
+          userName: userNameWithRole,
+          startVideoOff: true,
+          startAudioOff: true,
+        });
+        toast.warning("Conectado sem câmera/microfone — dispositivos indisponíveis");
+      }
 
       setCallObject(call);
       
