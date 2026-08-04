@@ -995,21 +995,21 @@ export default function MeetingRoom() {
           // Global commands - only apply to non-moderators
           if (action === 'toggle_all_audio' && !currentUserHasModeratorAccess) {
             if (!enabled && callObject) {
-              callObject.setLocalAudio(false);
+              Promise.resolve(callObject.setLocalAudio(false)).catch((e) => console.warn("setLocalAudio falhou:", e));
               setIsMuted(true);
               toast.info("O anfitrião desativou todos os microfones");
             }
             setGlobalAudioEnabled(enabled);
           } else if (action === 'toggle_all_video' && !currentUserHasModeratorAccess) {
             if (!enabled && callObject) {
-              callObject.setLocalVideo(false);
+              Promise.resolve(callObject.setLocalVideo(false)).catch((e) => console.warn("setLocalVideo falhou:", e));
               setIsVideoOn(false);
               toast.info("O anfitrião desativou todas as câmeras");
             }
             setGlobalVideoEnabled(enabled);
           } else if (action === 'toggle_screen_share') {
             if (!enabled && isScreenSharing && callObject && !currentUserHasModeratorAccess) {
-              callObject.stopScreenShare();
+              try { callObject.stopScreenShare(); } catch (e) { console.warn("stopScreenShare falhou:", e); }
               setIsScreenSharing(false);
             }
             setGlobalScreenShareEnabled(enabled);
@@ -1022,11 +1022,11 @@ export default function MeetingRoom() {
             console.log('Processing individual command for this participant:', action);
             
             if (action === 'mute_participant' && callObject) {
-              callObject.setLocalAudio(false);
+              Promise.resolve(callObject.setLocalAudio(false)).catch((e) => console.warn("setLocalAudio falhou:", e));
               setIsMuted(true);
               toast.info("O moderador desativou seu microfone");
             } else if (action === 'disable_camera' && callObject) {
-              callObject.setLocalVideo(false);
+              Promise.resolve(callObject.setLocalVideo(false)).catch((e) => console.warn("setLocalVideo falhou:", e));
               setIsVideoOn(false);
               toast.info("O moderador desativou sua câmera");
             } else if (action === 'remove_participant') {
