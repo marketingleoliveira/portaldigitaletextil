@@ -869,6 +869,25 @@ const FinanceiroReembolsos: React.FC = () => {
                                               if (it.receipt_path) await supabase.storage.from('reembolsos').remove([it.receipt_path]);
                                               const { error } = await supabase.from('expense_items').delete().eq('id', it.id);
                                               if (error) throw error;
+                                              
+                                              // Atualiza o estado local do relatório detalhado para refletir a remoção imediata
+                                              if (detailReport) {
+                                                const currentItems = items[detailReport.id] || [];
+                                                const updatedItems = currentItems.filter(x => x.id !== it.id);
+                                                
+                                                setItems(prev => ({
+                                                  ...prev,
+                                                  [detailReport.id]: updatedItems
+                                                }));
+                                                
+                                                // Também atualiza o total_spent no relatório para manter a UI consistente
+                                                const newTotal = updatedItems.reduce((acc, curr) => acc + Number(curr.amount || 0), 0);
+                                                setReports(prev => prev.map(r => 
+                                                  r.id === detailReport.id ? { ...r, total_spent: newTotal } : r
+                                                ));
+                                                setDetailReport({ ...detailReport, total_spent: newTotal });
+                                              }
+
                                               toast.success('Item removido');
                                               await fetchAll();
                                             } catch (err: any) {
