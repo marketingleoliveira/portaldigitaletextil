@@ -1796,11 +1796,13 @@ export type Database = {
           category: string
           created_at: string | null
           description: string | null
-          expense_date: string
+          end_date: string | null
           id: string
+          items: Json | null
           receipt_path: string | null
           receipt_url: string | null
-          title: string
+          start_date: string
+          title: string | null
           updated_at: string | null
           user_id: string
         }
@@ -1809,11 +1811,13 @@ export type Database = {
           category?: string
           created_at?: string | null
           description?: string | null
-          expense_date?: string
+          end_date?: string | null
           id?: string
+          items?: Json | null
           receipt_path?: string | null
           receipt_url?: string | null
-          title: string
+          start_date?: string
+          title?: string | null
           updated_at?: string | null
           user_id: string
         }
@@ -1822,11 +1826,13 @@ export type Database = {
           category?: string
           created_at?: string | null
           description?: string | null
-          expense_date?: string
+          end_date?: string | null
           id?: string
+          items?: Json | null
           receipt_path?: string | null
           receipt_url?: string | null
-          title?: string
+          start_date?: string
+          title?: string | null
           updated_at?: string | null
           user_id?: string
         }
