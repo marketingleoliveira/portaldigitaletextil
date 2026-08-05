@@ -19,22 +19,27 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { MapPin, Search, Loader2, Plus, Trash2, FileText, Calendar, Wallet } from 'lucide-react';
+import { MapPin, Search, Loader2, Plus, Trash2, Calendar, Wallet, ListPlus } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useAuth } from '@/contexts/AuthContext';
 
+interface ExpenseItem {
+  description: string;
+  value: string;
+}
+
 interface TravelExpense {
   id: string;
   user_id: string;
-  title: string;
+  title: string | null;
   amount: number;
-  expense_date: string;
+  start_date: string;
+  end_date: string | null;
   category: string;
   description: string | null;
-  receipt_url: string | null;
-  receipt_path: string | null;
+  items: ExpenseItem[];
   created_at: string;
   user_name?: string;
   user_email?: string;
@@ -49,16 +54,16 @@ const FinanceiroRegistros: React.FC = () => {
   const [search, setSearch] = useState('');
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [saving, setSaving] = useState(false);
-  const { user, realRole } = useAuth();
+  const { user } = useAuth();
   
   const [newExpense, setNewExpense] = useState({
     title: '',
-    amount: '',
-    expense_date: format(new Date(), 'yyyy-MM-dd'),
+    start_date: format(new Date(), 'yyyy-MM-dd'),
+    end_date: format(new Date(), 'yyyy-MM-dd'),
     category: 'viagem',
     description: '',
     user_id: user?.id || '',
-    file: null as File | null
+    items: [{ description: '', value: '' }] as ExpenseItem[]
   });
 
   const [profiles, setProfiles] = useState<{ id: string, full_name: string }[]>([]);
@@ -69,11 +74,11 @@ const FinanceiroRegistros: React.FC = () => {
       const { data, error } = await supabase
         .from('travel_expenses')
         .select('*')
-        .order('expense_date', { ascending: false });
+        .order('start_date', { ascending: false });
 
       if (error) throw error;
 
-      const list = data as TravelExpense[];
+      const list = (data || []) as any[];
       const userIds = Array.from(new Set(list.map(e => e.user_id)));
       
       let profileMap = new Map<string, { full_name: string; email: string }>();
@@ -87,6 +92,7 @@ const FinanceiroRegistros: React.FC = () => {
 
       setExpenses(list.map(e => ({
         ...e,
+        items: Array.isArray(e.items) ? e.items : [],
         user_name: profileMap.get(e.user_id)?.full_name || 'Usuário',
         user_email: profileMap.get(e.user_id)?.email || '',
       })));
@@ -107,37 +113,47 @@ const FinanceiroRegistros: React.FC = () => {
     fetchProfiles();
   }, []);
 
+  const addItem = () => {
+    setNewExpense({
+      ...newExpense,
+      items: [...newExpense.items, { description: '', value: '' }]
+    });
+  };
+
+  const removeItem = (index: number) => {
+    const newItems = [...newExpense.items];
+    newItems.splice(index, 1);
+    setNewExpense({ ...newExpense, items: newItems });
+  };
+
+  const updateItem = (index: number, field: keyof ExpenseItem, val: string) => {
+    const newItems = [...newExpense.items];
+    newItems[index][field] = val;
+    setNewExpense({ ...newExpense, items: newItems });
+  };
+
+  const totalAmount = newExpense.items.reduce((acc, item) => {
+    const val = parseFloat(item.value.replace(',', '.')) || 0;
+    return acc + val;
+  }, 0);
+
   const handleAddExpense = async () => {
-    const amt = parseFloat(newExpense.amount.replace(',', '.')) || 0;
-    if (!newExpense.title || amt <= 0) {
-      toast.error('Preencha o título e um valor válido');
+    if (newExpense.items.length === 0 || !newExpense.items.some(i => i.description && i.value)) {
+      toast.error('Adicione pelo menos um item com descrição e valor');
       return;
     }
 
     setSaving(true);
     try {
-      let receipt_path: string | null = null;
-      let receipt_url: string | null = null;
-
-      if (newExpense.file) {
-        const ext = newExpense.file.name.split('.').pop();
-        receipt_path = `travel/${newExpense.user_id}/${Date.now()}.${ext}`;
-        const { error: upErr } = await supabase.storage.from('reembolsos').upload(receipt_path, newExpense.file);
-        if (upErr) throw upErr;
-        
-        const { data } = await supabase.storage.from('reembolsos').createSignedUrl(receipt_path, 60 * 60 * 24 * 365);
-        receipt_url = data?.signedUrl || null;
-      }
-
       const { error } = await supabase.from('travel_expenses').insert({
-        title: newExpense.title,
-        amount: amt,
-        expense_date: newExpense.expense_date,
+        title: newExpense.title || null,
+        amount: totalAmount,
+        start_date: newExpense.start_date,
+        end_date: newExpense.end_date,
         category: newExpense.category,
         description: newExpense.description || null,
         user_id: newExpense.user_id,
-        receipt_path,
-        receipt_url
+        items: newExpense.items.filter(i => i.description && i.value)
       });
 
       if (error) throw error;
@@ -146,12 +162,12 @@ const FinanceiroRegistros: React.FC = () => {
       setIsAddOpen(false);
       setNewExpense({
         title: '',
-        amount: '',
-        expense_date: format(new Date(), 'yyyy-MM-dd'),
+        start_date: format(new Date(), 'yyyy-MM-dd'),
+        end_date: format(new Date(), 'yyyy-MM-dd'),
         category: 'viagem',
         description: '',
         user_id: user?.id || '',
-        file: null
+        items: [{ description: '', value: '' }]
       });
       fetchExpenses();
     } catch (e: any) {
@@ -161,11 +177,8 @@ const FinanceiroRegistros: React.FC = () => {
     }
   };
 
-  const deleteExpense = async (id: string, path: string | null) => {
+  const deleteExpense = async (id: string) => {
     try {
-      if (path) {
-        await supabase.storage.from('reembolsos').remove([path]);
-      }
       const { error } = await supabase.from('travel_expenses').delete().eq('id', id);
       if (error) throw error;
       toast.success('Registro excluído');
@@ -176,8 +189,9 @@ const FinanceiroRegistros: React.FC = () => {
   };
 
   const filtered = expenses.filter(e => 
-    e.title.toLowerCase().includes(search.toLowerCase()) ||
-    e.user_name?.toLowerCase().includes(search.toLowerCase())
+    (e.title || '').toLowerCase().includes(search.toLowerCase()) ||
+    e.user_name?.toLowerCase().includes(search.toLowerCase()) ||
+    e.items.some(item => item.description.toLowerCase().includes(search.toLowerCase()))
   );
 
   return (
@@ -190,7 +204,7 @@ const FinanceiroRegistros: React.FC = () => {
             </div>
             <div>
               <h1 className="text-2xl font-bold">Registros de Viagens</h1>
-              <p className="text-sm text-muted-foreground">Gastos de viagens não vinculados a reembolsos.</p>
+              <p className="text-sm text-muted-foreground">Gastos de viagens com detalhamento por item.</p>
             </div>
           </div>
           <Button onClick={() => setIsAddOpen(true)}>
@@ -205,7 +219,7 @@ const FinanceiroRegistros: React.FC = () => {
             <div className="relative w-72">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Buscar por título ou colaborador..."
+                placeholder="Buscar por título, item ou colaborador..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 className="pl-9"
@@ -223,10 +237,10 @@ const FinanceiroRegistros: React.FC = () => {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Data</TableHead>
+                    <TableHead>Período</TableHead>
                     <TableHead>Colaborador</TableHead>
-                    <TableHead>Título</TableHead>
-                    <TableHead>Valor</TableHead>
+                    <TableHead>Itens / Título</TableHead>
+                    <TableHead>Valor Total</TableHead>
                     <TableHead>Categoria</TableHead>
                     <TableHead className="text-right">Ações</TableHead>
                   </TableRow>
@@ -234,23 +248,33 @@ const FinanceiroRegistros: React.FC = () => {
                 <TableBody>
                   {filtered.map((e) => (
                     <TableRow key={e.id}>
-                      <TableCell>{format(new Date(e.expense_date + 'T00:00:00'), 'dd/MM/yyyy')}</TableCell>
                       <TableCell>
-                        <div className="font-medium">{e.user_name}</div>
-                        <div className="text-xs text-muted-foreground">{e.user_email}</div>
+                        <div className="text-xs font-medium">
+                          {format(new Date(e.start_date + 'T00:00:00'), 'dd/MM/yy')}
+                          {e.end_date && e.end_date !== e.start_date && (
+                            <> - {format(new Date(e.end_date + 'T00:00:00'), 'dd/MM/yy')}</>
+                          )}
+                        </div>
                       </TableCell>
-                      <TableCell>{e.title}</TableCell>
+                      <TableCell>
+                        <div className="font-medium text-xs">{e.user_name}</div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="max-w-[300px]">
+                          {e.title && <div className="font-semibold text-sm mb-1">{e.title}</div>}
+                          <div className="flex flex-wrap gap-1">
+                            {e.items.map((item, idx) => (
+                              <span key={idx} className="inline-flex items-center px-2 py-0.5 rounded text-[10px] bg-secondary text-secondary-foreground">
+                                {item.description}: {formatBRL(parseFloat(item.value.replace(',', '.')))}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      </TableCell>
                       <TableCell className="font-semibold text-primary">{formatBRL(e.amount)}</TableCell>
-                      <TableCell className="capitalize">{e.category}</TableCell>
+                      <TableCell className="capitalize text-xs">{e.category}</TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-2">
-                          {e.receipt_url && (
-                            <Button variant="ghost" size="sm" asChild title="Ver Comprovante">
-                              <a href={e.receipt_url} target="_blank" rel="noreferrer">
-                                <FileText className="h-4 w-4" />
-                              </a>
-                            </Button>
-                          )}
                           <AlertDialog>
                             <AlertDialogTrigger asChild>
                               <Button variant="ghost" size="sm" className="text-red-500 hover:text-red-600">
@@ -261,12 +285,12 @@ const FinanceiroRegistros: React.FC = () => {
                               <AlertDialogHeader>
                                 <AlertDialogTitle>Excluir registro?</AlertDialogTitle>
                                 <AlertDialogDescription>
-                                  Esta ação removerá permanentemente o registro de <strong>{e.title}</strong>.
+                                  Esta ação removerá permanentemente este registro de viagem.
                                 </AlertDialogDescription>
                               </AlertDialogHeader>
                               <AlertDialogFooter>
                                 <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                <AlertDialogAction onClick={() => deleteExpense(e.id, e.receipt_path)} className="bg-red-500 hover:bg-red-600">
+                                <AlertDialogAction onClick={() => deleteExpense(e.id)} className="bg-red-500 hover:bg-red-600">
                                   Excluir
                                 </AlertDialogAction>
                               </AlertDialogFooter>
@@ -284,10 +308,10 @@ const FinanceiroRegistros: React.FC = () => {
 
         {/* Add Dialog */}
         <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
-          <DialogContent className="sm:max-w-[500px]">
+          <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Novo Registro de Gasto</DialogTitle>
-              <DialogDescription>Crie um registro de gasto de viagem com poder total.</DialogDescription>
+              <DialogDescription>Detalhe os gastos da viagem. O total será calculado automaticamente.</DialogDescription>
             </DialogHeader>
             <div className="grid gap-4 py-4">
               <div className="grid gap-2">
@@ -303,37 +327,76 @@ const FinanceiroRegistros: React.FC = () => {
                   </SelectContent>
                 </Select>
               </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="grid gap-2">
+                  <Label htmlFor="start_date">Data Inicial</Label>
+                  <Input
+                    id="start_date"
+                    type="date"
+                    value={newExpense.start_date}
+                    onChange={(e) => setNewExpense({ ...newExpense, start_date: e.target.value })}
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="end_date">Data Final</Label>
+                  <Input
+                    id="end_date"
+                    type="date"
+                    value={newExpense.end_date}
+                    onChange={(e) => setNewExpense({ ...newExpense, end_date: e.target.value })}
+                  />
+                </div>
+              </div>
+
               <div className="grid gap-2">
-                <Label htmlFor="title">Título do Gasto</Label>
+                <Label htmlFor="title">Título da Viagem (Opcional)</Label>
                 <Input
                   id="title"
-                  placeholder="Ex: Almoço Cliente, Combustível, Hotel..."
+                  placeholder="Ex: Convenção 2024, Visita Filial..."
                   value={newExpense.title}
                   onChange={(e) => setNewExpense({ ...newExpense, title: e.target.value })}
                 />
               </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="grid gap-2">
-                  <Label htmlFor="amount">Valor (R$)</Label>
-                  <Input
-                    id="amount"
-                    placeholder="0,00"
-                    value={newExpense.amount}
-                    onChange={(e) => setNewExpense({ ...newExpense, amount: e.target.value })}
-                  />
+
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <Label className="text-sm font-bold">Detalhamento de Gastos</Label>
+                  <Button type="button" variant="outline" size="sm" onClick={addItem}>
+                    <Plus className="h-3 w-3 mr-1" /> Add Gasto
+                  </Button>
                 </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="date">Data</Label>
-                  <Input
-                    id="date"
-                    type="date"
-                    value={newExpense.expense_date}
-                    onChange={(e) => setNewExpense({ ...newExpense, expense_date: e.target.value })}
-                  />
+                {newExpense.items.map((item, idx) => (
+                  <div key={idx} className="flex gap-2 items-start">
+                    <div className="flex-1">
+                      <Input
+                        placeholder="Descrição do gasto"
+                        value={item.description}
+                        onChange={(e) => updateItem(idx, 'description', e.target.value)}
+                      />
+                    </div>
+                    <div className="w-28">
+                      <Input
+                        placeholder="0,00"
+                        value={item.value}
+                        onChange={(e) => updateItem(idx, 'value', e.target.value)}
+                      />
+                    </div>
+                    {newExpense.items.length > 1 && (
+                      <Button variant="ghost" size="icon" className="text-red-500" onClick={() => removeItem(idx)}>
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </div>
+                ))}
+                <div className="flex justify-between items-center p-3 bg-secondary/50 rounded-lg">
+                  <span className="font-bold">Total Calculado:</span>
+                  <span className="text-lg font-bold text-primary">{formatBRL(totalAmount)}</span>
                 </div>
               </div>
+
               <div className="grid gap-2">
-                <Label htmlFor="category">Categoria</Label>
+                <Label htmlFor="category">Categoria Geral</Label>
                 <Select value={newExpense.category} onValueChange={(val) => setNewExpense({ ...newExpense, category: val })}>
                   <SelectTrigger>
                     <SelectValue />
@@ -346,22 +409,6 @@ const FinanceiroRegistros: React.FC = () => {
                     <SelectItem value="outros">Outros</SelectItem>
                   </SelectContent>
                 </Select>
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="desc">Descrição / Notas</Label>
-                <Textarea
-                  id="desc"
-                  value={newExpense.description}
-                  onChange={(e) => setNewExpense({ ...newExpense, description: e.target.value })}
-                />
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="file">Comprovante (Opcional)</Label>
-                <Input
-                  id="file"
-                  type="file"
-                  onChange={(e) => setNewExpense({ ...newExpense, file: e.target.files?.[0] || null })}
-                />
               </div>
             </div>
             <DialogFooter>
