@@ -827,7 +827,7 @@ const FinanceiroReembolsos: React.FC = () => {
                           <TableHead>Categoria</TableHead>
                           <TableHead>Descrição</TableHead>
                           <TableHead className="text-right">Valor</TableHead>
-                          <TableHead className="text-right">Comprovante</TableHead>
+                          <TableHead className="text-right">Ações</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -836,17 +836,53 @@ const FinanceiroReembolsos: React.FC = () => {
                             <TableCell className="text-xs">
                               {it.expense_date ? format(new Date(it.expense_date), 'dd/MM/yy', { locale: ptBR }) : '—'}
                             </TableCell>
-                            <TableCell className="text-xs">{it.category}</TableCell>
+                            <TableCell className="text-xs capitalize">{it.category}</TableCell>
                             <TableCell className="text-xs">{it.description || '—'}</TableCell>
                             <TableCell className="text-right text-xs font-semibold">{formatBRL(Number(it.amount || 0))}</TableCell>
                             <TableCell className="text-right">
-                              {it.receipt_url ? (
-                                <a href={it.receipt_url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-xs text-primary hover:underline">
-                                  Ver <ExternalLink className="w-3 h-3" />
-                                </a>
-                              ) : (
-                                <span className="text-xs text-muted-foreground">—</span>
-                              )}
+                              <div className="flex justify-end gap-1">
+                                {it.receipt_url && (
+                                  <a href={it.receipt_url} target="_blank" rel="noreferrer" className="inline-flex items-center justify-center h-8 w-8 rounded-md text-primary hover:bg-accent">
+                                    <ExternalLink className="w-3 h-3" />
+                                  </a>
+                                )}
+                                {isDev && (
+                                  <AlertDialog>
+                                    <AlertDialogTrigger asChild>
+                                      <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-red-500 hover:text-red-600">
+                                        <Trash2 className="w-3.5 h-3.5" />
+                                      </Button>
+                                    </AlertDialogTrigger>
+                                    <AlertDialogContent>
+                                      <AlertDialogHeader>
+                                        <AlertDialogTitle>Excluir item?</AlertDialogTitle>
+                                        <AlertDialogDescription>
+                                          Deseja remover este comprovante de {formatBRL(it.amount)}?
+                                        </AlertDialogDescription>
+                                      </AlertDialogHeader>
+                                      <AlertDialogFooter>
+                                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                        <AlertDialogAction
+                                          className="bg-red-600"
+                                          onClick={async () => {
+                                            try {
+                                              if (it.receipt_path) await supabase.storage.from('reembolsos').remove([it.receipt_path]);
+                                              const { error } = await supabase.from('expense_items').delete().eq('id', it.id);
+                                              if (error) throw error;
+                                              toast.success('Item removido');
+                                              await fetchAll();
+                                            } catch (err: any) {
+                                              toast.error('Erro ao remover: ' + err.message);
+                                            }
+                                          }}
+                                        >
+                                          Excluir
+                                        </AlertDialogAction>
+                                      </AlertDialogFooter>
+                                    </AlertDialogContent>
+                                  </AlertDialog>
+                                )}
+                              </div>
                             </TableCell>
                           </TableRow>
                         ))}
