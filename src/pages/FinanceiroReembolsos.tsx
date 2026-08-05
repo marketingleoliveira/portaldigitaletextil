@@ -78,8 +78,8 @@ const FinanceiroReembolsos: React.FC = () => {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<'todos' | ExpenseStatus>('todos');
   const [detailReport, setDetailReport] = useState<Report | null>(null);
-  const { realRole } = useAuth();
-  const isDev = realRole === 'dev' || realRole === 'diretoria' || realRole === 'gerente';
+  const { realRole, user } = useAuth();
+  const isDev = realRole === 'dev' || realRole === 'diretoria' || realRole === 'gerente' || realRole === 'financeiro';
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [merging, setMerging] = useState(false);
   const [addItemFor, setAddItemFor] = useState<Report | null>(null);
