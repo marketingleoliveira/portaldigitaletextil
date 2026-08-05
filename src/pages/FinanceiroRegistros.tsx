@@ -213,50 +213,63 @@ const FinanceiroRegistros: React.FC = () => {
   };
 
   const exportToPDF = (expense: TravelExpense) => {
-    const doc = new jsPDF();
-    const logoUrl = "/lovable-uploads/4976451e-e283-4977-96a9-51a87754324c.png";
+    try {
+      const doc = new jsPDF();
+      const logoUrl = "/lovable-uploads/4976451e-e283-4977-96a9-51a87754324c.png";
 
-    doc.setFillColor(0, 0, 0);
-    doc.rect(0, 0, 210, 40, 'F');
-    doc.addImage(logoUrl, 'PNG', 10, 5, 50, 25);
-    doc.setTextColor(255, 255, 255);
-    doc.setFontSize(18);
-    doc.text('RELATÓRIO DE GASTOS DE VIAGEM', 70, 20);
-    doc.setFontSize(10);
-    doc.text(`Gerado em: ${format(new Date(), 'dd/MM/yyyy HH:mm')}`, 70, 28);
+      doc.setFillColor(0, 0, 0);
+      doc.rect(0, 0, 210, 40, 'F');
+      
+      try {
+        doc.addImage(logoUrl, 'PNG', 10, 5, 50, 25);
+      } catch (e) {
+        console.error("Error adding logo to PDF:", e);
+      }
+      
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(18);
+      doc.text('RELATÓRIO DE GASTOS DE VIAGEM', 70, 20);
+      doc.setFontSize(10);
+      doc.text(`Gerado em: ${format(new Date(), 'dd/MM/yyyy HH:mm')}`, 70, 28);
 
-    doc.setTextColor(0, 0, 0);
-    doc.setFontSize(12);
-    doc.text('DADOS DA VIAGEM', 10, 50);
-    doc.line(10, 52, 200, 52);
+      doc.setTextColor(0, 0, 0);
+      doc.setFontSize(12);
+      doc.text('DADOS DA VIAGEM', 10, 50);
+      doc.line(10, 52, 200, 52);
 
-    doc.setFontSize(10);
-    doc.text(`Colaborador: ${expense.user_name || 'N/A'}`, 10, 60);
-    doc.text(`E-mail: ${expense.user_email || 'N/A'}`, 10, 65);
-    doc.text(`Título: ${expense.title || 'Sem título'}`, 10, 70);
-    doc.text(`Período: ${format(new Date(expense.start_date + 'T00:00:00'), 'dd/MM/yyyy')} ${expense.end_date ? ' até ' + format(new Date(expense.end_date + 'T00:00:00'), 'dd/MM/yyyy') : ''}`, 10, 75);
-    doc.text(`Categoria: ${expense.category.toUpperCase()}`, 10, 80);
+      doc.setFontSize(10);
+      doc.text(`Colaborador: ${expense.user_name || 'N/A'}`, 10, 60);
+      doc.text(`E-mail: ${expense.user_email || 'N/A'}`, 10, 65);
+      doc.text(`Título: ${expense.title || 'Sem título'}`, 10, 70);
+      doc.text(`Período: ${format(new Date(expense.start_date + 'T00:00:00'), 'dd/MM/yyyy')} ${expense.end_date ? ' até ' + format(new Date(expense.end_date + 'T00:00:00'), 'dd/MM/yyyy') : ''}`, 10, 75);
+      doc.text(`Categoria: ${expense.category.toUpperCase()}`, 10, 80);
 
-    doc.text('ITENS E VALORES', 10, 95);
-    doc.line(10, 97, 200, 97);
+      doc.text('ITENS E VALORES', 10, 95);
+      doc.line(10, 97, 200, 97);
 
-    const tableData = expense.items.map(item => [
-      item.description,
-      formatBRL(parseFloat(item.value.replace(',', '.')))
-    ]);
+      const tableData = expense.items.map(item => [
+        item.description,
+        formatBRL(parseFloat(item.value.replace(',', '.')))
+      ]);
 
-    autoTable(doc, {
-      startY: 100,
-      head: [['Descrição', 'Valor']],
-      body: tableData,
-      theme: 'striped',
-      headStyles: { fillColor: [0, 0, 0] },
-      foot: [['TOTAL', formatBRL(expense.amount)]],
-      footStyles: { fillColor: [240, 240, 240], textColor: [0, 0, 0], fontStyle: 'bold' }
-    });
+      autoTable(doc, {
+        startY: 100,
+        head: [['Descrição', 'Valor']],
+        body: tableData,
+        theme: 'striped',
+        headStyles: { fillColor: [0, 0, 0] },
+        foot: [['TOTAL', formatBRL(expense.amount)]],
+        footStyles: { fillColor: [240, 240, 240], textColor: [0, 0, 0], fontStyle: 'bold' }
+      });
 
-    doc.save(`viagem_${expense.user_name}_${format(new Date(), 'ddMMyy')}.pdf`);
+      doc.save(`viagem_${expense.user_name?.replace(/\s+/g, '_')}_${format(new Date(), 'ddMMyy')}.pdf`);
+      toast.success('Download do PDF iniciado');
+    } catch (error) {
+      console.error("PDF Export Error:", error);
+      toast.error('Erro ao gerar PDF. Verifique o console.');
+    }
   };
+
 
   const filtered = expenses.filter(e => 
     (e.title || '').toLowerCase().includes(search.toLowerCase()) ||
@@ -310,8 +323,8 @@ const FinanceiroRegistros: React.FC = () => {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Período</TableHead>
-                    <TableHead>Colaborador</TableHead>
-                    <TableHead>Itens / Título</TableHead>
+                    <TableHead>Título da Viagem</TableHead>
+                    <TableHead>Itens / Detalhamento</TableHead>
                     <TableHead>Valor Total</TableHead>
                     <TableHead className="text-right">Ações</TableHead>
                   </TableRow>
@@ -328,11 +341,11 @@ const FinanceiroRegistros: React.FC = () => {
                         </div>
                       </TableCell>
                       <TableCell>
-                        <div className="font-medium text-xs">{e.user_name}</div>
+                        <div className="font-semibold text-sm">{e.title || 'Sem título'}</div>
+                        <div className="text-[10px] text-muted-foreground">{e.user_name}</div>
                       </TableCell>
                       <TableCell>
                         <div className="max-w-[300px]">
-                          {e.title && <div className="font-semibold text-sm mb-1">{e.title}</div>}
                           <div className="flex flex-wrap gap-1">
                             {e.items.map((item, idx) => (
                               <span key={idx} className="inline-flex items-center px-2 py-0.5 rounded text-[10px] bg-secondary text-secondary-foreground">
@@ -342,6 +355,7 @@ const FinanceiroRegistros: React.FC = () => {
                           </div>
                         </div>
                       </TableCell>
+
                       <TableCell className="font-semibold text-primary">{formatBRL(e.amount)}</TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-2">
