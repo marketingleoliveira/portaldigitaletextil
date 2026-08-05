@@ -1790,6 +1790,48 @@ export type Database = {
         }
         Relationships: []
       }
+      travel_expenses: {
+        Row: {
+          amount: number
+          category: string
+          created_at: string | null
+          description: string | null
+          expense_date: string
+          id: string
+          receipt_path: string | null
+          receipt_url: string | null
+          title: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          amount?: number
+          category?: string
+          created_at?: string | null
+          description?: string | null
+          expense_date?: string
+          id?: string
+          receipt_path?: string | null
+          receipt_url?: string | null
+          title: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          category?: string
+          created_at?: string | null
+          description?: string | null
+          expense_date?: string
+          id?: string
+          receipt_path?: string | null
+          receipt_url?: string | null
+          title?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_activity_sessions: {
         Row: {
           created_at: string
