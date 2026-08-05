@@ -18,14 +18,13 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
-import { Textarea } from '@/components/ui/textarea';
-import { MapPin, Search, Loader2, Plus, Trash2, Calendar, Wallet, ListPlus, FileText } from 'lucide-react';
+import { MapPin, Search, Loader2, Plus, Trash2, FileText, Pencil } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
 import { useAuth } from '@/contexts/AuthContext';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import { isDevLevel } from '@/types/auth';
 
 interface ExpenseItem {
   description: string;
@@ -54,11 +53,12 @@ const FinanceiroRegistros: React.FC = () => {
   const [expenses, setExpenses] = useState<TravelExpense[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
-  const [isAddOpen, setIsAddOpen] = useState(false);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [editingExpense, setEditingExpense] = useState<TravelExpense | null>(null);
   const [saving, setSaving] = useState(false);
-  const { user } = useAuth();
+  const { user, userRole } = useAuth();
   
-  const [newExpense, setNewExpense] = useState({
+  const initialFormState = {
     title: '',
     start_date: format(new Date(), 'yyyy-MM-dd'),
     end_date: format(new Date(), 'yyyy-MM-dd'),
@@ -66,9 +66,9 @@ const FinanceiroRegistros: React.FC = () => {
     description: '',
     user_id: user?.id || '',
     items: [{ description: '', value: '' }] as ExpenseItem[]
-  });
+  };
 
-  const [profiles, setProfiles] = useState<{ id: string, full_name: string }[]>([]);
+  const [form, setForm] = useState(initialFormState);
 
   const fetchExpenses = async () => {
     setLoading(true);
@@ -105,72 +105,92 @@ const FinanceiroRegistros: React.FC = () => {
     }
   };
 
-  const fetchProfiles = async () => {
-    const { data } = await supabase.from('profiles').select('id, full_name').order('full_name');
-    if (data) setProfiles(data);
-  };
-
   useEffect(() => {
     fetchExpenses();
-    fetchProfiles();
   }, []);
 
   const addItem = () => {
-    setNewExpense({
-      ...newExpense,
-      items: [...newExpense.items, { description: '', value: '' }]
+    setForm({
+      ...form,
+      items: [...form.items, { description: '', value: '' }]
     });
   };
 
   const removeItem = (index: number) => {
-    const newItems = [...newExpense.items];
+    const newItems = [...form.items];
     newItems.splice(index, 1);
-    setNewExpense({ ...newExpense, items: newItems });
+    setForm({ ...form, items: newItems });
   };
 
   const updateItem = (index: number, field: keyof ExpenseItem, val: string) => {
-    const newItems = [...newExpense.items];
+    const newItems = [...form.items];
     newItems[index][field] = val;
-    setNewExpense({ ...newExpense, items: newItems });
+    setForm({ ...form, items: newItems });
   };
 
-  const totalAmount = newExpense.items.reduce((acc, item) => {
+  const totalAmount = form.items.reduce((acc, item) => {
     const val = parseFloat(item.value.replace(',', '.')) || 0;
     return acc + val;
   }, 0);
 
-  const handleAddExpense = async () => {
-    if (newExpense.items.length === 0 || !newExpense.items.some(i => i.description && i.value)) {
+  const handleOpenAdd = () => {
+    setEditingExpense(null);
+    setForm({
+      ...initialFormState,
+      user_id: user?.id || ''
+    });
+    setIsDialogOpen(true);
+  };
+
+  const handleOpenEdit = (expense: TravelExpense) => {
+    setEditingExpense(expense);
+    setForm({
+      title: expense.title || '',
+      start_date: expense.start_date,
+      end_date: expense.end_date || expense.start_date,
+      category: expense.category,
+      description: expense.description || '',
+      user_id: expense.user_id,
+      items: [...expense.items]
+    });
+    setIsDialogOpen(true);
+  };
+
+  const handleSaveExpense = async () => {
+    if (form.items.length === 0 || !form.items.some(i => i.description && i.value)) {
       toast.error('Adicione pelo menos um item com descrição e valor');
       return;
     }
 
     setSaving(true);
     try {
-      const { error } = await supabase.from('travel_expenses').insert([{
-        title: newExpense.title || null,
+      const payload = {
+        title: form.title || null,
         amount: totalAmount,
-        start_date: newExpense.start_date,
-        end_date: newExpense.end_date,
-        category: newExpense.category,
-        description: newExpense.description || null,
-        user_id: newExpense.user_id,
-        items: newExpense.items.filter(i => i.description && i.value) as any
-      }]);
+        start_date: form.start_date,
+        end_date: form.end_date,
+        category: form.category,
+        description: form.description || null,
+        user_id: form.user_id,
+        items: form.items.filter(i => i.description && i.value) as any
+      };
 
-      if (error) throw error;
+      if (editingExpense) {
+        const { error } = await supabase
+          .from('travel_expenses')
+          .update(payload)
+          .eq('id', editingExpense.id);
+        if (error) throw error;
+        toast.success('Registro atualizado');
+      } else {
+        const { error } = await supabase
+          .from('travel_expenses')
+          .insert([payload]);
+        if (error) throw error;
+        toast.success('Registro de viagem criado');
+      }
 
-      toast.success('Registro de viagem criado com sucesso');
-      setIsAddOpen(false);
-      setNewExpense({
-        title: '',
-        start_date: format(new Date(), 'yyyy-MM-dd'),
-        end_date: format(new Date(), 'yyyy-MM-dd'),
-        category: 'viagem',
-        description: '',
-        user_id: user?.id || '',
-        items: [{ description: '', value: '' }]
-      });
+      setIsDialogOpen(false);
       fetchExpenses();
     } catch (e: any) {
       toast.error('Erro ao salvar: ' + e.message);
@@ -190,17 +210,13 @@ const FinanceiroRegistros: React.FC = () => {
     }
   };
 
-
   const exportToPDF = (expense: TravelExpense) => {
     const doc = new jsPDF();
     const logoUrl = "/lovable-uploads/4976451e-e283-4977-96a9-51a87754324c.png";
 
-    // Header
     doc.setFillColor(0, 0, 0);
     doc.rect(0, 0, 210, 40, 'F');
-    
     doc.addImage(logoUrl, 'PNG', 10, 5, 50, 25);
-    
     doc.setTextColor(255, 255, 255);
     doc.setFontSize(18);
     doc.text('RELATÓRIO DE GASTOS DE VIAGEM', 70, 20);
@@ -246,6 +262,8 @@ const FinanceiroRegistros: React.FC = () => {
     e.items.some(item => item.description.toLowerCase().includes(search.toLowerCase()))
   );
 
+  const canManage = isDevLevel(userRole) || userRole === 'financeiro';
+
   return (
     <DashboardLayout>
       <div className="p-4 md:p-6 space-y-6">
@@ -256,10 +274,10 @@ const FinanceiroRegistros: React.FC = () => {
             </div>
             <div>
               <h1 className="text-2xl font-bold">Registros de Viagens</h1>
-              <p className="text-sm text-muted-foreground">Gastos de viagens com detalhamento por item.</p>
+              <p className="text-sm text-muted-foreground">Gestão administrativa e de campo.</p>
             </div>
           </div>
-          <Button onClick={() => setIsAddOpen(true)}>
+          <Button onClick={handleOpenAdd}>
             <Plus className="h-4 w-4 mr-2" />
             Novo Registro
           </Button>
@@ -293,7 +311,6 @@ const FinanceiroRegistros: React.FC = () => {
                     <TableHead>Colaborador</TableHead>
                     <TableHead>Itens / Título</TableHead>
                     <TableHead>Valor Total</TableHead>
-                    <TableHead>Categoria</TableHead>
                     <TableHead className="text-right">Ações</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -324,38 +341,52 @@ const FinanceiroRegistros: React.FC = () => {
                         </div>
                       </TableCell>
                       <TableCell className="font-semibold text-primary">{formatBRL(e.amount)}</TableCell>
-                      <TableCell className="capitalize text-xs">{e.category}</TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-2">
                           <Button 
                             variant="ghost" 
                             size="sm" 
-                            className="text-primary hover:text-primary/80"
+                            className="text-primary"
                             onClick={() => exportToPDF(e)}
+                            title="Exportar PDF"
                           >
                             <FileText className="h-4 w-4" />
                           </Button>
-                          <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                              <Button variant="ghost" size="sm" className="text-red-500 hover:text-red-600">
-                                <Trash2 className="h-4 w-4" />
+                          
+                          {canManage && (
+                            <>
+                              <Button 
+                                variant="ghost" 
+                                size="sm" 
+                                className="text-amber-600"
+                                onClick={() => handleOpenEdit(e)}
+                                title="Editar"
+                              >
+                                <Pencil className="h-4 w-4" />
                               </Button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                              <AlertDialogHeader>
-                                <AlertDialogTitle>Excluir registro?</AlertDialogTitle>
-                                <AlertDialogDescription>
-                                  Esta ação removerá permanentemente este registro de viagem.
-                                </AlertDialogDescription>
-                              </AlertDialogHeader>
-                              <AlertDialogFooter>
-                                <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                <AlertDialogAction onClick={() => deleteExpense(e.id)} className="bg-red-500 hover:bg-red-600">
-                                  Excluir
-                                </AlertDialogAction>
-                              </AlertDialogFooter>
-                            </AlertDialogContent>
-                          </AlertDialog>
+                              <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                  <Button variant="ghost" size="sm" className="text-red-500">
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                  <AlertDialogHeader>
+                                    <AlertDialogTitle>Confirmar exclusão?</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                      Esta ação não poderá ser desfeita.
+                                    </AlertDialogDescription>
+                                  </AlertDialogHeader>
+                                  <AlertDialogFooter>
+                                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                    <AlertDialogAction onClick={() => deleteExpense(e.id)} className="bg-red-500 hover:bg-red-600">
+                                      Confirmar
+                                    </AlertDialogAction>
+                                  </AlertDialogFooter>
+                                </AlertDialogContent>
+                              </AlertDialog>
+                            </>
+                          )}
                         </div>
                       </TableCell>
                     </TableRow>
@@ -366,12 +397,11 @@ const FinanceiroRegistros: React.FC = () => {
           </CardContent>
         </Card>
 
-        {/* Add Dialog */}
-        <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
+        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle>Novo Registro de Gasto</DialogTitle>
-              <DialogDescription>Detalhe os gastos da viagem. O total será calculado automaticamente.</DialogDescription>
+              <DialogTitle>{editingExpense ? 'Editar Registro' : 'Novo Registro de Gasto'}</DialogTitle>
+              <DialogDescription>Preencha os dados da viagem ou gasto administrativo.</DialogDescription>
             </DialogHeader>
             <div className="grid gap-4 py-4">
               <div className="grid gap-2">
@@ -379,8 +409,8 @@ const FinanceiroRegistros: React.FC = () => {
                 <Input
                   id="title"
                   placeholder="Ex: Convenção 2024, Visita Filial..."
-                  value={newExpense.title}
-                  onChange={(e) => setNewExpense({ ...newExpense, title: e.target.value })}
+                  value={form.title}
+                  onChange={(e) => setForm({ ...form, title: e.target.value })}
                 />
               </div>
 
@@ -390,8 +420,8 @@ const FinanceiroRegistros: React.FC = () => {
                   <Input
                     id="start_date"
                     type="date"
-                    value={newExpense.start_date}
-                    onChange={(e) => setNewExpense({ ...newExpense, start_date: e.target.value })}
+                    value={form.start_date}
+                    onChange={(e) => setForm({ ...form, start_date: e.target.value })}
                   />
                 </div>
                 <div className="grid gap-2">
@@ -399,12 +429,11 @@ const FinanceiroRegistros: React.FC = () => {
                   <Input
                     id="end_date"
                     type="date"
-                    value={newExpense.end_date}
-                    onChange={(e) => setNewExpense({ ...newExpense, end_date: e.target.value })}
+                    value={form.end_date}
+                    onChange={(e) => setForm({ ...form, end_date: e.target.value })}
                   />
                 </div>
               </div>
-
 
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
@@ -413,7 +442,7 @@ const FinanceiroRegistros: React.FC = () => {
                     <Plus className="h-3 w-3 mr-1" /> Add Gasto
                   </Button>
                 </div>
-                {newExpense.items.map((item, idx) => (
+                {form.items.map((item, idx) => (
                   <div key={idx} className="flex gap-2 items-start">
                     <div className="flex-1">
                       <Input
@@ -429,7 +458,7 @@ const FinanceiroRegistros: React.FC = () => {
                         onChange={(e) => updateItem(idx, 'value', e.target.value)}
                       />
                     </div>
-                    {newExpense.items.length > 1 && (
+                    {form.items.length > 1 && (
                       <Button variant="ghost" size="icon" className="text-red-500" onClick={() => removeItem(idx)}>
                         <Trash2 className="h-4 w-4" />
                       </Button>
@@ -444,7 +473,7 @@ const FinanceiroRegistros: React.FC = () => {
 
               <div className="grid gap-2">
                 <Label htmlFor="category">Categoria Geral</Label>
-                <Select value={newExpense.category} onValueChange={(val) => setNewExpense({ ...newExpense, category: val })}>
+                <Select value={form.category} onValueChange={(val) => setForm({ ...form, category: val })}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
@@ -459,10 +488,10 @@ const FinanceiroRegistros: React.FC = () => {
               </div>
             </div>
             <DialogFooter>
-              <Button variant="outline" onClick={() => setIsAddOpen(false)}>Cancelar</Button>
-              <Button onClick={handleAddExpense} disabled={saving}>
+              <Button variant="outline" onClick={() => setIsDialogOpen(false)}>Cancelar</Button>
+              <Button onClick={handleSaveExpense} disabled={saving}>
                 {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Salvar Registro
+                {editingExpense ? 'Salvar Alterações' : 'Salvar Registro'}
               </Button>
             </DialogFooter>
           </DialogContent>
