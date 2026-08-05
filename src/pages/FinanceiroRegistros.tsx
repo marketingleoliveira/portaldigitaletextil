@@ -217,7 +217,7 @@ const FinanceiroRegistros: React.FC = () => {
   const exportToPDF = (expense: TravelExpense) => {
     try {
       const doc = new jsPDF();
-      const logoUrl = "/lovable-uploads/4976451e-e283-4977-96a9-51a87754324c.png";
+      const logoUrl = logoReportAsset.url;
 
       doc.setFillColor(0, 0, 0);
       doc.rect(0, 0, 210, 40, 'F');
@@ -227,6 +227,7 @@ const FinanceiroRegistros: React.FC = () => {
       } catch (e) {
         console.error("Error adding logo to PDF:", e);
       }
+
       
       doc.setTextColor(255, 255, 255);
       doc.setFontSize(18);
