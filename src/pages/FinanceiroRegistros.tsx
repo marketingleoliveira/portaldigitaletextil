@@ -19,11 +19,13 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { MapPin, Search, Loader2, Plus, Trash2, Calendar, Wallet, ListPlus } from 'lucide-react';
+import { MapPin, Search, Loader2, Plus, Trash2, Calendar, Wallet, ListPlus, FileText } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useAuth } from '@/contexts/AuthContext';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 interface ExpenseItem {
   description: string;
