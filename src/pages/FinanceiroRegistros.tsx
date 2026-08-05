@@ -145,7 +145,7 @@ const FinanceiroRegistros: React.FC = () => {
 
     setSaving(true);
     try {
-      const { error } = await supabase.from('travel_expenses').insert({
+      const { error } = await supabase.from('travel_expenses').insert([{
         title: newExpense.title || null,
         amount: totalAmount,
         start_date: newExpense.start_date,
@@ -153,8 +153,8 @@ const FinanceiroRegistros: React.FC = () => {
         category: newExpense.category,
         description: newExpense.description || null,
         user_id: newExpense.user_id,
-        items: newExpense.items.filter(i => i.description && i.value)
-      });
+        items: newExpense.items.filter(i => i.description && i.value) as any
+      }]);
 
       if (error) throw error;
 
