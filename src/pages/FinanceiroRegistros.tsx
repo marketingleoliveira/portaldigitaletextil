@@ -56,7 +56,9 @@ const FinanceiroRegistros: React.FC = () => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingExpense, setEditingExpense] = useState<TravelExpense | null>(null);
   const [saving, setSaving] = useState(false);
-  const { user, userRole } = useAuth();
+  const { user } = useAuth();
+  const userRole = user?.role;
+
   
   const initialFormState = {
     title: '',
