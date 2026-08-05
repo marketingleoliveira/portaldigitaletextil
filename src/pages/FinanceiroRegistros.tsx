@@ -25,6 +25,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { isDevLevel } from '@/types/auth';
+import logoReportAsset from "@/assets/logo-report.png.asset.json";
+
 
 interface ExpenseItem {
   description: string;
