@@ -310,8 +310,8 @@ const FinanceiroRegistros: React.FC = () => {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Período</TableHead>
-                    <TableHead>Colaborador</TableHead>
-                    <TableHead>Itens / Título</TableHead>
+                    <TableHead>Título da Viagem</TableHead>
+                    <TableHead>Itens / Detalhamento</TableHead>
                     <TableHead>Valor Total</TableHead>
                     <TableHead className="text-right">Ações</TableHead>
                   </TableRow>
@@ -328,11 +328,11 @@ const FinanceiroRegistros: React.FC = () => {
                         </div>
                       </TableCell>
                       <TableCell>
-                        <div className="font-medium text-xs">{e.user_name}</div>
+                        <div className="font-semibold text-sm">{e.title || 'Sem título'}</div>
+                        <div className="text-[10px] text-muted-foreground">{e.user_name}</div>
                       </TableCell>
                       <TableCell>
                         <div className="max-w-[300px]">
-                          {e.title && <div className="font-semibold text-sm mb-1">{e.title}</div>}
                           <div className="flex flex-wrap gap-1">
                             {e.items.map((item, idx) => (
                               <span key={idx} className="inline-flex items-center px-2 py-0.5 rounded text-[10px] bg-secondary text-secondary-foreground">
@@ -342,6 +342,7 @@ const FinanceiroRegistros: React.FC = () => {
                           </div>
                         </div>
                       </TableCell>
+
                       <TableCell className="font-semibold text-primary">{formatBRL(e.amount)}</TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-2">
