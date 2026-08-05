@@ -19,11 +19,13 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { MapPin, Search, Loader2, Plus, Trash2, Calendar, Wallet, ListPlus } from 'lucide-react';
+import { MapPin, Search, Loader2, Plus, Trash2, Calendar, Wallet, ListPlus, FileText } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useAuth } from '@/contexts/AuthContext';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 interface ExpenseItem {
   description: string;
@@ -188,6 +190,56 @@ const FinanceiroRegistros: React.FC = () => {
     }
   };
 
+
+  const exportToPDF = (expense: TravelExpense) => {
+    const doc = new jsPDF();
+    const logoUrl = "/lovable-uploads/4976451e-e283-4977-96a9-51a87754324c.png";
+
+    // Header
+    doc.setFillColor(0, 0, 0);
+    doc.rect(0, 0, 210, 40, 'F');
+    
+    doc.addImage(logoUrl, 'PNG', 10, 5, 50, 25);
+    
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(18);
+    doc.text('RELATÓRIO DE GASTOS DE VIAGEM', 70, 20);
+    doc.setFontSize(10);
+    doc.text(`Gerado em: ${format(new Date(), 'dd/MM/yyyy HH:mm')}`, 70, 28);
+
+    doc.setTextColor(0, 0, 0);
+    doc.setFontSize(12);
+    doc.text('DADOS DA VIAGEM', 10, 50);
+    doc.line(10, 52, 200, 52);
+
+    doc.setFontSize(10);
+    doc.text(`Colaborador: ${expense.user_name || 'N/A'}`, 10, 60);
+    doc.text(`E-mail: ${expense.user_email || 'N/A'}`, 10, 65);
+    doc.text(`Título: ${expense.title || 'Sem título'}`, 10, 70);
+    doc.text(`Período: ${format(new Date(expense.start_date + 'T00:00:00'), 'dd/MM/yyyy')} ${expense.end_date ? ' até ' + format(new Date(expense.end_date + 'T00:00:00'), 'dd/MM/yyyy') : ''}`, 10, 75);
+    doc.text(`Categoria: ${expense.category.toUpperCase()}`, 10, 80);
+
+    doc.text('ITENS E VALORES', 10, 95);
+    doc.line(10, 97, 200, 97);
+
+    const tableData = expense.items.map(item => [
+      item.description,
+      formatBRL(parseFloat(item.value.replace(',', '.')))
+    ]);
+
+    autoTable(doc, {
+      startY: 100,
+      head: [['Descrição', 'Valor']],
+      body: tableData,
+      theme: 'striped',
+      headStyles: { fillColor: [0, 0, 0] },
+      foot: [['TOTAL', formatBRL(expense.amount)]],
+      footStyles: { fillColor: [240, 240, 240], textColor: [0, 0, 0], fontStyle: 'bold' }
+    });
+
+    doc.save(`viagem_${expense.user_name}_${format(new Date(), 'ddMMyy')}.pdf`);
+  };
+
   const filtered = expenses.filter(e => 
     (e.title || '').toLowerCase().includes(search.toLowerCase()) ||
     e.user_name?.toLowerCase().includes(search.toLowerCase()) ||
@@ -275,6 +327,14 @@ const FinanceiroRegistros: React.FC = () => {
                       <TableCell className="capitalize text-xs">{e.category}</TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-2">
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            className="text-primary hover:text-primary/80"
+                            onClick={() => exportToPDF(e)}
+                          >
+                            <FileText className="h-4 w-4" />
+                          </Button>
                           <AlertDialog>
                             <AlertDialogTrigger asChild>
                               <Button variant="ghost" size="sm" className="text-red-500 hover:text-red-600">
@@ -315,17 +375,13 @@ const FinanceiroRegistros: React.FC = () => {
             </DialogHeader>
             <div className="grid gap-4 py-4">
               <div className="grid gap-2">
-                <Label htmlFor="user">Colaborador</Label>
-                <Select value={newExpense.user_id} onValueChange={(val) => setNewExpense({ ...newExpense, user_id: val })}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione o colaborador" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {profiles.map(p => (
-                      <SelectItem key={p.id} value={p.id}>{p.full_name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <Label htmlFor="title">Título da Viagem</Label>
+                <Input
+                  id="title"
+                  placeholder="Ex: Convenção 2024, Visita Filial..."
+                  value={newExpense.title}
+                  onChange={(e) => setNewExpense({ ...newExpense, title: e.target.value })}
+                />
               </div>
 
               <div className="grid grid-cols-2 gap-4">
@@ -349,15 +405,6 @@ const FinanceiroRegistros: React.FC = () => {
                 </div>
               </div>
 
-              <div className="grid gap-2">
-                <Label htmlFor="title">Título da Viagem (Opcional)</Label>
-                <Input
-                  id="title"
-                  placeholder="Ex: Convenção 2024, Visita Filial..."
-                  value={newExpense.title}
-                  onChange={(e) => setNewExpense({ ...newExpense, title: e.target.value })}
-                />
-              </div>
 
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
