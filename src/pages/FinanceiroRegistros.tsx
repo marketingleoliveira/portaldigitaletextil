@@ -327,6 +327,14 @@ const FinanceiroRegistros: React.FC = () => {
                       <TableCell className="capitalize text-xs">{e.category}</TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-2">
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            className="text-primary hover:text-primary/80"
+                            onClick={() => exportToPDF(e)}
+                          >
+                            <FileText className="h-4 w-4" />
+                          </Button>
                           <AlertDialog>
                             <AlertDialogTrigger asChild>
                               <Button variant="ghost" size="sm" className="text-red-500 hover:text-red-600">
@@ -367,17 +375,13 @@ const FinanceiroRegistros: React.FC = () => {
             </DialogHeader>
             <div className="grid gap-4 py-4">
               <div className="grid gap-2">
-                <Label htmlFor="user">Colaborador</Label>
-                <Select value={newExpense.user_id} onValueChange={(val) => setNewExpense({ ...newExpense, user_id: val })}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione o colaborador" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {profiles.map(p => (
-                      <SelectItem key={p.id} value={p.id}>{p.full_name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <Label htmlFor="title">Título da Viagem</Label>
+                <Input
+                  id="title"
+                  placeholder="Ex: Convenção 2024, Visita Filial..."
+                  value={newExpense.title}
+                  onChange={(e) => setNewExpense({ ...newExpense, title: e.target.value })}
+                />
               </div>
 
               <div className="grid grid-cols-2 gap-4">
@@ -401,15 +405,6 @@ const FinanceiroRegistros: React.FC = () => {
                 </div>
               </div>
 
-              <div className="grid gap-2">
-                <Label htmlFor="title">Título da Viagem (Opcional)</Label>
-                <Input
-                  id="title"
-                  placeholder="Ex: Convenção 2024, Visita Filial..."
-                  value={newExpense.title}
-                  onChange={(e) => setNewExpense({ ...newExpense, title: e.target.value })}
-                />
-              </div>
 
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
