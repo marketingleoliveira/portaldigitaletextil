@@ -179,6 +179,18 @@ const FinanceiroRegistros: React.FC = () => {
     }
   };
 
+  const deleteExpense = async (id: string) => {
+    try {
+      const { error } = await supabase.from('travel_expenses').delete().eq('id', id);
+      if (error) throw error;
+      toast.success('Registro excluído');
+      setExpenses(prev => prev.filter(e => e.id !== id));
+    } catch (e: any) {
+      toast.error('Erro ao excluir: ' + e.message);
+    }
+  };
+
+
   const exportToPDF = (expense: TravelExpense) => {
     const doc = new jsPDF();
     const logoUrl = "/lovable-uploads/4976451e-e283-4977-96a9-51a87754324c.png";
