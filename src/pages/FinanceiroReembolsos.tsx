@@ -1098,7 +1098,109 @@ const FinanceiroReembolsos: React.FC = () => {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Editar solicitação (admin) */}
+      <Dialog open={!!editReport} onOpenChange={(o) => { if (!o) setEditReport(null); }}>
+        <DialogContent
+          className="max-w-lg"
+          onInteractOutside={(e) => e.preventDefault()}
+          onEscapeKeyDown={(e) => e.preventDefault()}
+        >
+          <DialogHeader>
+            <DialogTitle>Editar solicitação de reembolso</DialogTitle>
+            <DialogDescription>
+              Ajuste os dados da viagem, inclusive o valor adiantado pela empresa.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div>
+              <Label>Título da viagem *</Label>
+              <Input value={editForm.title} onChange={(e) => setEditForm(p => ({ ...p, title: e.target.value }))} />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label>Destino</Label>
+                <Input value={editForm.trip_destination} onChange={(e) => setEditForm(p => ({ ...p, trip_destination: e.target.value }))} />
+              </div>
+              <div>
+                <Label>Valor adiantado pela empresa (R$)</Label>
+                <Input inputMode="decimal" placeholder="0,00" value={editForm.company_advance}
+                  onChange={(e) => setEditForm(p => ({ ...p, company_advance: e.target.value }))} />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label>Data de início</Label>
+                <Input type="date" value={editForm.trip_start_date} onChange={(e) => setEditForm(p => ({ ...p, trip_start_date: e.target.value }))} />
+              </div>
+              <div>
+                <Label>Data de término</Label>
+                <Input type="date" value={editForm.trip_end_date} onChange={(e) => setEditForm(p => ({ ...p, trip_end_date: e.target.value }))} />
+              </div>
+            </div>
+            <div>
+              <Label>Observações</Label>
+              <Input value={editForm.notes} onChange={(e) => setEditForm(p => ({ ...p, notes: e.target.value }))} />
+            </div>
+            <div className="flex justify-end gap-2 pt-2">
+              <Button variant="outline" onClick={() => setEditReport(null)} disabled={savingReport}>Cancelar</Button>
+              <Button onClick={saveEditReport} disabled={savingReport}>
+                {savingReport && <Loader2 className="w-4 h-4 mr-1 animate-spin" />}
+                Salvar alterações
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Editar item de despesa (admin) */}
+      <Dialog open={!!editItem} onOpenChange={(o) => { if (!o) setEditItem(null); }}>
+        <DialogContent
+          className="max-w-md"
+          onInteractOutside={(e) => e.preventDefault()}
+          onEscapeKeyDown={(e) => e.preventDefault()}
+        >
+          <DialogHeader>
+            <DialogTitle>Editar item de despesa</DialogTitle>
+            <DialogDescription>Atualize categoria, descrição, valor ou data do gasto.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div>
+              <Label>Categoria</Label>
+              <Select value={itemForm.category} onValueChange={(v) => setItemForm(p => ({ ...p, category: v }))}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="alimentacao">Alimentação</SelectItem>
+                  <SelectItem value="transporte">Transporte</SelectItem>
+                  <SelectItem value="hospedagem">Hospedagem</SelectItem>
+                  <SelectItem value="combustivel">Combustível</SelectItem>
+                  <SelectItem value="outros">Outros</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>Descrição</Label>
+              <Input value={itemForm.description} onChange={(e) => setItemForm(p => ({ ...p, description: e.target.value }))} />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label>Valor (R$)</Label>
+                <Input inputMode="decimal" value={itemForm.amount} onChange={(e) => setItemForm(p => ({ ...p, amount: e.target.value }))} />
+              </div>
+              <div>
+                <Label>Data</Label>
+                <Input type="date" value={itemForm.expense_date} onChange={(e) => setItemForm(p => ({ ...p, expense_date: e.target.value }))} />
+              </div>
+            </div>
+            <div className="flex justify-end gap-2 pt-2">
+              <Button variant="outline" onClick={() => setEditItem(null)}>Cancelar</Button>
+              <Button onClick={saveEditItem}>Salvar item</Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </DashboardLayout>
+
   );
 };
 
