@@ -16,7 +16,7 @@ import {
 } from '@/components/ui/dialog';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
-  Wallet, Search, Loader2, ExternalLink, CheckCircle2, XCircle, Clock, BadgeDollarSign, FileDown, Trash2, Merge, Plus, FileText,
+  Wallet, Search, Loader2, ExternalLink, CheckCircle2, XCircle, Clock, BadgeDollarSign, FileDown, Trash2, Merge, Plus, FileText, Pencil,
 } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
@@ -809,10 +809,16 @@ const FinanceiroReembolsos: React.FC = () => {
                                 </SelectContent>
                               </Select>
                               {isDev && (
+                                <Button size="sm" variant="ghost" className="h-8 px-2" title="Editar solicitação" onClick={() => openEditReport(r)}>
+                                  <Pencil className="w-4 h-4" />
+                                </Button>
+                              )}
+                              {isDev && (
                                 <Button size="sm" variant="ghost" className="h-8 px-2" title="Adicionar comprovante" onClick={() => openAddItem(r)}>
                                   <Plus className="w-4 h-4" />
                                 </Button>
                               )}
+
                               <Select value={r.status} onValueChange={(v) => updateStatus(r.id, v as ExpenseStatus)}>
                                 <SelectTrigger className="w-[130px] h-8 text-xs">
                                   <SelectValue />
@@ -924,6 +930,12 @@ const FinanceiroReembolsos: React.FC = () => {
                                   </a>
                                 )}
                                 {isDev && (
+                                  <Button variant="ghost" size="sm" className="h-8 w-8 p-0" title="Editar item" onClick={() => openEditItem(it)}>
+                                    <Pencil className="w-3.5 h-3.5" />
+                                  </Button>
+                                )}
+                                {isDev && (
+
                                   <AlertDialog>
                                     <AlertDialogTrigger asChild>
                                       <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-red-500 hover:text-red-600">
