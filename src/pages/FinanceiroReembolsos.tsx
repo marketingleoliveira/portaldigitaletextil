@@ -88,6 +88,83 @@ const FinanceiroReembolsos: React.FC = () => {
   });
   const [savingItem, setSavingItem] = useState(false);
 
+  // --- Edição administrativa de solicitações (dev, diretoria, gerência, financeiro) ---
+  const [editReport, setEditReport] = useState<Report | null>(null);
+  const [editForm, setEditForm] = useState({
+    title: '', trip_destination: '', trip_start_date: '', trip_end_date: '', company_advance: '', notes: '',
+  });
+  const [savingReport, setSavingReport] = useState(false);
+
+  const openEditReport = (r: Report) => {
+    setEditReport(r);
+    setEditForm({
+      title: r.title || '',
+      trip_destination: r.trip_destination || '',
+      trip_start_date: r.trip_start_date || '',
+      trip_end_date: r.trip_end_date || '',
+      company_advance: String(r.company_advance ?? ''),
+      notes: r.notes || '',
+    });
+  };
+
+  const saveEditReport = async () => {
+    if (!editReport) return;
+    if (!editForm.title.trim()) { toast.error('Informe o título da viagem'); return; }
+    setSavingReport(true);
+    const patch = {
+      title: editForm.title.trim(),
+      trip_destination: editForm.trip_destination.trim() || null,
+      trip_start_date: editForm.trip_start_date || null,
+      trip_end_date: editForm.trip_end_date || null,
+      company_advance: parseFloat(String(editForm.company_advance).replace(',', '.')) || 0,
+      notes: editForm.notes.trim() || null,
+    };
+    const { error } = await supabase.from('expense_reports').update(patch).eq('id', editReport.id);
+    setSavingReport(false);
+    if (error) { toast.error('Erro ao salvar: ' + error.message); return; }
+    toast.success('Solicitação atualizada');
+    setReports(prev => prev.map(r => r.id === editReport.id ? { ...r, ...patch } as Report : r));
+    setDetailReport(prev => prev && prev.id === editReport.id ? { ...prev, ...patch } as Report : prev);
+    setEditReport(null);
+  };
+
+  // --- Edição de itens de despesa ---
+  const [editItem, setEditItem] = useState<Item | null>(null);
+  const [itemForm, setItemForm] = useState({ category: 'alimentacao', description: '', amount: '', expense_date: '' });
+
+  const openEditItem = (it: Item) => {
+    setEditItem(it);
+    setItemForm({
+      category: it.category || 'alimentacao',
+      description: it.description || '',
+      amount: String(it.amount ?? ''),
+      expense_date: it.expense_date || '',
+    });
+  };
+
+  const saveEditItem = async () => {
+    if (!editItem) return;
+    const patch = {
+      category: itemForm.category,
+      description: itemForm.description.trim() || null,
+      amount: parseFloat(String(itemForm.amount).replace(',', '.')) || 0,
+      expense_date: itemForm.expense_date || null,
+    };
+    const { error } = await supabase.from('expense_items').update(patch).eq('id', editItem.id);
+    if (error) { toast.error('Erro ao salvar item: ' + error.message); return; }
+    toast.success('Item atualizado');
+    const reportId = editItem.report_id;
+    setItems(prev => {
+      const list = (prev[reportId] || []).map(i => i.id === editItem.id ? { ...i, ...patch } as Item : i);
+      const total = list.reduce((s, i) => s + Number(i.amount || 0), 0);
+      setReports(rs => rs.map(r => r.id === reportId ? { ...r, total_spent: total } : r));
+      setDetailReport(d => d && d.id === reportId ? { ...d, total_spent: total } : d);
+      return { ...prev, [reportId]: list };
+    });
+    setEditItem(null);
+  };
+
+
   const toggleSelect = (id: string) => {
     setSelected(prev => {
       const n = new Set(prev);
