@@ -16,7 +16,7 @@ import {
 } from '@/components/ui/dialog';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
-  Wallet, Search, Loader2, ExternalLink, CheckCircle2, XCircle, Clock, BadgeDollarSign, FileDown, Trash2, Merge, Plus, FileText,
+  Wallet, Search, Loader2, ExternalLink, CheckCircle2, XCircle, Clock, BadgeDollarSign, FileDown, Trash2, Merge, Plus, FileText, Pencil,
 } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
@@ -87,6 +87,83 @@ const FinanceiroReembolsos: React.FC = () => {
     category: 'alimentacao', description: '', amount: '', expense_date: format(new Date(), 'yyyy-MM-dd'), file: null,
   });
   const [savingItem, setSavingItem] = useState(false);
+
+  // --- Edição administrativa de solicitações (dev, diretoria, gerência, financeiro) ---
+  const [editReport, setEditReport] = useState<Report | null>(null);
+  const [editForm, setEditForm] = useState({
+    title: '', trip_destination: '', trip_start_date: '', trip_end_date: '', company_advance: '', notes: '',
+  });
+  const [savingReport, setSavingReport] = useState(false);
+
+  const openEditReport = (r: Report) => {
+    setEditReport(r);
+    setEditForm({
+      title: r.title || '',
+      trip_destination: r.trip_destination || '',
+      trip_start_date: r.trip_start_date || '',
+      trip_end_date: r.trip_end_date || '',
+      company_advance: String(r.company_advance ?? ''),
+      notes: r.notes || '',
+    });
+  };
+
+  const saveEditReport = async () => {
+    if (!editReport) return;
+    if (!editForm.title.trim()) { toast.error('Informe o título da viagem'); return; }
+    setSavingReport(true);
+    const patch = {
+      title: editForm.title.trim(),
+      trip_destination: editForm.trip_destination.trim() || null,
+      trip_start_date: editForm.trip_start_date || null,
+      trip_end_date: editForm.trip_end_date || null,
+      company_advance: parseFloat(String(editForm.company_advance).replace(',', '.')) || 0,
+      notes: editForm.notes.trim() || null,
+    };
+    const { error } = await supabase.from('expense_reports').update(patch).eq('id', editReport.id);
+    setSavingReport(false);
+    if (error) { toast.error('Erro ao salvar: ' + error.message); return; }
+    toast.success('Solicitação atualizada');
+    setReports(prev => prev.map(r => r.id === editReport.id ? { ...r, ...patch } as Report : r));
+    setDetailReport(prev => prev && prev.id === editReport.id ? { ...prev, ...patch } as Report : prev);
+    setEditReport(null);
+  };
+
+  // --- Edição de itens de despesa ---
+  const [editItem, setEditItem] = useState<Item | null>(null);
+  const [itemForm, setItemForm] = useState({ category: 'alimentacao', description: '', amount: '', expense_date: '' });
+
+  const openEditItem = (it: Item) => {
+    setEditItem(it);
+    setItemForm({
+      category: it.category || 'alimentacao',
+      description: it.description || '',
+      amount: String(it.amount ?? ''),
+      expense_date: it.expense_date || '',
+    });
+  };
+
+  const saveEditItem = async () => {
+    if (!editItem) return;
+    const patch = {
+      category: itemForm.category,
+      description: itemForm.description.trim() || null,
+      amount: parseFloat(String(itemForm.amount).replace(',', '.')) || 0,
+      expense_date: itemForm.expense_date || null,
+    };
+    const { error } = await supabase.from('expense_items').update(patch).eq('id', editItem.id);
+    if (error) { toast.error('Erro ao salvar item: ' + error.message); return; }
+    toast.success('Item atualizado');
+    const reportId = editItem.report_id;
+    setItems(prev => {
+      const list = (prev[reportId] || []).map(i => i.id === editItem.id ? { ...i, ...patch } as Item : i);
+      const total = list.reduce((s, i) => s + Number(i.amount || 0), 0);
+      setReports(rs => rs.map(r => r.id === reportId ? { ...r, total_spent: total } : r));
+      setDetailReport(d => d && d.id === reportId ? { ...d, total_spent: total } : d);
+      return { ...prev, [reportId]: list };
+    });
+    setEditItem(null);
+  };
+
 
   const toggleSelect = (id: string) => {
     setSelected(prev => {
@@ -732,10 +809,16 @@ const FinanceiroReembolsos: React.FC = () => {
                                 </SelectContent>
                               </Select>
                               {isDev && (
+                                <Button size="sm" variant="ghost" className="h-8 px-2" title="Editar solicitação" onClick={() => openEditReport(r)}>
+                                  <Pencil className="w-4 h-4" />
+                                </Button>
+                              )}
+                              {isDev && (
                                 <Button size="sm" variant="ghost" className="h-8 px-2" title="Adicionar comprovante" onClick={() => openAddItem(r)}>
                                   <Plus className="w-4 h-4" />
                                 </Button>
                               )}
+
                               <Select value={r.status} onValueChange={(v) => updateStatus(r.id, v as ExpenseStatus)}>
                                 <SelectTrigger className="w-[130px] h-8 text-xs">
                                   <SelectValue />
@@ -793,6 +876,14 @@ const FinanceiroReembolsos: React.FC = () => {
                 </DialogDescription>
               </DialogHeader>
               <div className="space-y-4">
+                {isDev && (
+                  <div className="flex justify-end">
+                    <Button size="sm" variant="outline" className="gap-1" onClick={() => openEditReport(detailReport)}>
+                      <Pencil className="w-3.5 h-3.5" /> Editar dados da solicitação
+                    </Button>
+                  </div>
+                )}
+
                 <div className="grid grid-cols-3 gap-2 rounded-lg border bg-muted/40 p-3">
                   <div>
                     <p className="text-[11px] text-muted-foreground uppercase">Adiantado</p>
@@ -847,6 +938,12 @@ const FinanceiroReembolsos: React.FC = () => {
                                   </a>
                                 )}
                                 {isDev && (
+                                  <Button variant="ghost" size="sm" className="h-8 w-8 p-0" title="Editar item" onClick={() => openEditItem(it)}>
+                                    <Pencil className="w-3.5 h-3.5" />
+                                  </Button>
+                                )}
+                                {isDev && (
+
                                   <AlertDialog>
                                     <AlertDialogTrigger asChild>
                                       <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-red-500 hover:text-red-600">
@@ -1009,7 +1106,109 @@ const FinanceiroReembolsos: React.FC = () => {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Editar solicitação (admin) */}
+      <Dialog open={!!editReport} onOpenChange={(o) => { if (!o) setEditReport(null); }}>
+        <DialogContent
+          className="max-w-lg"
+          onInteractOutside={(e) => e.preventDefault()}
+          onEscapeKeyDown={(e) => e.preventDefault()}
+        >
+          <DialogHeader>
+            <DialogTitle>Editar solicitação de reembolso</DialogTitle>
+            <DialogDescription>
+              Ajuste os dados da viagem, inclusive o valor adiantado pela empresa.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div>
+              <Label>Título da viagem *</Label>
+              <Input value={editForm.title} onChange={(e) => setEditForm(p => ({ ...p, title: e.target.value }))} />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label>Destino</Label>
+                <Input value={editForm.trip_destination} onChange={(e) => setEditForm(p => ({ ...p, trip_destination: e.target.value }))} />
+              </div>
+              <div>
+                <Label>Valor adiantado pela empresa (R$)</Label>
+                <Input inputMode="decimal" placeholder="0,00" value={editForm.company_advance}
+                  onChange={(e) => setEditForm(p => ({ ...p, company_advance: e.target.value }))} />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label>Data de início</Label>
+                <Input type="date" value={editForm.trip_start_date} onChange={(e) => setEditForm(p => ({ ...p, trip_start_date: e.target.value }))} />
+              </div>
+              <div>
+                <Label>Data de término</Label>
+                <Input type="date" value={editForm.trip_end_date} onChange={(e) => setEditForm(p => ({ ...p, trip_end_date: e.target.value }))} />
+              </div>
+            </div>
+            <div>
+              <Label>Observações</Label>
+              <Input value={editForm.notes} onChange={(e) => setEditForm(p => ({ ...p, notes: e.target.value }))} />
+            </div>
+            <div className="flex justify-end gap-2 pt-2">
+              <Button variant="outline" onClick={() => setEditReport(null)} disabled={savingReport}>Cancelar</Button>
+              <Button onClick={saveEditReport} disabled={savingReport}>
+                {savingReport && <Loader2 className="w-4 h-4 mr-1 animate-spin" />}
+                Salvar alterações
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Editar item de despesa (admin) */}
+      <Dialog open={!!editItem} onOpenChange={(o) => { if (!o) setEditItem(null); }}>
+        <DialogContent
+          className="max-w-md"
+          onInteractOutside={(e) => e.preventDefault()}
+          onEscapeKeyDown={(e) => e.preventDefault()}
+        >
+          <DialogHeader>
+            <DialogTitle>Editar item de despesa</DialogTitle>
+            <DialogDescription>Atualize categoria, descrição, valor ou data do gasto.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div>
+              <Label>Categoria</Label>
+              <Select value={itemForm.category} onValueChange={(v) => setItemForm(p => ({ ...p, category: v }))}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="alimentacao">Alimentação</SelectItem>
+                  <SelectItem value="transporte">Transporte</SelectItem>
+                  <SelectItem value="hospedagem">Hospedagem</SelectItem>
+                  <SelectItem value="combustivel">Combustível</SelectItem>
+                  <SelectItem value="outros">Outros</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>Descrição</Label>
+              <Input value={itemForm.description} onChange={(e) => setItemForm(p => ({ ...p, description: e.target.value }))} />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label>Valor (R$)</Label>
+                <Input inputMode="decimal" value={itemForm.amount} onChange={(e) => setItemForm(p => ({ ...p, amount: e.target.value }))} />
+              </div>
+              <div>
+                <Label>Data</Label>
+                <Input type="date" value={itemForm.expense_date} onChange={(e) => setItemForm(p => ({ ...p, expense_date: e.target.value }))} />
+              </div>
+            </div>
+            <div className="flex justify-end gap-2 pt-2">
+              <Button variant="outline" onClick={() => setEditItem(null)}>Cancelar</Button>
+              <Button onClick={saveEditItem}>Salvar item</Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </DashboardLayout>
+
   );
 };
 
