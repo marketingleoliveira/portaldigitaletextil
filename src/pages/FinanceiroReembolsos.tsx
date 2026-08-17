@@ -164,6 +164,42 @@ const FinanceiroReembolsos: React.FC = () => {
     setEditItem(null);
   };
 
+  // --- Adição de novos itens em solicitações já criadas ---
+  const [addItemFor, setAddItemFor] = useState<string | null>(null);
+
+  const openAddItem = (reportId: string) => {
+    setEditItem(null);
+    setItemForm({ category: 'alimentacao', description: '', amount: '', expense_date: '' });
+    setAddItemFor(reportId);
+  };
+
+  const saveNewItem = async () => {
+    if (!addItemFor) return;
+    const amount = parseFloat(String(itemForm.amount).replace(',', '.')) || 0;
+    if (amount <= 0) { toast.error('Informe um valor maior que zero'); return; }
+    const payload = {
+      report_id: addItemFor,
+      category: itemForm.category,
+      description: itemForm.description.trim() || null,
+      amount,
+      expense_date: itemForm.expense_date || null,
+    };
+    const { data, error } = await supabase.from('expense_items').insert(payload).select().single();
+    if (error) { toast.error('Erro ao adicionar item: ' + error.message); return; }
+    toast.success('Item adicionado');
+    const reportId = addItemFor;
+    setItems(prev => {
+      const list = [...(prev[reportId] || []), data as Item];
+      const total = list.reduce((s, i) => s + Number(i.amount || 0), 0);
+      setReports(rs => rs.map(r => r.id === reportId ? { ...r, total_spent: total } : r));
+      setDetailReport(d => d && d.id === reportId ? { ...d, total_spent: total } : d);
+      return { ...prev, [reportId]: list };
+    });
+    setAddItemFor(null);
+  };
+
+
+
 
   const toggleSelect = (id: string) => {
     setSelected(prev => {
