@@ -876,6 +876,14 @@ const FinanceiroReembolsos: React.FC = () => {
                 </DialogDescription>
               </DialogHeader>
               <div className="space-y-4">
+                {isDev && (
+                  <div className="flex justify-end">
+                    <Button size="sm" variant="outline" className="gap-1" onClick={() => openEditReport(detailReport)}>
+                      <Pencil className="w-3.5 h-3.5" /> Editar dados da solicitação
+                    </Button>
+                  </div>
+                )}
+
                 <div className="grid grid-cols-3 gap-2 rounded-lg border bg-muted/40 p-3">
                   <div>
                     <p className="text-[11px] text-muted-foreground uppercase">Adiantado</p>
