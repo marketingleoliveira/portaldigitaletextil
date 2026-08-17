@@ -165,6 +165,9 @@ const FinanceiroReembolsos: React.FC = () => {
   };
 
 
+
+
+
   const toggleSelect = (id: string) => {
     setSelected(prev => {
       const n = new Set(prev);
@@ -909,7 +912,15 @@ const FinanceiroReembolsos: React.FC = () => {
                 )}
 
                 <div>
-                  <p className="text-xs text-muted-foreground uppercase mb-2">Itens ({(items[detailReport.id] || []).length})</p>
+                  <div className="flex items-center justify-between mb-2">
+                    <p className="text-xs text-muted-foreground uppercase">Itens ({(items[detailReport.id] || []).length})</p>
+                    {isDev && (
+                      <Button size="sm" variant="outline" className="h-7 gap-1 text-xs" onClick={() => openAddItem(detailReport)}>
+                        <Plus className="w-3.5 h-3.5" /> Adicionar item
+                      </Button>
+                    )}
+                  </div>
+
                   <div className="rounded-lg border">
                     <Table>
                       <TableHeader>
