@@ -24,6 +24,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { isDevLevel } from "@/types/auth";
 
 const HOURS = Array.from({ length: 13 }, (_, i) => i + 7); // 7h to 19h
 
