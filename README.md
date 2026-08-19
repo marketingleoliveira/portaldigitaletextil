@@ -1,165 +1,46 @@
-# Portal Digitale Têxtil ( VENDAS ) 
+# Portal Digitale Têxtil (Vendas)
 
-Título do Projeto: Portal Comercial Digitale Têxtil
+Sistema web corporativo com autenticação hierárquica e controle de acesso granular para a gestão comercial, produtos e força de vendas da **Digitale Têxtil**.
 
-Descrição do Sistema:
+🌐 **Portfólio do Desenvolvedor:** [porfolioleoliveira.lovable.app](https://porfolioleoliveira.lovable.app)
 
-Crie um sistema de portal web com autenticação hierárquica para a empresa Digitale Têxtil, composto por dois módulos principais:
+---
 
-1. Painel de Administração
-Acesso exclusivo via login administrativo
+## 📌 Sobre o Projeto
 
-Funcionalidades:
+O **Portal-Digitale** foi desenvolvido para centralizar o ecossistema comercial da empresa em uma plataforma segura, responsiva e intuitiva. O sistema é dividido em módulos com permissões baseadas no perfil do usuário:
 
-Gerenciamento de Usuários:
+* **Administrador:** Acesso total à gestão de usuários, logs de atividade, controle de permissões e cadastro/organização de catálogo e preços.
+* **Gerente:** Acesso a dados comerciais, relatórios, métricas de desempenho e conteúdos destinados à gerência e vendedores.
+* **Vendedor:** Interface simplificada focada em consulta de produtos liberados, downloads de fichas técnicas/imagens e acompanhamento de catálogo.
 
-Cadastro de novos vendedores e gerentes
+---
 
-Campos obrigatórios: nome completo, email, cargo (dropdown), telefone
+## ⚡ Principais Funcionalidades
 
-Geração automática de senha inicial
+* **Gerenciamento de Usuários:** Cadastro completo, redefinição de senhas e atribuição de cargos (Admin, Gerente, Vendedor).
+* **Gestão de Conteúdo e Produtos:** Cadastro de produtos com imagens, fichas técnicas em PDF, preços, condições comerciais e tags de visibilidade.
+* **Autenticação e Segurança:** Sistema de login com hash de senha, controle de tempo de sessão e auditoria de ações via logs.
+* **Navegação e UX:** Interface responsiva em layout dark/azul corporativo, sidebar de navegação, busca avançada e filtros por relevância/rank.
 
-Ativação/desativação de contas
+---
 
-Reset de senha
+## 🛠️ Tecnologias Utilizadas
 
-Sistema de Hierarquia (Ranks):
+* **Frontend:** TypeScript, React, Vite, Tailwind CSS, shadcn/ui
+* **Backend & Banco de Dados:** Supabase (PL/pgSQL)
+* **Gerenciador de Pacotes:** Bun / npm
+* **Desenvolvimento Acelerado:** Lovable
 
-3 níveis de acesso:
+---
 
-Administrador - Acesso total
+## 🚀 Como Executar o Projeto
 
-Gerente - Acesso a dados essenciais + conteúdo marcado como "gerência"
+### Pré-requisitos
+Certifique-se de ter o **Node.js** e o **npm** (ou **Bun**) instalados em sua máquina.
 
-Vendedor - Acesso apenas ao conteúdo liberado especificamente
+### Passo a Passo
 
-Gerenciamento de Conteúdo/Produtos:
-
-Cadastro de produtos com:
-
-Nome do produto
-
-Descrição
-
-Imagens/catálogo digital
-
-Fichas técnicas (PDF)
-
-Preços e condições comerciais
-
-Sistema de Tags de Visibilidade:
-
-Checkbox/multiselect para definir quais ranks podem visualizar
-
-Ex: "Vendedor", "Gerente", "Administrador"
-
-Organização por categorias/coleções
-
-Dashboard Administrativo:
-
-Estatísticas de acesso
-
-Logs de atividades
-
-Controle de visualizações por rank
-
-2. Portal de Acesso para Vendedores/Gerentes
-Tela de login com email e senha
-
-Interface responsiva e clean
-
-Após login, redirecionamento baseado no rank:
-
-Para VENDEDORES:
-
-Dashboard simplificado
-
-Acesso apenas aos produtos/conteúdos marcados como "visível para vendedores"
-
-Área de downloads restrita
-
-Perfil pessoal para alteração de senha
-
-Para GERENTES:
-
-Dashboard com métricas essenciais
-
-Acesso a produtos marcados como "visível para gerentes" + conteúdo de vendedores
-
-Relatórios básicos
-
-Ferramentas de análise comercial
-
-Para ADMINISTRADORES:
-
-Link direto para o Painel de Administração
-
-Acesso total a todo o conteúdo
-
-Controle de permissões
-
-3. Requisitos Técnicos
-Autenticação Segura: Sistema de login com hash de senhas
-
-Sessões: Controle de tempo de sessão
-
-Responsividade: Mobile-friendly
-
-Área de Downloads: Organizada por categorias, com filtro por rank
-
-Sistema de Notificações: Para comunicações internas (apenas para ranks permitidos)
-
-Busca: Funcionalidade de busca com filtros por rank
-
-4. Design e Interface
-Cores principais: Azul corporativo (#1e40af) e branco
-
-Logo da Digitale Têxtil no header
-
-Layout intuitivo com sidebar navigation
-
-Cards para produtos com indicador visual do nível de acesso
-
-5. Fluxos Principais
-Admin cadastra usuário → usuário recebe credenciais → faz login → vê conteúdo conforme seu rank
-
-Admin cadastra produto → seleciona ranks de visualização → produto aparece apenas para os ranks selecionados
-
-Gerente acessa → vê conteúdo de gerente + conteúdo de vendedor
-
-Vendedor acessa → vê apenas conteúdo liberado para vendedores
-
-Observações para a IA Lovable.dev:
-
-Criar estrutura de banco de dados com tabelas: users, products, categories, permissions, access_logs
-
-Implementar middleware de verificação de rank em todas as rotas
-
-Criar sistema de permissões baseado em roles (RBAC)
-
-Gerar interfaces separadas para cada nível de acesso
-
-Incluir exemplos de dados mock para teste
-
-This project was built with [Lovable](https://lovable.dev).
-
-**Live app**: https://portaldigitaletextil.lovable.app
-
-## Build with Lovable
-
-Continue developing this project in the [Lovable editor](https://lovable.dev/projects/66a0086f-3a9f-4b49-95c6-10c5f61c45e0).
-
-- **Ship faster**: describe what you want to build and Lovable handles the code.
-- **Stay in sync**: every change made in Lovable is committed straight to this repository.
-- **Full ownership**: this code is yours. Push to `main` on GitHub and your changes sync back into Lovable, ready for your next prompt.
-
-## Development
-
-Prefer working locally? You need Node.js and npm — [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating).
-
-```sh
-git clone <this-repository-url>
-cd <repository-name>
-npm i
-npm run dev
-```
+1. **Clonar o repositório:**
+   ```bash
+   git clone [https://github.com/RennanLucas/Portal-Digitale.git](https://github.com/RennanLucas/Portal-Digitale.git)
