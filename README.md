@@ -1,73 +1,165 @@
-# Welcome to your Lovable project
+# Portal Digitale Têxtil ( VENDAS ) 
 
-## Project info
+Título do Projeto: Portal Comercial Digitale Têxtil
 
-**URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
+Descrição do Sistema:
 
-## How can I edit this code?
+Crie um sistema de portal web com autenticação hierárquica para a empresa Digitale Têxtil, composto por dois módulos principais:
 
-There are several ways of editing your application.
+1. Painel de Administração
+Acesso exclusivo via login administrativo
 
-**Use Lovable**
+Funcionalidades:
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and start prompting.
+Gerenciamento de Usuários:
 
-Changes made via Lovable will be committed automatically to this repo.
+Cadastro de novos vendedores e gerentes
 
-**Use your preferred IDE**
+Campos obrigatórios: nome completo, email, cargo (dropdown), telefone
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+Geração automática de senha inicial
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+Ativação/desativação de contas
 
-Follow these steps:
+Reset de senha
+
+Sistema de Hierarquia (Ranks):
+
+3 níveis de acesso:
+
+Administrador - Acesso total
+
+Gerente - Acesso a dados essenciais + conteúdo marcado como "gerência"
+
+Vendedor - Acesso apenas ao conteúdo liberado especificamente
+
+Gerenciamento de Conteúdo/Produtos:
+
+Cadastro de produtos com:
+
+Nome do produto
+
+Descrição
+
+Imagens/catálogo digital
+
+Fichas técnicas (PDF)
+
+Preços e condições comerciais
+
+Sistema de Tags de Visibilidade:
+
+Checkbox/multiselect para definir quais ranks podem visualizar
+
+Ex: "Vendedor", "Gerente", "Administrador"
+
+Organização por categorias/coleções
+
+Dashboard Administrativo:
+
+Estatísticas de acesso
+
+Logs de atividades
+
+Controle de visualizações por rank
+
+2. Portal de Acesso para Vendedores/Gerentes
+Tela de login com email e senha
+
+Interface responsiva e clean
+
+Após login, redirecionamento baseado no rank:
+
+Para VENDEDORES:
+
+Dashboard simplificado
+
+Acesso apenas aos produtos/conteúdos marcados como "visível para vendedores"
+
+Área de downloads restrita
+
+Perfil pessoal para alteração de senha
+
+Para GERENTES:
+
+Dashboard com métricas essenciais
+
+Acesso a produtos marcados como "visível para gerentes" + conteúdo de vendedores
+
+Relatórios básicos
+
+Ferramentas de análise comercial
+
+Para ADMINISTRADORES:
+
+Link direto para o Painel de Administração
+
+Acesso total a todo o conteúdo
+
+Controle de permissões
+
+3. Requisitos Técnicos
+Autenticação Segura: Sistema de login com hash de senhas
+
+Sessões: Controle de tempo de sessão
+
+Responsividade: Mobile-friendly
+
+Área de Downloads: Organizada por categorias, com filtro por rank
+
+Sistema de Notificações: Para comunicações internas (apenas para ranks permitidos)
+
+Busca: Funcionalidade de busca com filtros por rank
+
+4. Design e Interface
+Cores principais: Azul corporativo (#1e40af) e branco
+
+Logo da Digitale Têxtil no header
+
+Layout intuitivo com sidebar navigation
+
+Cards para produtos com indicador visual do nível de acesso
+
+5. Fluxos Principais
+Admin cadastra usuário → usuário recebe credenciais → faz login → vê conteúdo conforme seu rank
+
+Admin cadastra produto → seleciona ranks de visualização → produto aparece apenas para os ranks selecionados
+
+Gerente acessa → vê conteúdo de gerente + conteúdo de vendedor
+
+Vendedor acessa → vê apenas conteúdo liberado para vendedores
+
+Observações para a IA Lovable.dev:
+
+Criar estrutura de banco de dados com tabelas: users, products, categories, permissions, access_logs
+
+Implementar middleware de verificação de rank em todas as rotas
+
+Criar sistema de permissões baseado em roles (RBAC)
+
+Gerar interfaces separadas para cada nível de acesso
+
+Incluir exemplos de dados mock para teste
+
+This project was built with [Lovable](https://lovable.dev).
+
+**Live app**: https://portaldigitaletextil.lovable.app
+
+## Build with Lovable
+
+Continue developing this project in the [Lovable editor](https://lovable.dev/projects/66a0086f-3a9f-4b49-95c6-10c5f61c45e0).
+
+- **Ship faster**: describe what you want to build and Lovable handles the code.
+- **Stay in sync**: every change made in Lovable is committed straight to this repository.
+- **Full ownership**: this code is yours. Push to `main` on GitHub and your changes sync back into Lovable, ready for your next prompt.
+
+## Development
+
+Prefer working locally? You need Node.js and npm — [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating).
 
 ```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
+git clone <this-repository-url>
+cd <repository-name>
 npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
 npm run dev
 ```
-
-**Edit a file directly in GitHub**
-
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
-
-**Use GitHub Codespaces**
-
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
-
-## What technologies are used for this project?
-
-This project is built with:
-
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
-
-## How can I deploy this project?
-
-Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
-
-## Can I connect a custom domain to my Lovable project?
-
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
