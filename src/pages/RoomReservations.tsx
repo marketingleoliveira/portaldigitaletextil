@@ -29,7 +29,8 @@ const HOURS = Array.from({ length: 13 }, (_, i) => i + 7); // 7h to 19h
 
 export default function RoomReservations() {
   const { user } = useAuth();
-  const isDev = user?.role === "dev";
+  // Dev, Diretoria e Gerência têm os mesmos poderes administrativos
+  const isDev = isDevLevel(user?.role);
   const today = startOfDay(new Date());
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [dialogOpen, setDialogOpen] = useState(false);
